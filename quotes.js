@@ -57,7 +57,7 @@ function RunQuotes(afterHours, test)
 /**
  * RunEquities()
  *
- * Obtain and save equity prices
+ * Obtain and save equity prices 
  *
  */
 function RunEquities(sheetID, verbose)
@@ -208,9 +208,9 @@ function RunBoxTradeCandidates(backupRun)
       }
       else
       {
-        // Failed to fetch results
+        // Failed to fetch results 
         Logger.log("[RunBoxTradeCandidates] Could not fetch option chain for <%s> for expirations between <%s> and <%s> days!",
-                    symbol, dteEarliest.toFixed(0), dteLatest.toFixed(0));
+                    underlying, dteEarliest.toFixed(0), dteLatest.toFixed(0));
       }
 
       if (expirations)
@@ -322,7 +322,7 @@ function RunIndexStranglesCandidates()
  *
  */
 function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
-{
+{  
   if (symbols && dte && deltaCall && deltaPut)
   {
     candidates= GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
@@ -341,7 +341,7 @@ function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, v
 /**
  * RunOptions()
  *
- * Obtain and save option prices
+ * Obtain and save option prices 
  *
  */
 function RunOptions(sheetID, verbose)
@@ -367,7 +367,7 @@ function RunOptions(sheetID, verbose)
 /**
  * RunOptionsAfterHours()
  *
- * Obtain and save option prices
+ * Obtain and save option prices 
  *
  */
 function RunOptionsAfterHours(sheetID, verbose)
@@ -429,7 +429,7 @@ function RunOptionsTest(sheetID, verbose)
 /**
  * RefreshPrices()
  *
- * Obtain and save prices
+ * Obtain and save prices 
  *
  */
 function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
@@ -460,7 +460,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
  
   if (pollMinutes == undefined || pollMinutes == null)
   {
-    // Set to default polling interval
+    // Set to default polling interval 
     pollInterval= pollIntervalDefault * minuteToMillisecondConversionFactor;
   }
   else
@@ -614,7 +614,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
     }
     else
     {
-      // Update status
+      // Update status 
       var minutes= (pollInterval-(scriptTime.getTime()-timeStamp)) / minuteToMillisecondConversionFactor;
       SetValueByName(sheetID, checkStatusName, "Invoked too soon (" + minutes.toFixed(2)
       + " minutes remaining) [" + DateToLocaleString(scriptTime) + "]", verbose);
@@ -622,7 +622,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
   }
   else
   {
-    // Update status
+    // Update status 
     SetValueByName(sheetID, checkStatusName, "Market Closed [" + DateToLocaleString(scriptTime) + "]", verbose);
   }
   
@@ -660,7 +660,7 @@ function GetQuotes(id, symbols, labels, urlHead, optionPrices, verbose, test)
 /**
  * UpdatePrices()
  *
- * Save updated prices
+ * Save updated prices 
  *
  */
 function UpdatePrices(symbols, pricesTable, prices, verbose)
@@ -721,7 +721,7 @@ function UpdatePrices(symbols, pricesTable, prices, verbose)
               pricesTable[vIndex][hIndex]= "=hyperlink(\"" + prices[symbols[vIndex][symbolColumn]][labelURL] + "\", " + value + ")";
             }
           }
-        }
+        } 
       }
     }
     else
@@ -732,7 +732,7 @@ function UpdatePrices(symbols, pricesTable, prices, verbose)
         pricesTable[vIndex][hIndex]= "";
       }
     }
-  }
+  }     
           
   // Return updated table
   return pricesTable;
@@ -742,7 +742,7 @@ function UpdatePrices(symbols, pricesTable, prices, verbose)
 /**
  * IsMarketOpen()
  *
- * Is this script running during market hours?
+ * Is this script running during market hours? 
  *
  */
 function IsMarketOpen(id, optionPrices, verbose)
@@ -809,5 +809,5 @@ function ConstructUrlQuote(symbol, urlHead, verbose)
     return urlHead + symbol;
   }
   
-  return null;
+  return null; 
 };

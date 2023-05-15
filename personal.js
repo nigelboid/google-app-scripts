@@ -274,7 +274,7 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, now, verbose, backupRun, confi
   }
   else
   {
-    Logger.log("[UpdateCurrentAnnualSheet] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
+    Logger.log("[UpdateCurrentAnnualSheet] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0)); 
   }
 };
 
@@ -422,12 +422,12 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, now, verbose, 
     }
     else
     {
-      Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the prior year <%s>!", priorYear.toFixed(0));
+      Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the prior year <%s>!", priorYear.toFixed(0)); 
     }
   }
   else
   {
-    Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
+    Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0)); 
   }
 };
 
@@ -478,7 +478,6 @@ function MaintainHistoriesMain(id, verbose)
   var spreadsheet= null;
   var rangeSpecification= "";
   var sheetNames= [];
-  var sheetName= "";
   var range= null;
   var table= null;
   var success= true;
@@ -489,10 +488,10 @@ function MaintainHistoriesMain(id, verbose)
     // We seem to have entries, proceed
     sheetNames= sheetNamesList.split(",");
 
-    for (var index in sheetNames)
+    for (var sheetName of sheetNames)
     {
       // Maintain each sheet listed
-      sheetName= sheetNames[index].trim();
+      sheetName= sheetName.trim();
       rangeSpecification= GetCellValue(id, sheetName, historySpecificationRange, verbose);
       rangeSpecification= sheetName.concat("!", rangeSpecification);
 
@@ -528,9 +527,9 @@ function MaintainHistoriesMain(id, verbose)
           success= false;
           Logger.log("[MaintainHistoriesMain] Could not get range <%s> of spreadsheet <%s>.", rangeSpecification, spreadsheet.getName());
         }
-      }
+      } 
       else
-      {
+      {   
         success= false;
         Logger.log("[MaintainHistoriesMain] Could not open spreadsheet ID <%s>.", id);
       }
@@ -606,7 +605,7 @@ function MaintainHistoriesAnnual(id, verbose)
     }
   }
   else
-  {
+  {   
     success= false;
     Logger.log("[MaintainHistoriesAnnual] Could not open spreadsheet ID <%s>.", id);
   }
@@ -668,7 +667,7 @@ function ReconcilePortfolioHistory(id, verbose)
     }
   }
   else
-  {
+  {   
     success= false;
     Logger.log("[ReconcilePortfolioHistory] Could not open spreadsheet ID <%s>.", id);
   }
@@ -1140,7 +1139,7 @@ function UpdateAllocationSheet(id, now, verbose, confirmNumbers)
   }
   else
   {
-    Logger.log("[UpdateAllocationSheet] Failed to obtain ID of the Allocations (public) sheet!");
+    Logger.log("[UpdateAllocationSheet] Failed to obtain ID of the Allocations (public) sheet!"); 
   }
 };
 
@@ -1151,7 +1150,7 @@ function UpdateAllocationSheet(id, now, verbose, confirmNumbers)
  * Return the ID of the public Allocations sheet
  */
 function GetAllocationSheetID()
-{
+{ 
   //return "1EumQvi51zI0qWVPST2TOXyA6Gbjt0qOr2klj2I8ljfg";
   return "1lB6ndpg16wT14JIOiHtKbs_sdn_ks_qFHJKP5IN6ljg";
 };

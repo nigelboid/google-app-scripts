@@ -1,7 +1,7 @@
 /**
  * Main entry point for the continuous check
  *
- * Checks for fresh data and saves it once it is available
+ * Checks for fresh data and saves it once it is available 
  */
 function RunComEdFrequently()
 {
@@ -44,7 +44,7 @@ function RunComEdFrequently()
             success= Notify(parameters);
           }
         }
-      }
+      }  
       
       // Clean up
       if (success)
@@ -99,7 +99,7 @@ function RunComEdFrequently()
 /**
  * GetParametersComed()
  *
- * Create and return a hash of various parameters
+ * Create and return a hash of various parameters 
  */
 function GetParametersComed(verbose)
 {
@@ -133,7 +133,7 @@ function GetParametersComed(verbose)
 /**
  * GetPricesComed()
  *
- * Grab pricing data from ComEd for the specified time interval
+ * Grab pricing data from ComEd for the specified time interval 
  */
 function GetPricesComed(parameters, intervalStart)
 {
@@ -173,21 +173,21 @@ function GetPricesComed(parameters, intervalStart)
     var timeStamp= null;
     
     prices.sort(function(a, b){return a[timeKey] - b[timeKey]});
-    for (var entry in prices)
+    for (var price of prices)
     {
       // convert each data line into a padded table row
       row= FillArray(parameters["priceTableWidth"], "");
       timeStamp= new Date();
-      timeStamp.setTime(prices[entry][timeKey]);
+      timeStamp.setTime(price[timeKey]);
       row[parameters["indexTime"]]= timeStamp;
-      row[parameters["indexPrice"]]= prices[entry][priceKey];
+      row[parameters["indexPrice"]]= price[priceKey];
       row= priceTable.push(row);
     }
     
     if (row > 0)
     {
       // Update status with latest price and time
-      UpdateLastPrice(parameters, prices[row-1][priceKey]);
+      UpdateLastPrice(parameters, prices[row-1][priceKey]); 
     }
   }
   else
@@ -206,7 +206,7 @@ function GetPricesComed(parameters, intervalStart)
 /**
  * SendPriceAlert()
  *
- * Send a price alert, depending on conditions
+ * Send a price alert, depending on conditions 
  */
 function SendPriceAlert(parameters)
 {
@@ -337,7 +337,7 @@ function SendPriceAlert(parameters)
 /**
  * GetLatestTimeStamp()
  *
- * Get the latest time stamp from the history table
+ * Get the latest time stamp from the history table 
  */
 function GetLatestTimeStamp(parameters)
 {
@@ -345,7 +345,7 @@ function GetLatestTimeStamp(parameters)
   
   if (stamp && (stamp.toString().length > 0))
   {
-    return new Date(stamp).getTime();
+    return new Date(stamp).getTime(); 
   }
   else
   {
@@ -428,7 +428,7 @@ function IsSupreme(parameters)
 {
   var current= GetValueByName(parameters["id"], "statusRunCurrent", parameters["verbose"]);
   
-  return (parameters["scriptTime"] >= current);
+  return (parameters["scriptTime"] >= current);   
 }
 
 
@@ -449,9 +449,9 @@ function Superseded(parameters, caller, activity)
   
   if (activity)
   {
-    // Insert status information into status and log missives
+    // Insert status information into status and log missives 
     statusMessage= activity + ": " + statusMessage;
-    logMessage+= " while " + activity.toLowerCase() + ".";
+    logMessage+= " while " + activity.toLowerCase() + "."; 
   }
   
   if (caller)
@@ -573,7 +573,7 @@ function ClearSemaphore(parameters, force)
   }
   else
   {
-    // No semaphore set?!
+    // No semaphore set?! 
     success= false;
     Logger.log("[ClearSemaphore] Something or someone else has already cleared the semaphore (%s)!", parameters["scriptTime"].toFixed(0));
   }
@@ -688,13 +688,13 @@ function PreserveStatus(parameters, statusAction)
   
   if (!statusPrior.includes(statusPreamble))
   {
-    // Add preamble since it is not included yet
+    // Add preamble since it is not included yet 
     statusPrior= statusPreamble + statusPrior;
   }
   else
   {
     // Update an existing preamble
-    for (var statusKey in statusKeys)
+    for (const statusKey of statusKeys)
     {
       // Check if another action preserved status prior to this attempt
       if (statusPrior.includes(statusKey + statusPreambleFiller))
@@ -837,7 +837,7 @@ function PrepareToCommit(parameters)
   
   if (success= IsSupreme(parameters))
   {
-    // This is still the latest run: grab and preserve latest regression slope and moving average values
+    // This is still the latest run: grab and preserve latest regression slope and moving average values 
     if (success= SetSemaphore(parameters))
     {
       // No conflicting runs -- proceed
@@ -849,7 +849,7 @@ function PrepareToCommit(parameters)
   }
   else
   {
-    Superseded(parameters, "PrepareToCommit", activity);
+    Superseded(parameters, "PrepareToCommit", activity); 
   }
   
   return success;
@@ -872,14 +872,14 @@ function SavePrices(parameters, prices)
   
   if (success= IsSupreme(parameters))
   {
-    // This is still the latest run: write obtained prices to history table
+    // This is still the latest run: write obtained prices to history table 
     prices[prices.length-1][parameters["indexStamp"]]= parameters["scriptTime"].toFixed(0);
     prices[prices.length-1][parameters["indexStampTime"]]= DateToLocaleString();
     success= SaveSnapshot(parameters["id"], parameters["comedSheetPrices"], prices, updateRun, parameters["verbose"]);
   }
   else
   {
-    Superseded(parameters, "SavePrices", activity);
+    Superseded(parameters, "SavePrices", activity); 
   }
   
   return success;
@@ -922,7 +922,7 @@ function UpdateComputedValues(parameters)
     
     if (success)
     {
-      // Success so far: proceed...
+      // Success so far: proceed... 
       parameters["activity"]= "updating trend";
       
       priceTrend= GetValueByName(parameters["id"], "priceRegressionSlope", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
@@ -940,7 +940,7 @@ function UpdateComputedValues(parameters)
   }
   else
   {
-    Superseded(parameters, "SavePrices", activity);
+    Superseded(parameters, "SavePrices", activity); 
   }
   
   return success;
@@ -978,7 +978,7 @@ function Notify(parameters)
   }
   else
   {
-    Superseded(parameters, "Notify", activity);
+    Superseded(parameters, "Notify", activity); 
   }
   
   return success;

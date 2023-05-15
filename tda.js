@@ -88,120 +88,107 @@ function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
 function ExtractQuotesTDA(response, symbolMap, urls, labels, verbose)
 {
   // Declare constants and local variables
-  var responseOK= 200;
+  var quotes= ExtractContentTDA(response);
   var prices= {};
   
-  if (response.getResponseCode() == responseOK)
+  if (quotes)
   {
-    // Looks like we have a valid data response
-    var content= response.getContentText();
-    var quotes= JSON.parse(content);
+    // We have quotes -- process them
     
-    if (quotes)
+    // First, define interesting quote parameters
+    const labelType= "assetType";
+    const labelSymbol= "symbol";
+    const labelChange= "netChange";
+    const labelChangeInDouble= "changeInDouble";
+    const labelNetChange= "netChange";
+    const labelLast= "lastPrice";
+    const labelLastInDouble= "lastPriceInDouble";
+    const labelNAV= "nAV";
+    const labelClose= "closePrice";
+    const labelCloseInDouble= "closePriceInDouble";
+    const labelClosePrice= "closePrice";
+    const labelBid= "bidPrice";
+    const labelAsk= "askPrice";
+    const labelDelta= "delta";
+    const labelURL= "URL";
+    const labelDebug= "Debug";
+    
+    // Second, seed the default table column to quote parameter map
+    const columnBid= "Bid";
+    const columnAsk= "Ask";
+    const columnLast= "Last";
+    const columnClose= "Close";
+    const columnChange= "Change";
+    const columnDelta= "Delta";
+    var labelMap= {};
+    labelMap[columnBid]= labelBid;
+    labelMap[columnAsk]= labelAsk;
+    labelMap[columnLast]= labelLast;
+    labelMap[columnClose]= labelClose;
+    labelMap[columnChange]= labelChange;
+    labelMap[columnDelta]= labelDelta;
+    
+    // Lastly, define type exeptions
+    const typeMutualFund= "MUTUAL_FUND";
+    const typeFuture= "FUTURE";
+    
+    for (const quote in quotes)
     {
-      // We have quotes -- process them
-      
-      // First, define interesting quote parameters
-      const labelType= "assetType";
-      const labelSymbol= "symbol";
-      const labelChange= "netChange";
-      const labelChangeInDouble= "changeInDouble";
-      const labelNetChange= "netChange";
-      const labelLast= "lastPrice";
-      const labelLastInDouble= "lastPriceInDouble";
-      const labelNAV= "nAV";
-      const labelClose= "closePrice";
-      const labelCloseInDouble= "closePriceInDouble";
-      const labelClosePrice= "closePrice";
-      const labelBid= "bidPrice";
-      const labelAsk= "askPrice";
-      const labelDelta= "delta";
-      const labelURL= "URL";
-      const labelDebug= "Debug";
-      
-      // Second, seed the default table column to quote parameter map
-      const columnBid= "Bid";
-      const columnAsk= "Ask";
-      const columnLast= "Last";
-      const columnClose= "Close";
-      const columnChange= "Change";
-      const columnDelta= "Delta";
-      var labelMap= {};
-      labelMap[columnBid]= labelBid;
-      labelMap[columnAsk]= labelAsk;
-      labelMap[columnLast]= labelLast;
-      labelMap[columnClose]= labelClose;
-      labelMap[columnChange]= labelChange;
-      labelMap[columnDelta]= labelDelta;
-      
-      // Lastly, define type exeptions
-      const typeMutualFund= "MUTUAL_FUND";
-      const typeFuture= "FUTURE";
-      
-      for (const quote in quotes)
+      // Process each returned quote
+      if (quotes[quote][labelSymbol] != undefined)
       {
-        // Process each returned quote
-        if (quotes[quote][labelSymbol] != undefined)
+        // Symbol exists
+        prices[symbolMap[quotes[quote][labelSymbol]]]= {};
+        prices[symbolMap[quotes[quote][labelSymbol]]][labelURL]= urls[symbolMap[quotes[quote][labelSymbol]]];
+        
+        if (labelDebug != undefined)
         {
-          // Symbol exists
-          prices[symbolMap[quotes[quote][labelSymbol]]]= {};
-          prices[symbolMap[quotes[quote][labelSymbol]]][labelURL]= urls[symbolMap[quotes[quote][labelSymbol]]];
-          
-          if (labelDebug != undefined)
+          // debug activated -- commit raw data
+          prices[symbolMap[quotes[quote][labelSymbol]]][labelDebug]= quotes[quote];
+        }
+        
+        // Adjust labelMap based quote specifics
+        if (quotes[quote][labelType] == typeMutualFund)
+        {
+          // Use NAV as last price for mutual funds
+          labelMap[columnLast]= labelNAV;
+          labelMap[columnChange]= labelNetChange;
+          labelMap[columnClose]= labelClosePrice;
+        }
+        else if (quotes[quote][labelType] == typeFuture)
+        {
+          // Use NAV as last price for mutual funds
+          labelMap[columnLast]= labelLastInDouble;
+          labelMap[columnChange]= labelChangeInDouble;
+          labelMap[columnClose]= labelCloseInDouble;
+        }
+        else
+        {
+          // Revert to defaults
+          labelMap[columnLast]= labelLast;
+          labelMap[columnChange]= labelChange;
+          labelMap[columnClose]= labelClose;
+        }
+        
+        for (const label in labels)
+        {
+          // Pull a value for each desired label
+          if (quotes[quote][labelMap[labels[label]]] == undefined)
           {
-            // debug activated -- commit raw data
-            prices[symbolMap[quotes[quote][labelSymbol]]][labelDebug]= quotes[quote];
-          }
-          
-          // Adjust labelMap based quote specifics
-          if (quotes[quote][labelType] == typeMutualFund)
-          {
-            // Use NAV as last price for mutual funds
-            labelMap[columnLast]= labelNAV;
-            labelMap[columnChange]= labelNetChange;
-            labelMap[columnClose]= labelClosePrice;
-          }
-          else if (quotes[quote][labelType] == typeFuture)
-          {
-            // Use NAV as last price for mutual funds
-            labelMap[columnLast]= labelLastInDouble;
-            labelMap[columnChange]= labelChangeInDouble;
-            labelMap[columnClose]= labelCloseInDouble;
+            // No top-level data
+            prices[symbolMap[quotes[quote][labelSymbol]]][labels[label]]= "no data";
           }
           else
           {
-            // Revert to defaults
-            labelMap[columnLast]= labelLast;
-            labelMap[columnChange]= labelChange;
-            labelMap[columnClose]= labelClose;
-          }
-          
-          for (const label in labels)
-          {
-            // Pull a value for each desired label
-            if (quotes[quote][labelMap[labels[label]]] == undefined)
-            {
-              // No top-level data
-              prices[symbolMap[quotes[quote][labelSymbol]]][labels[label]]= "no data";
-            }
-            else
-            {
-              prices[symbolMap[quotes[quote][labelSymbol]]][labels[label]]= quotes[quote][labelMap[labels[label]]];
-            }
+            prices[symbolMap[quotes[quote][labelSymbol]]][labels[label]]= quotes[quote][labelMap[labels[label]]];
           }
         }
       }
     }
-    else
-    {
-      Logger.log("[ExtractQuotesTDA] Data query returned no content");
-      Logger.log(content);
-    }
   }
   else
   {
-    Logger.log("[ExtractQuotesTDA] Data query returned error code <%s>.", response.getResponseCode());
-    Logger.log(response.getAllHeaders());
+    Logger.log("[ExtractQuotesTDA] Could not obtain quotes!");
   }
   
   return prices;
@@ -424,7 +411,7 @@ function GetContractsForSymbolByExpirationTDA(sheetID, symbol, dte, labelPuts, l
   if (response)
   {
     // Data fetched -- extract
-    contracts= ExtractEarliestContractsTDA(response, labelPuts, labelCalls, verbose);
+    contracts= ExtractEarliestContractsTDA(response, labelPuts, labelCalls);
   }
   else
   {
@@ -493,24 +480,18 @@ function GetChainForSymbolByExpirationTDA(sheetID, symbol, dteEarliest, dteLates
  *
  * Extract contract expiration dates from a list of returned contracts
  */
-function ExtractEarliestContractsTDA(response, labelPuts, labelCalls, verbose)
+function ExtractEarliestContractsTDA(response, labelPuts, labelCalls)
 {
   // Declare constants and local variables
-  var content= null;
-  var contentParsed= null;
+  var contentParsed= ExtractContentTDA(response);
   var labelDate= null;
   var expirations= [];
   var contractTypes= [labelPuts, labelCalls];
   var contractType= null;
   var contracts= {};
-  const responseOK= 200;
   
-  if (response.getResponseCode() == responseOK)
+  if (contentParsed)
   {
-    // Looks like we have a valid data response
-    content= response.getContentText();
-    contentParsed= JSON.parse(content);
-    
     while (contractType= contractTypes.shift())
     {
       // Extract data for each contract type (puts and calls)
@@ -543,8 +524,7 @@ function ExtractEarliestContractsTDA(response, labelPuts, labelCalls, verbose)
   }
   else
   {
-    Logger.log("[ExtractExpirationDatesTDA] Data query returned error code <%s>.", response.getResponseCode());
-    Logger.log(response.getAllHeaders());
+    Logger.log("[ExtractExpirationDatesTDA] Query returned no data!");
   }
   
   return contracts;
@@ -559,18 +539,16 @@ function ExtractEarliestContractsTDA(response, labelPuts, labelCalls, verbose)
 function ExtractExpirationsTDA(response, expirationTargets, verbose)
 {
   // Declare constants and local variables
-  const responseOK= 200;
   const labelPuts= "putExpDateMap";
+  const contentParsed= ExtractContentTDA(response);
   
-  if (response.getResponseCode() == responseOK)
+  if (contentParsed)
   {
     // Looks like we have a valid data response
-    const content= response.getContentText();
-    const contentParsed= JSON.parse(content);
+    const dateDelimiter= ":";
     var expirations= Object.keys(contentParsed[labelPuts]).sort();
     var expirationsMapped= [];
-    var expirationDate= null;
-    var expirationTarget= null;
+    var dte= null;
 
     if (expirations)
     {
@@ -580,27 +558,24 @@ function ExtractExpirationsTDA(response, expirationTargets, verbose)
         // Match an expiration date to each valid target
         if (typeof expirationTargets[target][0] == "number")
         {
-          expirationTarget= new Date();
-          expirationTarget.setDate(expirationTarget.getDate() + expirationTargets[target][0]);
-
-          for (var expiration in expirations)
+          for (var expiration of expirations)
           {
             // Find the earliest expiration date which satisfies our days-to-expiration constraint
-            expirationDate= new Date(expirations[expiration].split(":")[0]);
+            dte= expiration.split(dateDelimiter)[1];
 
-            if (expirationDate >= expirationTarget)
+            if( dte >= expirationTargets[target][0])
             {
               // We found the earliest expiration date
               const labelSymbol= "symbol";
               const symbolDelimiter= "_";
               const weekly= "W";
-              const strike= Object.keys(contentParsed[labelPuts][expirations[expiration]])[0];
+              const strike= Object.keys(contentParsed[labelPuts][expiration])[0];
               var underlying= "";
 
               // Determine the udnerlying symbol from a given quote
-              for (var quote in contentParsed[labelPuts][expirations[expiration]][strike])
+              for (var quote in contentParsed[labelPuts][expiration][strike])
               {
-                underlying= contentParsed[labelPuts][expirations[expiration]][strike][quote][labelSymbol].split(symbolDelimiter)[0];
+                underlying= contentParsed[labelPuts][expiration][strike][quote][labelSymbol].split(symbolDelimiter)[0];
                 if (underlying.endsWith(weekly))
                 {
                   // Prefer weeklies
@@ -608,7 +583,7 @@ function ExtractExpirationsTDA(response, expirationTargets, verbose)
                 }
               }
 
-              expirationsMapped[target]= [expirations[expiration].split(":")[0], underlying];
+              expirationsMapped[target]= [expiration.split(dateDelimiter)[0], underlying];
               break;
             }
           }
@@ -623,8 +598,7 @@ function ExtractExpirationsTDA(response, expirationTargets, verbose)
   }
   else
   {
-    Logger.log("[ExtractExpirationDatesTDA] Data query returned error code <%s>.", response.getResponseCode());
-    Logger.log(response.getAllHeaders());
+    Logger.log("[ExtractExpirationDatesTDA] Query returned no data!");
   }
 
   return expirationsMapped;
@@ -742,14 +716,14 @@ function ComposeHeadersTDA(sheetID, verbose)
 function GetAccessTokenTDA(sheetID, verbose)
 {
   // Declare constants and local variables
-  var currentTime= new Date();
+  const currentTime= new Date();
   var accessToken= null;
   
   // A 5-minute buffer
-  var accessTokenTTLOffset= 300;
+  const accessTokenTTLOffset= 300;
   
   // First, validate preserved access token
-  var accessTokenExpiration= GetValueByName(sheetID, "ParameterTDATokenAccessExpiration", verbose);
+  const accessTokenExpiration= GetValueByName(sheetID, "ParameterTDATokenAccessExpiration", verbose);
   if (accessTokenExpiration && (currentTime < accessTokenExpiration))
   {
     // our preserved access token remains valid
@@ -759,13 +733,11 @@ function GetAccessTokenTDA(sheetID, verbose)
   if (!accessToken)
   {
     // our preserved acces token has expired or is otherwise invalid -- refresh it
-    var key= GetValueByName(sheetID, "ParameterTDAKey", verbose);
+    const key= GetValueByName(sheetID, "ParameterTDAKey", verbose);
+    const accessType= "";
     var refreshToken= GetValueByName(sheetID, "ParameterTDATokenRefresh", verbose);
     var refreshTokenExpiration= GetValueByName(sheetID, "ParameterTDATokenRefreshExpiration", verbose);
-    var accessType= "";
-    var responseOK= 200;
     var response= null;
-    var headers= {};
 
     if (verbose)
     {
@@ -789,14 +761,14 @@ function GetAccessTokenTDA(sheetID, verbose)
     if (key && refreshToken)
     {
       // we have necessary parameters, proceed to obtain token
-      var formData= {
+      const formData= {
         'grant_type': 'refresh_token',
         'refresh_token': refreshToken,
         'access_type': accessType,
         'client_id': key
       };
       
-      var options = {
+      const options = {
         'method' : 'post',
         'payload' : formData
       };
@@ -805,21 +777,21 @@ function GetAccessTokenTDA(sheetID, verbose)
       {
         response= UrlFetchApp.fetch("https://api.tdameritrade.com/v1/oauth2/token", options);
         
-        if (response.getResponseCode() == responseOK)
+        if (response)
         {
           // Looks like we have a valid data response
-          var keyAccessToken= "access_token";
-          var keyAccessTokenTTL= "expires_in";
-          var keyRefreshToken= "refresh_token";
-          var keyRefreshTokenTTL= "refresh_token_expires_in";
-          var content= response.getContentText();
-          var contentParsed= JSON.parse(content);
+          const keyAccessToken= "access_token";
+          const keyAccessTokenTTL= "expires_in";
+          const keyRefreshToken= "refresh_token";
+          const keyRefreshTokenTTL= "refresh_token_expires_in";
+          const contentParsed= ExtractContentTDA(response);
           
-          accessToken= contentParsed[keyAccessToken];
-          var accessTokenTTL= contentParsed[keyAccessTokenTTL];
-          var refreshToken= contentParsed[keyRefreshToken];
-          var refreshTokenTTL= contentParsed[keyRefreshTokenTTL];
+          const accessTokenTTL= contentParsed[keyAccessTokenTTL];
+          const refreshToken= contentParsed[keyRefreshToken];
+          const refreshTokenTTL= contentParsed[keyRefreshTokenTTL];
           var expiration= null;
+
+          accessToken= contentParsed[keyAccessToken];
           
           if (refreshToken && refreshTokenTTL)
           {
@@ -863,4 +835,31 @@ function GetAccessTokenTDA(sheetID, verbose)
   }
   
   return accessToken;
+};
+
+
+/**
+ * ExtractContentTDA()
+ *
+ * Extract parsed JSON paylod from a TDA repsonse
+ */
+function ExtractContentTDA(response)
+{
+  // Declare constants and local variables
+  const responseOK= 200;
+  var contentParsed= null;
+  
+  if (response.getResponseCode() == responseOK)
+  {
+    // Looks like we have a valid data response
+    const content= response.getContentText();
+    contentParsed= JSON.parse(content);
+  }
+  else
+  {
+    Logger.log("[ExtractContentTDA] Data query returned error code <%s>.", response.getResponseCode());
+    Logger.log(response.getAllHeaders());
+  }
+
+  return contentParsed;
 };

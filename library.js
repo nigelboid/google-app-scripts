@@ -199,7 +199,7 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
     }
   }
   
-  value= GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
+  value= GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose); 
   if (value)
   {
     // We seem to have something!
@@ -240,7 +240,7 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
       Logger.log("[GetValueByName] Range named <%s> did not result in a viable value.", sourceName);
     }
     return null;
-  }
+  } 
 };
 
 
@@ -270,7 +270,7 @@ function SetTableByName(id, destinationName, table, verbose)
           Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s> since the destiantion is shorter than the data we have by <%s> rows",
                    destinationName, spreadsheet.getName(), table.length - height);
         }
-        success= false;
+        success= false; 
       }
       else
       {
@@ -283,7 +283,7 @@ function SetTableByName(id, destinationName, table, verbose)
             Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s> since the destiantion is narrower than the data we have by <%s> columns",
                      destinationName, spreadsheet.getName(), table[0].length - width);
           }
-          success= false;
+          success= false; 
         }
         else
         {
@@ -384,7 +384,7 @@ function GetAnnualSheetIDs(id, verbose)
 /**
  * SaveValues()
  *
- * Save current values in a mirror table
+ * Save current values in a mirror table 
  */
 function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, limit)
 {
@@ -494,7 +494,7 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
 /**
  * GetLastSnapshotStamp()
  *
- * Obtain the identifier stamp for the last snapshot entry
+ * Obtain the identifier stamp for the last snapshot entry 
  */
 function GetLastSnapshotStamp(id, sheetName, verbose)
 {
@@ -620,7 +620,7 @@ function SetCellValue(id, sheetName, cellCoordinates, value, verbose)
 /**
  * CheckSnapshot()
  *
- * Check data in the destination spreadsheet
+ * Check data in the destination spreadsheet 
  */
 function CheckSnapshot(id, sheetName, newDataDate, verbose)
 {
@@ -642,7 +642,7 @@ function CheckSnapshot(id, sheetName, newDataDate, verbose)
   else
   {
     // we don't have the latest data
-    return false;
+    return false; 
   }
 };
 
@@ -711,7 +711,7 @@ function CompileSnapshot(id, names, limits, now, verbose)
   else
   {
     // no viable data to return
-    return null;
+    return null; 
   }
 };
 
@@ -719,7 +719,7 @@ function CompileSnapshot(id, names, limits, now, verbose)
 /**
  * SaveSnapshot()
  *
- * Save values snapshot in a history table
+ * Save values snapshot in a history table 
  */
 function SaveSnapshot(id, sheetName, values, updateRun, verbose)
 {
@@ -748,7 +748,7 @@ function SaveSnapshot(id, sheetName, values, updateRun, verbose)
           if (!updateRun)
           {
             // this is not an update run -- append a row
-            lastRow++;
+            lastRow++; 
           }
           
           if (range= sheet.getRange(lastRow, 1, values.length, values[0].length))
@@ -802,7 +802,7 @@ function SaveSnapshot(id, sheetName, values, updateRun, verbose)
 /**
  * PropagateFormulas()
  *
- * Propagate formulas from the row above
+ * Propagate formulas from the row above 
  */
 function PropagateFormulas(sheet, row, column, verbose)
 {
@@ -859,7 +859,7 @@ function PropagateFormulas(sheet, row, column, verbose)
 /**
  * UpdateSnapshotCell()
  *
- * Update a specific value in a history table
+ * Update a specific value in a history table 
  */
 function UpdateSnapshotCell(id, sheetName, column, value, onlyIfBlank, verbose)
 {
@@ -958,7 +958,7 @@ function SaveValuesInHistory(id, sheetName, sourceNames, sourceLimits, now, back
       Logger.log("[SaveValuesInHistory] Primary run seems to have failed for sheet <%s> in spreadhseet ID <%s>...", sheetName, id);
     }
     
-    SaveSnapshot(id, sheetName, CompileSnapshot(id, sourceNames, sourceLimits, now, verbose), updateRun= false, verbose);
+    SaveSnapshot(id, sheetName, CompileSnapshot(id, sourceNames, sourceLimits, now, verbose), updateRun= false, verbose);   
   }
 };
 
@@ -1222,7 +1222,7 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
           
           if ((sourceValues[counter] != null) && (value != sourceValues[counter]))
           {
-            // looks like the value has changed -- update it
+            // looks like the value has changed -- update it 
             range.setValue(sourceValues[counter]);
             if (verboseChanges)
             {
@@ -1276,7 +1276,7 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
  * Read specified table and return an associative array comprised of key-value pairs from the first two columns
  */
 function GetParameters(id, sourceName, verbose)
-{
+{ 
   var parameters= {"id": id, "verbose": verbose};
   var firstDataColumn= 1;
   var confirmNumbers= false;
@@ -1295,7 +1295,7 @@ function GetParameters(id, sourceName, verbose)
         // We seem to have at least two columns
         for (var row= 0; row < table.length; row++)
         {
-          // Check each row for a viable key-value pair and preserve them in our associative array
+          // Check each row for a viable key-value pair and preserve them in our associative array 
           if (table[row][0] != null && table[row][1] != null)
           {
             // We seem to have a viable key-value pair
@@ -1331,7 +1331,7 @@ function GetParameters(id, sourceName, verbose)
  * Return the ID of the main sheet
  */
 function GetMainSheetID()
-{
+{ 
   //return SpreadsheetApp.getActiveSpreadsheet().getId();
   
   return "1wCsEJveLzU1s4tKi319VJLQGC8f2cDQVxa036B4aWvo";
@@ -1423,7 +1423,7 @@ function DateToLocaleString(date, separator)
   
   if (separator == undefined)
   {
-    separator= " ";
+    separator= " "; 
   }
   
   //return date.toLocaleString('en-US', {hour12: false, hourCycle: 'h23'});
@@ -1457,7 +1457,7 @@ function DumpObjectAsPrettyText(data, indentation, level)
     actualIndentation+= indentation;
   }
 
-  for (var property in data)
+  for (const property in data)
   {
     var element= data[property];
     var bracketLeft= "{";
