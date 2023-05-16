@@ -23,68 +23,37 @@ function RunBoxTradeCandidates(backupRun)
   if (force || (backupRun && currentTime > nextUpdateTime))
   {
     // Looks like we are due for an update
-    const expirationTargets= GetTableByNameSimple(sheetID, "IndexStranglesBoxesDTEs", verbose);
-    const underlying= GetValueByName(sheetID, "IndexStranglesBoxesUnderlying", verbose);
-    var dteEarliest= 1000000;
-    var dteLatest= 0;
-    var expirations= null;
+    const parameters= GetBoxParameters(sheetID, verbose);
+    const candidates= FindBestBoxTradeCandidates(parameters);
 
-    if (expirationTargets && underlying)
+    if (candidates.length > 0)
     {
-      // We have a list of target expirations
-      for (var index in expirationTargets)
+      // Looks like we obtained candidate boxes -- commit them to a table
+      if (SetTableByName(sheetID, "IndexStranglesBoxes", candidates, verbose))
       {
-        // Find expiration targets endpoints
-        if (typeof expirationTargets[index][0] == "number")
-        {
-          if (dteLatest < expirationTargets[index][0])
-          {
-            dteLatest= expirationTargets[index][0]
-          }
-          if (dteEarliest > expirationTargets[index][0])
-          {
-            dteEarliest= expirationTargets[index][0]
-          }
-        }
-      }
+        UpdateTime(sheetID, "IndexStranglesBoxesUpdateTime", verbose);
+        SetValueByName(sheetID, "IndexStranglesBoxesUpdateStatus", "Updated [" + DateToLocaleString(currentTime) + "]", verbose);
 
-      if (dteEarliest <= dteLatest)
-      {
-        // Get the chain
-        response= GetChainForSymbolByExpirationTDA(sheetID, underlying, dteEarliest, dteLatest, verbose);
+        success= true;
       }
       else
       {
-        Logger.log("[RunBoxTradeCandidates] Improper DTE endpoints: Earliest= %s, Latest= %s",
-                    dteEarliest.toFixed(0), dteLatest.toFixed(0));
-      }
+        SetValueByName(sheetID, "IndexStranglesBoxesUpdateStatus",
+                        "Failed to set new candidates [" + DateToLocaleString(currentTime) + "]", verbose);
 
-      if (response)
-      {
-        // Data fetched -- extract
-        expirations= ExtractExpirationsTDA(response, expirationTargets, verbose);
-      }
-      else
-      {
-        // Failed to fetch results 
-        Logger.log("[RunBoxTradeCandidates] Could not fetch option chain for <%s> for expirations between <%s> and <%s> days!",
-                    underlying, dteEarliest.toFixed(0), dteLatest.toFixed(0));
-      }
-
-      if (expirations)
-      {
-        // We have viable expiration dates -- save them
-        if (SetTableByName(sheetID, "IndexStranglesBoxesExpirations", expirations, verbose))
-        {
-          success= true;
-          UpdateTime(sheetID, "IndexStranglesBoxesUpdateTime", verbose);
-          SetValueByName(sheetID, "IndexStranglesBoxesUpdateStatus", "Updated [" + DateToLocaleString(currentTime) + "]", verbose);
-        }
+        Logger.log(
+          "[RunBoxTradeCandidates] Failed to update table named 'IndexStranglesCandidates' in sheet <%s> with candidates: <%s>!",
+          sheetID, candidates);
       }
     }
     else
     {
-      Logger.log("[RunBoxTradeCandidates] Missing parameters: Underlying= %s, Expiration Targets= %s", underlying, expirationTargets);
+      // No candidates found?
+      SetValueByName(sheetID, "IndexStranglesBoxesUpdateStatus",
+                      "Failed to find new candidates [" + DateToLocaleString(currentTime) + "]", verbose);
+
+      Logger.log("[RunBoxTradeCandidates] Found no candidates <%s>!", candidates);
+      success= true;
     }
   }
   
@@ -99,25 +68,18 @@ function RunBoxTradeCandidates(backupRun)
  * Find highest yielding box trades
  *
  */
-function FindBestBoxTradeCandidates(backupRun)
+function FindBestBoxTradeCandidates(parameters)
 {
   // Declare constants and local variables
-  const sheetID= GetMainSheetID();
-  const underlying= "$SPX.X";
-  const dteEarliest= 30;
-  const dteLatest= 360;
   const labelPuts= "putExpDateMap";
   const labelCalls= "callExpDateMap";
-  const labelPutLow= "putLow";
-  const labelPutHigh= "putHigh";
-  const labelCallLow= "callLow";
-  const labelCallHigh= "callHigh";
-  const labelSymbol= "putLowSymbol";
-  const amount= 1000;
-  const verbose= false;
+  
   var yields= {};
+  var candidates= [];
+  var top= parameters["top"];
 
-  const response= GetChainForSymbolByExpirationTDA(sheetID, underlying, dteEarliest, dteLatest, verbose);
+  const response= GetChainForSymbolByExpirationTDA(parameters["id"], parameters["underlying"], parameters["dte_earliest"],
+                                                    parameters["dte_latest"], parameters["verbose"]);
   if (response)
   {
     // Data fetched -- extract
@@ -126,18 +88,27 @@ function FindBestBoxTradeCandidates(backupRun)
     if (contentParsed)
     {
       // Find highest yielding box trade for a given invested amount
+      var ytm= null;
+      yields= FindBoxTradeYields(contentParsed[labelPuts], contentParsed[labelCalls], 
+                                  parameters["amount"], parameters["commission"], parameters["iterations"]);
 
-      yields= FindBoxTradeYields(contentParsed[labelPuts], contentParsed[labelCalls], amount);
       yieldsOrdered= Object.keys(yields).sort();
 
-      for (const ytm of yieldsOrdered)
+      while (top)
       {
-        Logger.log("%s:  %s% ($%s = $%s - $%s - $%s + $%s)", yields[ytm][labelSymbol], (ytm * 100).toFixed(2),
-          (yields[ytm][labelPutHigh] - yields[ytm][labelCallHigh] - yields[ytm][labelPutLow] + yields[ytm][labelCallLow]).toFixed(2),
-          yields[ytm][labelPutHigh].toFixed(2), yields[ytm][labelCallHigh].toFixed(2),
-          yields[ytm][labelPutLow].toFixed(2), yields[ytm][labelCallLow].toFixed(2));
+        // Preserve top results
+        ytm= yieldsOrdered.pop();
 
-        // Logger.log("%s%:  %s", (ytm * 100).toFixed(2), yields[ytm]);
+        candidates.push([yields[ytm]["putHigh"]["contract"],
+                          yields[ytm]["putHigh"]["price"], yields[ytm]["amount"], (ytm * 100).toFixed(2)]);
+        candidates.push([yields[ytm]["callHigh"]["contract"],
+                          yields[ytm]["callHigh"]["price"], yields[ytm]["amount"], (ytm * 100).toFixed(2)]);
+        candidates.push([yields[ytm]["putLow"]["contract"],
+                          yields[ytm]["putLow"]["price"], yields[ytm]["amount"], (ytm * 100).toFixed(2)]);
+        candidates.push([yields[ytm]["callLow"]["contract"], 
+                          yields[ytm]["callLow"]["price"], yields[ytm]["amount"], (ytm * 100).toFixed(2)]);
+
+        top--;
       }
     }
     else
@@ -153,7 +124,7 @@ function FindBestBoxTradeCandidates(backupRun)
                 underlying, dteEarliest.toFixed(0), dteLatest.toFixed(0));
   }
 
-  return yields;
+  return candidates;
 };
 
 
@@ -163,12 +134,12 @@ function FindBestBoxTradeCandidates(backupRun)
  * Return a list of box trade contracts with a viable yield for a given invested amount
  *
  */
-function FindBoxTradeYields(puts, calls, amount)
+function FindBoxTradeYields(puts, calls, amount, commission, iterations)
 {
   // Declare constants and local variables
   const expirations= Object.keys(puts).sort();
-  const labelSymbol= "symbol";
   const expirationDelimiter= ":";
+
   var yields= {};
 
   for (const expiration of expirations)
@@ -180,39 +151,47 @@ function FindBoxTradeYields(puts, calls, amount)
     const strikes= Object.keys(contractsPuts).sort();
     var strikeHigh= null;
 
-    if (contractsCalls != undefined)
+    while (iterations)
     {
-      // Calls also exist for this expiration
-      
-      for (const strikeLow of strikes)
+      // Search for successively halved amounts for a number of specified iterations
+      if (contractsCalls != undefined)
       {
-        // Collect yields from contracts whcih satisfy our box value (amount) for this expiration (DTE)
-        strikeHigh= (parseFloat(strikeLow) + amount).toFixed(1).toString();
-
-        if (contractsPuts[strikeHigh] != undefined && contractsCalls[strikeLow] != undefined && contractsCalls[strikeHigh] != undefined)
+        // Calls also exist for this expiration
+        
+        for (const strikeLow of strikes)
         {
-          // Our box ostensibly exists -- find and confirm weekly contracts
-          const pricePutLow= ExtractPriceTDA(contractsPuts[strikeLow], amount);
-          const pricePutHigh= ExtractPriceTDA(contractsPuts[strikeHigh], amount);
-          const priceCallLow= ExtractPriceTDA(contractsCalls[strikeLow], amount);
-          const priceCallHigh= ExtractPriceTDA(contractsCalls[strikeHigh], amount);
-          const yieldToMaturity= BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, amount);
+          // Collect yields from contracts whcih satisfy our box value (amount) for this expiration (DTE)
+          strikeHigh= (parseFloat(strikeLow) + amount).toFixed(1).toString();
 
-          if (yieldToMaturity)
+          if (contractsPuts[strikeHigh] != undefined && contractsCalls[strikeLow] != undefined && contractsCalls[strikeHigh] != undefined)
           {
-            // We have a viable yield, add it to our list
-            
-            yields[yieldToMaturity]=
+            // Our box ostensibly exists -- find and confirm weekly contracts
+            const pricePutLow= ExtractPriceTDA(contractsPuts[strikeLow], amount);
+            const pricePutHigh= ExtractPriceTDA(contractsPuts[strikeHigh], amount);
+            const priceCallLow= ExtractPriceTDA(contractsCalls[strikeLow], amount);
+            const priceCallHigh= ExtractPriceTDA(contractsCalls[strikeHigh], amount);
+            const yieldToMaturity= BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, amount, commission);
+
+            if (yieldToMaturity)
             {
-              putLowSymbol : contractsPuts[strikeLow][0][labelSymbol], 
-              putLow : pricePutLow,
-              putHigh : pricePutHigh,
-              callLow : priceCallLow,
-              callHigh : priceCallHigh
-            };
+              // We have a viable yield, add it to our list
+              
+              yields[yieldToMaturity]=
+              {
+                putLow : pricePutLow,
+                putHigh : pricePutHigh,
+                callLow : priceCallLow,
+                callHigh : priceCallHigh,
+                amount : amount
+              };
+            }
           }
         }
       }
+
+      // Prepare for next iteration
+      iterations--;
+      amount= amount / 2;
     }
   }
 
@@ -255,17 +234,17 @@ function ExtractPriceTDA(quotes, amount)
         if (last > 0 && last > bid && last < ask)
         {
           // Last price seems valid
-          price= last;
+          price= {price : last, contract : quote[labelSymbol]};
         }
         else if (close > 0 && close > bid && close < ask)
         { 
           // Close price seems valid
-          price= close;
+          price= {price : close, contract : quote[labelSymbol]};
         }
         else
         {
           // Use the mid point of the spread for price
-          price= bid + (ask - bid) / 2;
+          price= {price : bid + (ask - bid) / 2, contract : quote[labelSymbol]};
         }
       }
 
@@ -289,16 +268,18 @@ function ExtractPriceTDA(quotes, amount)
  * Compute yield for a box spread
  *
  */
-function BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, amount)
+function BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, amount, commission)
 {
   // Declare constants and local variables
   const daysPerYear= 360;
   var yieldToMaturity= null;
 
-  if (pricePutLow && pricePutHigh && priceCallLow && priceCallHigh)
+  commission= commission * 4;
+
+  if (pricePutLow != undefined && pricePutHigh != undefined && priceCallLow != undefined && priceCallHigh != undefined)
   {
     // We appear to have real prices -- compute yield
-    const cost= pricePutHigh - priceCallHigh - pricePutLow + priceCallLow;
+    const cost= pricePutHigh["price"] - priceCallHigh["price"] - pricePutLow["price"] + priceCallLow["price"] + commission;
 
     yieldToMaturity= Math.pow(amount / cost, daysPerYear / dte) - 1;
 
@@ -309,4 +290,56 @@ function BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, a
   }
 
   return yieldToMaturity;
+};
+
+
+/**
+ * GetBoxParameters()
+ *
+ * Load specified parameters and assign default values to missing parameters
+ *
+ */
+function GetBoxParameters(sheetID, verbose)
+{
+  // Declare constants and local variables
+  const underlyingDefault= "$SPX.X";
+  const dteEarliestDefault= 90;
+  const dteLatestDefault= 360;
+  const amountDefault= 1000;
+  const topDefault= 3;
+  const iterationsDefault= 3;
+  
+  var parameters= GetParameters(sheetID, "IndexStranglesBoxesParameters", verbose);
+
+  if (parameters["underlying"] == undefined)
+  {
+    parameters["underlying"]= underlyingDefault;
+  }
+
+  if (parameters["dte_earliest"] == undefined)
+  {
+    parameters["dte_earliest"]= dteEarliestDefault;
+  }
+
+  if (parameters["dte_latest"] == undefined)
+  {
+    parameters["dte_latest"]= dteLatestDefault;
+  }
+
+  if (parameters["amount"] == undefined)
+  {
+    parameters["amount"]= amountDefault;
+  }
+
+  if (parameters["iterations"] == undefined)
+  {
+    parameters["iterations"]= iterationsDefault;
+  }
+
+  if (parameters["top"] == undefined)
+  {
+    parameters["top"]= topDefault;
+  }
+
+  return parameters;
 };
