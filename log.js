@@ -1,4 +1,15 @@
 /**
+ * Log()
+ *
+ * Create a log entry woth a label from the calling function
+ */
+function Log()
+{
+  Logger.log(`[${Log.caller.name}] ${arguments[0]}`);
+};
+  
+  
+/**
  * LogSend()
  *
  * Send the log as an e-mail message to the script invoker

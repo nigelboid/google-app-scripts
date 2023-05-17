@@ -4,7 +4,7 @@
  * Find suitable contracts based on a list of parameters
  *
  */
-function RunIndexStranglesCandidates()
+function RunIndexStranglesCandidates(afterHours)
 {
   // Declare constants and local variables
   const sheetID= GetMainSheetID();
@@ -15,8 +15,13 @@ function RunIndexStranglesCandidates()
   const nextUpdateTime= GetValueByName(sheetID, "IndexStranglesCandidatesUpdateNext", verbose);
   const currentTime= new Date();
   
-  if ((IsMarketOpen(sheetID, optionPrices, verbose) && (currentTime > nextUpdateTime))
-        || (currentTime.getDate() != nextUpdateTime.getDate()))
+  if (afterHours == undefined)
+  {
+    afterHours= true;
+  }
+  
+  if (IsMarketOpen(sheetID, optionPrices, verbose) && (currentTime > nextUpdateTime)
+        || currentTime.getDate() != nextUpdateTime.getDate() || afterHours)
   {
     // Only check during market hours or after a day change
     var candidates= [];
@@ -85,7 +90,7 @@ function RunIndexStranglesCandidates()
  *
  */
 function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
-{
+{  
   if (symbols && dte && deltaCall && deltaPut)
   {
     candidates= GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut, verbose);

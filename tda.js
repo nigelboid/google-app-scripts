@@ -863,3 +863,66 @@ function ExtractContentTDA(response)
 
   return contentParsed;
 };
+
+
+/**
+ * ExtractPriceTDA()
+ *
+ * Extract price from a given list of contracts for a specific strike and expiration
+ *
+ */
+function ExtractPriceTDA(quotes, amount)
+{
+  // Declare constants and local variables
+  const labelSymbol= "symbol";
+  const labelLastPrice= "last";
+  const labelClosePrice= "closePrice";
+  const labelBidPrice= "bid";
+  const labelAskPrice= "ask";
+  const labelDelta= "delta";
+  const deltaBad= "-999.0";
+  const symbolDelimiter= "_";
+  const weekly= "W";
+  var price= null;
+
+  for (quote of quotes)
+  {
+    if (quote[labelSymbol].split(symbolDelimiter)[0].endsWith(weekly) && quote[labelDelta] != deltaBad)
+    {
+      const last= parseFloat(quote[labelLastPrice]);
+      const close= parseFloat(quote[labelClosePrice]);
+      const bid= parseFloat(quote[labelBidPrice]);
+      const ask= parseFloat(quote[labelAskPrice]);
+
+      if (bid > 0 && ask > 0)
+      {
+        // Make sure we hve some semblance of liquidity
+        if (last > 0 && last > bid && last < ask)
+        {
+          // Last price seems valid
+          price= {price : last, contract : quote[labelSymbol]};
+        }
+        else if (close > 0 && close > bid && close < ask)
+        {
+          // Close price seems valid
+          price= {price : close, contract : quote[labelSymbol]};
+        }
+        else
+        {
+          // Use the mid point of the spread for price
+          price= {price : bid + (ask - bid) / 2, contract : quote[labelSymbol]};
+        }
+      }
+
+      if (price > amount)
+      {
+        // Avoid extreme strikes
+        price= null;
+      }
+
+      break;
+    }
+  }
+
+  return price;
+};
