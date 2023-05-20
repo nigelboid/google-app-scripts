@@ -563,7 +563,6 @@ function MaintainHistoriesAnnual(id, verbose)
   var range= null;
   var success= true;
   
-  
   if (spreadsheet= SpreadsheetApp.openById(id))
   {
     if (range= TrimHistoryRange(spreadsheet.getRangeByName(rangeNameIncome), verbose))
@@ -693,7 +692,6 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
   var oneWeekAgo= new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-
   // adjust column index to accommodate zero-first instead of one-first
   const columnDate= columnDateGoogle - 1;
   
@@ -703,7 +701,7 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
     lastDate= table[table.length - 1][columnDate];
     
     // check each row from the bottom to the first hidden row
-    for (row= table.length - 2; row > 0; row--)
+    for (row= table.length - 2; row >= 0; row--)
     {
       // check each date for proper order, unless we already found such
       if ((lastDate < table[row][columnDate] && isAscending) || (lastDate > table[row][columnDate] && !isAscending))
