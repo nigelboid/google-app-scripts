@@ -59,7 +59,7 @@ function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
       }
       else
       {
-        // Failed to fetch web pages
+        // Failed to fetch web pages 
         return "[GetQuotesTDA] Could not fetch quotes!";
       }
     }
@@ -221,7 +221,7 @@ function RemapSymbolsTDA(id, symbols, verbose)
   
   for (const symbol of symbols)
   {
-    if (symbolMapProvided[symbol] != undefined)
+    if (symbolMapProvided[symbol] != undefined) 
     {
       symbolMap[symbolMapProvided[symbol.toUpperCase()]]= symbol;
     }
@@ -367,7 +367,7 @@ function FindBestDeltaMatchTDA(contracts, deltaTarget, verbose)
           deltaBest= Math.abs(contractsBestMatch[underlying][labelDelta]);
           
           // Choose the best match that is not too high (within one delta of the target) and otherwise closest to the target delta
-          if ((deltaNew < deltaBest && deltaNew >= deltaTarget)
+          if ((deltaNew < deltaBest && deltaNew >= deltaTarget) 
               || (deltaNew > deltaBest && deltaNew < deltaTargetMaximum && deltaBest < deltaTarget))
           {
             // found a better match!
@@ -415,7 +415,7 @@ function GetContractsForSymbolByExpirationTDA(sheetID, symbol, dte, labelPuts, l
   }
   else
   {
-    // Failed to fetch results
+    // Failed to fetch results 
     Logger.log("[GetContractsForSymbolByExpirationTDA] Could not fetch expirations!");
   }
 
@@ -642,7 +642,7 @@ function ConstructUrlQuoteTDA(apiKey, symbols)
   // Declare constants and local variables
   var urlHead= "https://api.tdameritrade.com/v1/marketdata/quotes?";
   var urlAPIKey= "apikey=" + apiKey;
-  var urlSymbols= "&symbol=" + symbols.join(",");
+  var urlSymbols= "&symbol=" + symbols.join(","); 
   
   return urlHead + urlAPIKey + urlSymbols;
 };
@@ -749,7 +749,7 @@ function GetAccessTokenTDA(sheetID, verbose)
     
     if (!refreshTokenExpiration || (currentTime > refreshTokenExpiration))
     {
-      // our preserved refresh token has also expired
+      // our preserved refresh token has also expired 
       accessType= "offline";
       
       if (verbose)
@@ -871,7 +871,7 @@ function ExtractContentTDA(response)
  * Extract price from a given list of contracts for a specific strike and expiration
  *
  */
-function ExtractPriceTDA(quotes, amount)
+function ExtractPriceTDA(quotes, amount, preferWeekly)
 {
   // Declare constants and local variables
   const labelSymbol= "symbol";
@@ -885,9 +885,15 @@ function ExtractPriceTDA(quotes, amount)
   const weekly= "W";
   var price= null;
 
+  if (preferWeekly == undefined)
+  {
+    // Usually, prefer weekly expirations
+    preferWeekly= true;
+  }
+
   for (quote of quotes)
   {
-    if (quote[labelSymbol].split(symbolDelimiter)[0].endsWith(weekly) && quote[labelDelta] != deltaBad)
+    if (quote[labelDelta] != deltaBad)
     {
       const last= parseFloat(quote[labelLastPrice]);
       const close= parseFloat(quote[labelClosePrice]);
@@ -903,7 +909,7 @@ function ExtractPriceTDA(quotes, amount)
           price= {price : last, contract : quote[labelSymbol]};
         }
         else if (close > 0 && close > bid && close < ask)
-        {
+        { 
           // Close price seems valid
           price= {price : close, contract : quote[labelSymbol]};
         }
@@ -920,7 +926,11 @@ function ExtractPriceTDA(quotes, amount)
         price= null;
       }
 
-      break;
+      if (preferWeekly == quote[labelSymbol].split(symbolDelimiter)[0].endsWith(weekly))
+      {
+        // Found the preferred type
+        break;
+      }
     }
   }
 

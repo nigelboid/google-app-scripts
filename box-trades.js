@@ -140,6 +140,7 @@ function FindBoxTradeYields(puts, calls, amountMaximum, commission, iterationsMa
   // Declare constants and local variables
   const expirations= Object.keys(puts).sort();
   const expirationDelimiter= ":";
+  const preferWeekly= false;
   var yields= {};
 
   for (const expiration of expirations)
@@ -168,10 +169,10 @@ function FindBoxTradeYields(puts, calls, amountMaximum, commission, iterationsMa
           if (contractsPuts[strikeHigh] != undefined && contractsCalls[strikeLow] != undefined && contractsCalls[strikeHigh] != undefined)
           {
             // Our box ostensibly exists -- find and confirm weekly contracts
-            const pricePutLow= ExtractPriceTDA(contractsPuts[strikeLow], amount);
-            const pricePutHigh= ExtractPriceTDA(contractsPuts[strikeHigh], amount);
-            const priceCallLow= ExtractPriceTDA(contractsCalls[strikeLow], amount);
-            const priceCallHigh= ExtractPriceTDA(contractsCalls[strikeHigh], amount);
+            const pricePutLow= ExtractPriceTDA(contractsPuts[strikeLow], amount, preferWeekly);
+            const pricePutHigh= ExtractPriceTDA(contractsPuts[strikeHigh], amount, preferWeekly);
+            const priceCallLow= ExtractPriceTDA(contractsCalls[strikeLow], amount, preferWeekly);
+            const priceCallHigh= ExtractPriceTDA(contractsCalls[strikeHigh], amount, preferWeekly);
             const yieldToMaturity= BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, amount, commission);
 
             if (yieldToMaturity)
