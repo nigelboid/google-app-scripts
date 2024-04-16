@@ -104,7 +104,7 @@ function GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIte
             if ((data[vIndex][hIndex] == null) || isNaN(data[vIndex][hIndex]) || (data[vIndex][hIndex] < limit))
             {
               iterationErrors.push("Could not get a viable value (<".concat(data[vIndex][hIndex], "> v. limit of <", limit,
-                ") from location <", hIndex.toFixed(0), ",",  vIndex.toFixed(0), ">."));
+                ">) from location <", hIndex.toFixed(0), ",",  vIndex.toFixed(0), ">."));
               
               data[vIndex][hIndex]= iteration.toFixed(0);
               good= false;
@@ -199,7 +199,7 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
     }
   }
   
-  value= GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose); 
+  value= GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
   if (value)
   {
     // We seem to have something!
@@ -240,7 +240,7 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
       Logger.log("[GetValueByName] Range named <%s> did not result in a viable value.", sourceName);
     }
     return null;
-  } 
+  }
 };
 
 
@@ -270,7 +270,7 @@ function SetTableByName(id, destinationName, table, verbose)
           Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s> since the destiantion is shorter than the data we have by <%s> rows",
                    destinationName, spreadsheet.getName(), table.length - height);
         }
-        success= false; 
+        success= false;
       }
       else
       {
@@ -283,7 +283,7 @@ function SetTableByName(id, destinationName, table, verbose)
             Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s> since the destiantion is narrower than the data we have by <%s> columns",
                      destinationName, spreadsheet.getName(), table[0].length - width);
           }
-          success= false; 
+          success= false;
         }
         else
         {
@@ -382,11 +382,11 @@ function GetAnnualSheetIDs(id, verbose)
 
 
 /**
- * SaveValues()
+ * SaveValue()
  *
- * Save current values in a mirror table 
+ * Save current values in a mirror table
  */
-function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, limit)
+function SaveValue(id, sourceName, destinationName, verbose, confirmNumbers, limit)
 {
   var sourceValues= [];
   var destinationValues= [];
@@ -401,7 +401,7 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
     limit= 0;
     if (verbose)
     {
-      Logger.log("[SaveValues] confirmNumbers set to default <%s> with limit set to <%s>.", confirmNumbers, limit);
+      Logger.log("[SaveValue] confirmNumbers set to default <%s> with limit set to <%s>.", confirmNumbers, limit);
     }
   }
   else
@@ -414,7 +414,7 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
         limit= 0;
         if (verbose)
         {
-          Logger.log("[SaveValues] limit set to default <%s>.", limit);
+          Logger.log("[SaveValue] limit set to default <%s>.", limit);
         }
       }
     }
@@ -439,7 +439,7 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
               {
                 if (verbose)
                 {
-                  Logger.log("[SaveValues] Value at location <%s, %s> has changed to <%s> in table <%s> from <%s> in table <%s> of spreadsheet ID <%s>.",
+                  Logger.log("[SaveValue] Value at location <%s, %s> has changed to <%s> in table <%s> from <%s> in table <%s> of spreadsheet ID <%s>.",
                              hIndex.toFixed(0), vIndex.toFixed(0), sourceValues[vIndex][hIndex], sourceName, destinationValues[vIndex][hIndex], destinationName, id);
                 }
                 destinationValues[vIndex][hIndex]= sourceValues[vIndex][hIndex];
@@ -447,21 +447,21 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
               }
               else if (verbose)
               {
-                Logger.log("[SaveValues] Value <%s> (<%s>) at location <%s, %s> has not changed between named tables <%s> and <%s> of spreadsheet ID <%s>.",
+                Logger.log("[SaveValue] Value <%s> (<%s>) at location <%s, %s> has not changed between named tables <%s> and <%s> of spreadsheet ID <%s>.",
                            destinationValues[vIndex][hIndex], sourceValues[vIndex][hIndex], hIndex.toFixed(0), vIndex.toFixed(0), sourceName, destinationName, id);
               }
             }
           }
           else
           {
-            Logger.log("[SaveValues] Source values range <%s, %s> of source <%s> does not match destination range <%s, %s> of destination <%s> in sheet ID <%s>.",
+            Logger.log("[SaveValue] Source values range <%s, %s> of source <%s> does not match destination range <%s, %s> of destination <%s> in sheet ID <%s>.",
                        sourceValues.length, sourceValues[vIndex].length, sourceName, destinationValues.length, destinationValues[vIndex].length, destinationName, id);
           }
         }
       }
       else
       {
-        Logger.log("[SaveValues] Source values height <%s> of source <%s> does not match destination range <%s> of destination <%s> in sheet ID <%s>.",
+        Logger.log("[SaveValue] Source values height <%s> of source <%s> does not match destination range <%s> of destination <%s> in sheet ID <%s>.",
                    sourceValues.length, sourceName, destinationValues.length, destinationName, id);
       }
       
@@ -471,7 +471,7 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
         if (!SetTableByName(id, destinationName, destinationValues, verbose))
         {
           // something went wrong!
-          Logger.log("[SaveValues] Could not write out range named <%s> in spreadsheet ID <%s>.", destinationName, id);
+          Logger.log("[SaveValue] Could not write out range named <%s> in spreadsheet ID <%s>.", destinationName, id);
           
           changed= false;
         }
@@ -479,12 +479,12 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
     }
     else
     {
-      Logger.log("[SaveValues] Could not get range named <%s> in spreadsheet ID <%s>.", destinationName, id);
+      Logger.log("[SaveValue] Could not get range named <%s> in spreadsheet ID <%s>.", destinationName, id);
     }
   }
   else
   {
-    Logger.log("[SaveValues] Could not get range named <%s> in spreadsheet ID <%s>.", sourceName, id);
+    Logger.log("[SaveValue] Could not get range named <%s> in spreadsheet ID <%s>.", sourceName, id);
   }
   
   return changed;
@@ -494,7 +494,7 @@ function SaveValues(id, sourceName, destinationName, verbose, confirmNumbers, li
 /**
  * GetLastSnapshotStamp()
  *
- * Obtain the identifier stamp for the last snapshot entry 
+ * Obtain the identifier stamp for the last snapshot entry
  */
 function GetLastSnapshotStamp(id, sheetName, verbose)
 {
@@ -620,7 +620,7 @@ function SetCellValue(id, sheetName, cellCoordinates, value, verbose)
 /**
  * CheckSnapshot()
  *
- * Check data in the destination spreadsheet 
+ * Check data in the destination spreadsheet
  */
 function CheckSnapshot(id, sheetName, newDataDate, verbose)
 {
@@ -642,7 +642,7 @@ function CheckSnapshot(id, sheetName, newDataDate, verbose)
   else
   {
     // we don't have the latest data
-    return false; 
+    return false;
   }
 };
 
@@ -711,7 +711,7 @@ function CompileSnapshot(id, names, limits, now, verbose)
   else
   {
     // no viable data to return
-    return null; 
+    return null;
   }
 };
 
@@ -719,7 +719,7 @@ function CompileSnapshot(id, names, limits, now, verbose)
 /**
  * SaveSnapshot()
  *
- * Save values snapshot in a history table 
+ * Save values snapshot in a history table
  */
 function SaveSnapshot(id, sheetName, values, updateRun, verbose)
 {
@@ -748,7 +748,7 @@ function SaveSnapshot(id, sheetName, values, updateRun, verbose)
           if (!updateRun)
           {
             // this is not an update run -- append a row
-            lastRow++; 
+            lastRow++;
           }
           
           if (range= sheet.getRange(lastRow, 1, values.length, values[0].length))
@@ -802,7 +802,7 @@ function SaveSnapshot(id, sheetName, values, updateRun, verbose)
 /**
  * PropagateFormulas()
  *
- * Propagate formulas from the row above 
+ * Propagate formulas from the row above
  */
 function PropagateFormulas(sheet, row, column, verbose)
 {
@@ -859,7 +859,7 @@ function PropagateFormulas(sheet, row, column, verbose)
 /**
  * UpdateSnapshotCell()
  *
- * Update a specific value in a history table 
+ * Update a specific value in a history table
  */
 function UpdateSnapshotCell(id, sheetName, column, value, onlyIfBlank, verbose)
 {
@@ -958,7 +958,7 @@ function SaveValuesInHistory(id, sheetName, sourceNames, sourceLimits, now, back
       Logger.log("[SaveValuesInHistory] Primary run seems to have failed for sheet <%s> in spreadhseet ID <%s>...", sheetName, id);
     }
     
-    SaveSnapshot(id, sheetName, CompileSnapshot(id, sourceNames, sourceLimits, now, verbose), updateRun= false, verbose);   
+    SaveSnapshot(id, sheetName, CompileSnapshot(id, sourceNames, sourceLimits, now, verbose), updateRun= false, verbose);
   }
 };
 
@@ -1222,7 +1222,7 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
           
           if ((sourceValues[counter] != null) && (value != sourceValues[counter]))
           {
-            // looks like the value has changed -- update it 
+            // looks like the value has changed -- update it
             range.setValue(sourceValues[counter]);
             if (verboseChanges)
             {
@@ -1276,7 +1276,7 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
  * Read specified table and return an associative array comprised of key-value pairs from the first two columns
  */
 function GetParameters(id, sourceName, verbose)
-{ 
+{
   var parameters= {"id": id, "verbose": verbose};
   var firstDataColumn= 1;
   var confirmNumbers= false;
@@ -1295,11 +1295,12 @@ function GetParameters(id, sourceName, verbose)
         // We seem to have at least two columns
         for (var row= 0; row < table.length; row++)
         {
-          // Check each row for a viable key-value pair and preserve them in our associative array 
+          // Check each row for a viable key-value pair and preserve them in our associative array
           if (table[row][0] != null && table[row][1] != null)
           {
             // We seem to have a viable key-value pair
             parameters[table[row][0]]= table[row][1];
+            parameters[table[row][0].toLowerCase()]= table[row][1];
           }
         }
       }
@@ -1331,7 +1332,7 @@ function GetParameters(id, sourceName, verbose)
  * Return the ID of the main sheet
  */
 function GetMainSheetID()
-{ 
+{
   //return SpreadsheetApp.getActiveSpreadsheet().getId();
   
   return "1wCsEJveLzU1s4tKi319VJLQGC8f2cDQVxa036B4aWvo";
@@ -1423,7 +1424,7 @@ function DateToLocaleString(date, separator)
   
   if (separator == undefined)
   {
-    separator= " "; 
+    separator= " ";
   }
   
   //return date.toLocaleString('en-US', {hour12: false, hourCycle: 'h23'});

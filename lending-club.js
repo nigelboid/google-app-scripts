@@ -14,14 +14,14 @@ function RunLendingClubHourly()
   // Poll a value to see if there is a lingering error
   var annualizedReturn= GetValueByName(id, "accountAnnualizedReturn", verbose);
   
-  for (var hour in interestingHours)
+  for (const hour of interestingHours)
   {
     // Did we get invoked during interesting times or is there a lingering error from last time?
-    if (scriptTime.getHours().toFixed(0) == interestingHours[hour].toFixed(0) || isNaN(annualizedReturn))
+    if (scriptTime.getHours().toFixed(0) == hour.toFixed(0) || isNaN(annualizedReturn))
     {
       // Yes!
       var summarySheetName= GetValueByName(id, "lcSummarySheet", verbose);
-      var ownedNotesSheetName= GetValueByName(id, "lcNotesSheet", verbose);
+      //var ownedNotesSheetName= GetValueByName(id, "lcNotesSheet", verbose);
       
       if (isNaN(annualizedReturn))
       {
@@ -30,13 +30,13 @@ function RunLendingClubHourly()
       }
       
       Save(id, summarySheetName, GetSummary(id, scriptTime, verbose), verbose);
-      Save(id, ownedNotesSheetName, GetOwnedNotes(id, scriptTime, verbose), verbose);
+      //Save(id, ownedNotesSheetName, GetOwnedNotes(id, scriptTime, verbose), verbose);
       break;
     }
     else
     {
       //Logger.log("[RunLendingClubHourly] These are not interesting times: script hour <%s> versus interesting hour <%s>)",
-      //scriptTime.getHours().toFixed(0), interestingHours[hour].toFixed(0));
+      //scriptTime.getHours().toFixed(0), hour.toFixed(0));
     }
   }
   
@@ -66,8 +66,8 @@ function RunLendingClubDaily(backupRun)
               "accountAnnualizedReturn", "accountLCAnnualizedReturn", "accountAdjustedAnnualizedReturn", "accountYields", "accountReturns"];
   SaveValuesInHistory(id, historySheetName, names, limits, now, backupRun, updateRun, verbose);
   
-  SaveValues(id, "notesProcessingCurrent", "notesProcessingSaved", verbose);
-  SaveValues(id, "notesNonPerformingCurrent", "notesNonPerformingSaved", verbose);
+  SaveValue(id, "notesProcessingCurrent", "notesProcessingSaved", verbose);
+  SaveValue(id, "notesNonPerformingCurrent", "notesNonPerformingSaved", verbose);
   
   // Synchromnise category counts and carp on changes
   names= ["summaryChargedOff", "summaryPaidOff", "summaryPerforming", "summaryNonPerforming", "accountCash"];
@@ -133,17 +133,17 @@ function GetOwnedNotes(id, now, verbose)
   var keys= [];
   var key= null;
   var position= null;
-  for (key in orderedKeys)
+  for (key of orderedKeys)
   {
-    position= unorderedKeys.indexOf(orderedKeys[key][0]);
+    position= unorderedKeys.indexOf(key[0]);
     if (position > -1)
     {
-      keys.push(orderedKeys[key][0]);
+      keys.push(key[0]);
       unorderedKeys.splice(position,1);
     }
     else
     {
-      Logger.log("[GetOwnedNotes] Could not find <%s> within data columns returned.", orderedKeys[key][0]);
+      Logger.log("[GetOwnedNotes] Could not find <%s> within data columns returned.", key[0]);
     }
   }
   
@@ -154,13 +154,13 @@ function GetOwnedNotes(id, now, verbose)
   var values= [];
   var note= null;
   table.unshift(timeStamp.concat(FillArray(table[0].length - timeStamp.length, "")));
-  for (note in notes)
+  for (note of notes)
   {
     // repackage each note record into an array of values corresponding to the array of keys
     position= 0;
-    for (key in keys)
+    for (key of keys)
     {
-      values[position]= notes[note][keys[key]];
+      values[position]= note[key];
       position++;
     }
     table.push(values.slice(0));
@@ -180,7 +180,7 @@ function ComposeHeaders(token)
   // declare constants and local variables
   var headers= { 'Authorization': token };
   
-  return { 'headers': headers };
+  return { 'headers': headers, 'muteHttpExceptions' : true };
 };
 
 

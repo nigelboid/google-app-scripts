@@ -123,14 +123,15 @@ function RunPersonalTest()
 {
   // declare constants and local variables
   var mainSheetID= GetMainSheetID();
-  var verbose= true;
+  var test= true;
+  var afterHours= false;
   
   
   if (mainSheetID != undefined)
   {
-    if (!MaintainHistoriesMain(mainSheetID, verbose))
+    if (!RunQuotes(afterHours, test))
     {
-      Logger.log("[RunPersonalHourly] Failed to maintain main document histories!");
+      Logger.log("[RunPersonalTest] Failed to obtain quotes!");
     }
   }
   else
@@ -163,7 +164,7 @@ function RunAuxiliary()
   if (updateStampDate.getDate() != nowDate.getDate())
   {
     // synchnize today's usage to yesterday in order to start new daily differentials
-    SaveValues(auxiliarySheetID, "UsageToday", "UsageYesterday", verbose);
+    SaveValue(auxiliarySheetID, "UsageToday", "UsageYesterday", verbose);
     SetValueByName(auxiliarySheetID, updateStampName, DateToLocaleString(), verbose);
   }
   else
@@ -194,25 +195,25 @@ function UpdateMainSheet(id, now, verbose, backupRun, confirmNumbers)
   SaveValuesInHistory(id, navHistorySheetName, navNames, navLimits, now, backupRun, updateRun, verbose);
   
   // preserve some current prices for later comparisons
-  SaveValues(id, "Prices", "PricesSaved", verbose);
+  SaveValue(id, "Prices", "PricesSaved", verbose);
   
   // preserve current cash position for later comparisons
-  SaveValues(id, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, -2000000);
-  SaveValues(id, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, -2000000);
-  SaveValues(id, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, -2000000);
+  SaveValue(id, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, -2000000);
+  SaveValue(id, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, -2000000);
+  SaveValue(id, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, -2000000);
   
   // preserve current option prices for later comparisons
-  SaveValues(id, "OptionsDerived", "OptionsSaved", verbose);
+  SaveValue(id, "OptionsDerived", "OptionsSaved", verbose);
   
   // preserve current year 401K primary and catch-up contribution amounts and dates
-  SaveValues(id, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
-  SaveValues(id, "Contribution401KAmountCatchUpThisYear", "Contribution401KAmountCatchUpThisYearSaved", verbose);
-  SaveValues(id, "Contribution401KDateNext", "Contribution401KDateNextSaved", verbose);
-  SaveValues(id, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
+  SaveValue(id, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
+  SaveValue(id, "Contribution401KAmountCatchUpThisYear", "Contribution401KAmountCatchUpThisYearSaved", verbose);
+  SaveValue(id, "Contribution401KDateNext", "Contribution401KDateNextSaved", verbose);
+  SaveValue(id, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
   
   // preserve quarterly benchmarks
   var maxLossLimit= -1;
-  if (SaveValues(id, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, false, maxLossLimit))
+  if (SaveValue(id, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, false, maxLossLimit))
   {
     // Values updated -- update time stamp
     UpdateTime(id, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
@@ -243,7 +244,7 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, now, verbose, backupRun, confi
     
     // preserve current nominal performance values
     var nominalHistorySheetName= "H: $";
-    var nominalNames= ["AccountGains", "Gain", "IncomeFCF", "LenValue", "ArtValue", "GainYearOverYear"];
+    var nominalNames= ["AccountGains", "Gain", "IncomeFCF", "ArtValue", "LenValue", "GainYearOverYear"];
     var nominalLimits= [-2000000, -2000000, -2000000, 20000, 20000, -2000000];
     SaveValuesInHistory(id, nominalHistorySheetName, nominalNames, nominalLimits, now, backupRun, updateRun, verbose);
     
@@ -259,14 +260,12 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, now, verbose, backupRun, confi
     var budgetLimits= [-1, -1, -1];
     SaveValuesInHistory(id, budgetHistorySheetName, budgetNames, budgetLimits, now, backupRun, updateRun, verbose);
     
-    // reset the high water mark
-    SaveValues(id, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
-    
-    // preserve the current margin (to work around the occasional import error :/
-    // SaveValues(id, "Margin", "MarginSaved", verbose, confirmNumbers, -1000000);
+    // reset high water marks
+    SaveValue(id, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
+    SaveValue(id, "ExpensesHigh", "ExpensesHighSaved", verbose, confirmNumbers, -1000000);
     
     // preserve current managed portfolio values
-    if (SaveValues(id, "ReconcileHeld", "ReconcileHeldSaved", verbose))
+    if (SaveValue(id, "ReconcileHeld", "ReconcileHeldSaved", verbose))
     {
       // update time stamp when changed
       UpdateTime(id, "ReconcileHeldUpdateTime", verbose)
@@ -274,7 +273,7 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, now, verbose, backupRun, confi
   }
   else
   {
-    Logger.log("[UpdateCurrentAnnualSheet] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0)); 
+    Logger.log("[UpdateCurrentAnnualSheet] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
   }
 };
 
@@ -299,7 +298,7 @@ function SynchronizeMainAndAnnualSheets(mainSheetID, annualSheetIDs, now, verbos
     //   TOC
     sourceNames= ["vNemesis", "vIndex", "vSustainability", "vBreakEven", "vGain", "vGainCumulativePrior",
                   "vNemesisRunning", "vIndexRunning", "vSustainabilityRunning", "vBreakEvenRunning",
-                  "HighWaterMark"];
+                  "HighWaterMark", "IndexStranglesLeveragePut", "IndexStranglesLeverageCall"];
     destinationNames= sourceNames;
     if (!Synchronize(annualSheetIDs[currentYear], mainSheetID, sourceNames, destinationNames, verbose, verbose, numbersOnly))
     {
@@ -393,6 +392,7 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, now, verbose, 
       // we have prior year, proceed
       sourceNames= ["RunRate", "vNemesisRunning", "vIndexRunning", "vSustainabilityRunning", "vBreakEvenRunning", "vGain",
                     "vGainCumulative","TaxesFederalDue", "TaxesStateDue", "TaxesFederalActualRunning", "TaxesStateActualRunning",
+                    "TaxesFederalDeductions", "TaxesStateDeductions", "TaxesFederalOverpayment", "TaxesStateOverpayment",
                     "Gains1256Unrealized"];
       destinationNames= MapNames(sourceNames, "Prior", "Running");
       
@@ -422,12 +422,12 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, now, verbose, 
     }
     else
     {
-      Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the prior year <%s>!", priorYear.toFixed(0)); 
+      Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the prior year <%s>!", priorYear.toFixed(0));
     }
   }
   else
   {
-    Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0)); 
+    Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
   }
 };
 
@@ -527,9 +527,9 @@ function MaintainHistoriesMain(id, verbose)
           success= false;
           Logger.log("[MaintainHistoriesMain] Could not get range <%s> of spreadsheet <%s>.", rangeSpecification, spreadsheet.getName());
         }
-      } 
+      }
       else
-      {   
+      {
         success= false;
         Logger.log("[MaintainHistoriesMain] Could not open spreadsheet ID <%s>.", id);
       }
@@ -604,7 +604,7 @@ function MaintainHistoriesAnnual(id, verbose)
     }
   }
   else
-  {   
+  {
     success= false;
     Logger.log("[MaintainHistoriesAnnual] Could not open spreadsheet ID <%s>.", id);
   }
@@ -666,7 +666,7 @@ function ReconcilePortfolioHistory(id, verbose)
     }
   }
   else
-  {   
+  {
     success= false;
     Logger.log("[ReconcilePortfolioHistory] Could not open spreadsheet ID <%s>.", id);
   }
@@ -984,7 +984,6 @@ function TrimHistoryRange(range, verbose)
           // find the first hidden or blank row
           if (table[row][0] == "" || sheet.isRowHiddenByUser(row + topRowInSheet))
           {
-            rows= row - topOffset;
             if (verbose)
             {
               Logger.log("[TrimHistoryRange] Found new bottom row: <%s>", (row + topRowInSheet).toFixed(0));
@@ -992,6 +991,9 @@ function TrimHistoryRange(range, verbose)
             break;
           }
         }
+
+        // count of visible data rows to consider
+        rows= row - topOffset;
 
         // lastly, trim the original range to contain this first chunk of visible, non-empty rows
         range= range.offset(topOffset, 0, rows);
@@ -1137,7 +1139,7 @@ function UpdateAllocationSheet(id, now, verbose, confirmNumbers)
   }
   else
   {
-    Logger.log("[UpdateAllocationSheet] Failed to obtain ID of the Allocations (public) sheet!"); 
+    Logger.log("[UpdateAllocationSheet] Failed to obtain ID of the Allocations (public) sheet!");
   }
 };
 
@@ -1148,7 +1150,7 @@ function UpdateAllocationSheet(id, now, verbose, confirmNumbers)
  * Return the ID of the public Allocations sheet
  */
 function GetAllocationSheetID()
-{ 
+{
   //return "1EumQvi51zI0qWVPST2TOXyA6Gbjt0qOr2klj2I8ljfg";
   return "1lB6ndpg16wT14JIOiHtKbs_sdn_ks_qFHJKP5IN6ljg";
 };

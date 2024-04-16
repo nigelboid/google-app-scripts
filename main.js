@@ -35,7 +35,6 @@ function RunDaily(backupRun)
 {
   RunPersonal(backupRun);
   RunLendingClubDaily(backupRun);
-  RunBoxTradeCandidates(backupRun)
 };
 
 
@@ -63,17 +62,23 @@ function RunHourly()
 function RunFrequently()
 {
   var afterHours= false;
-  //var afterHours= true;
+  // afterHours= true;
   
-  if (!RunIndexStranglesCandidates())
+  if (!RunIndexStranglesCandidates(afterHours))
   {
-    // Only update quotes if candidates skipped (try to stay within a narrow execution window; new candidates will force quotes)
+    // Only update quotes if candidates and boxes skipped (new candidates and boxes will force quotes)
     if (!RunQuotes(afterHours))
     {
       // Only check electricity prices if the rest skipped (try to stay within a narrow execution window)
       RunComEdFrequently();
     }
   }
+
+
+  // Only look for box trades if candidates skipped (try to stay within a narrow execution window)
+    // if (!RunBoxTradeCandidates(afterHours))
+    // {
+    
 };
 
 
@@ -100,7 +105,7 @@ function RunCustom()
 {
   var afterHours= false;
 
-  RunQuotes(afterHours)
+  RunQuotes(afterHours);
 };
 
 
@@ -112,5 +117,8 @@ function RunCustom()
  */
 function RunTest()
 {
-  RunPersonalTest();
+  // var afterHours= false;
+  // var test= true;
+
+  RunPersonalTest()
 };

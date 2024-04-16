@@ -90,7 +90,7 @@ function FindBestBoxTradeCandidates(parameters)
     {
       // Find highest yielding box trade for a given invested amount
       var ytm= null;
-      var yields= FindBoxTradeYields(contentParsed[labelPuts], contentParsed[labelCalls], 
+      var yields= FindBoxTradeYields(contentParsed[labelPuts], contentParsed[labelCalls],
                                       parameters["amount"], parameters["commission"], parameters["iterations"]);
 
       yieldsOrdered= Object.keys(yields).sort();
@@ -106,7 +106,7 @@ function FindBestBoxTradeCandidates(parameters)
                           yields[ytm]["callHigh"]["price"], yields[ytm]["amount"], parseFloat(ytm).toLocaleString(locale, options)]);
         candidates.push([yields[ytm]["putLow"]["contract"],
                           yields[ytm]["putLow"]["price"], yields[ytm]["amount"], parseFloat(ytm).toLocaleString(locale, options)]);
-        candidates.push([yields[ytm]["callLow"]["contract"], 
+        candidates.push([yields[ytm]["callLow"]["contract"],
                           yields[ytm]["callLow"]["price"], yields[ytm]["amount"], parseFloat(ytm).toLocaleString(locale, options)]);
 
         top--;
@@ -120,7 +120,7 @@ function FindBestBoxTradeCandidates(parameters)
   }
   else
   {
-    // Failed to fetch results 
+    // Failed to fetch results
     Logger.log("[FindBestBoxTradeCandidates] Could not fetch option chain for <%s> for expirations between <%s> and <%s> days!",
                 underlying, dteEarliest.toFixed(0), dteLatest.toFixed(0));
   }

@@ -4,7 +4,7 @@
  * Obtain option prices from Tradier
  *
  */
-function GetQuotesTradierAll(symbols, labels, urlHead, options, verbose)
+function GetQuotesTradierAll(symbols, labels, urlHead, verbose)
 {
   // Declare constants and local variables
   var firstDataRow= 1;

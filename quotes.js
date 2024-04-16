@@ -17,10 +17,20 @@ function RunQuotes(afterHours, test)
   var staleName= "PortfolioHeldEquitiesStaleCount";
   var stale= GetValueByName(sheetID, staleName, verbose, confirmNumbers, limit);
 
+  if (test == undefined)
+  {
+    test= false;
+  }
+
+  if (afterHours == undefined)
+  {
+    afterHours= false;
+  }
+
   if (stale > 0)
   {
     // Stale ticker symbols detected -- make a fresh copy
-    if (SaveValues(sheetID, "PortfolioHeldEquitiesUniqueLookup", "PortfolioHeldEquitiesUniqueLookupSaved", verbose))
+    if (SaveValue(sheetID, "PortfolioHeldEquitiesUniqueLookup", "PortfolioHeldEquitiesUniqueLookupSaved", verbose))
     {
       // Values updated -- update time stamp
       UpdateTime(sheetID, "PortfolioHeldEquitiesUniqueLookupSavedUpdateTime", verbose)
@@ -30,6 +40,7 @@ function RunQuotes(afterHours, test)
   if (test)
   {
     Logger.log("[RunQuotes] Testing...");
+    verbose= true;
     success= RunEquitiesTest(sheetID, verbose);
   }
   else if (afterHours)
@@ -63,20 +74,47 @@ function RunQuotes(afterHours, test)
 function RunEquities(sheetID, verbose)
 {
   // Declare constants and local variables
-  var symbolsTableName= "QuotesList";
-  var timeStampName= "QuotesTimeStamp";
-  var checkStatusName= "QuotesCheckStatus";
-  var pricesTableName= "QuotesPrices";
-  var labelsTableName= "QuotesLabels";
-  var updateStatusName= "QuotesUpdateStatus";
-  var updateTimeName= "QuotesUpdateTime";
+  const symbolsTableName= "QuotesList";
+  const timeStampName= "QuotesTimeStamp";
+  const checkStatusName= "QuotesCheckStatus";
+  const pricesTableName= "QuotesPrices";
+  const labelsTableName= "QuotesLabels";
+  const updateStatusName= "QuotesUpdateStatus";
+  const updateTimeName= "QuotesUpdateTime";
   var forceRefreshName= "QuotesForceRefresh";
-  var pollMinutesName= "QuotesPollMinutes";
-  var urlName= "QuotesURL";
+  const forceRefreshNowName= "QuotesForceRefreshNow";
+  const pollMinutesName= "QuotesPollMinutes";
+  const urlName= "QuotesURL";
   var optionPrices= false;
+  var success= false;
 
-  return RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
-                        updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose);
+  var forceRefreshNow= GetValueByName(sheetID, forceRefreshNowName, verbose);
+
+  if (forceRefreshNow)
+  {
+    // User set a manual forced refresh flag for equity quotes; pass it forward...
+    forceRefreshName= forceRefreshNowName;
+    if (verbose)
+    {
+      Logger.log("[RunEquities] Forcing a manual refresh of equity pricess...");
+    }
+  }
+
+  success= RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
+                          updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose);
+
+  if (forceRefreshNow)
+  {
+    // User set a manual forced refresh flag for equity quotes; clear it
+    if (verbose)
+    {
+      Logger.log("[RunEquities] Clearing the flag for manual refresh of equity pricess...");
+    }
+    
+    SetValueByName(sheetID, forceRefreshNowName, "", verbose);
+  }
+
+  return success;
 };
 
 
@@ -149,20 +187,46 @@ function RunEquitiesTest(sheetID, verbose)
 function RunOptions(sheetID, verbose)
 {
   // Declare constants and local variables
-  var symbolsTableName= "OptionsList";
-  var timeStampName= "OptionsTimeStamp";
-  var checkStatusName= "OptionsCheckStatus";
-  var pricesTableName= "OptionsPrices";
-  var labelsTableName= "OptionsLabels";
-  var updateStatusName= "OptionsUpdateStatus";
-  var updateTimeName= "OptionsUpdateTime";
+  const symbolsTableName= "OptionsList";
+  const timeStampName= "OptionsTimeStamp";
+  const checkStatusName= "OptionsCheckStatus";
+  const pricesTableName= "OptionsPrices";
+  const labelsTableName= "OptionsLabels";
+  const updateStatusName= "OptionsUpdateStatus";
+  const updateTimeName= "OptionsUpdateTime";
   var forceRefreshName= "OptionsForceRefresh";
-  var pollMinutesName= "OptionsPollMinutes";
-  var urlName= "OptionsURL";
-  var optionPrices= true;
+  const forceRefreshNowName= "OptionsForceRefreshNow";
+  const pollMinutesName= "OptionsPollMinutes";
+  const urlName= "OptionsURL";
+  const optionPrices= true;
+  var success= false;
 
-  return RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
-                        updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose);
+  var forceRefreshNow= GetValueByName(sheetID, forceRefreshNowName, verbose);
+
+  if (forceRefreshNow)
+  {
+    // User set a manual forced refresh flag for equity quotes; pass it forward...
+    forceRefreshName= forceRefreshNowName;if (verbose)
+    {
+      Logger.log("[RunOptions] Forcing a manual refresh of option pricess...");
+    }
+  }
+
+  success= RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
+                          updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose);
+
+  if (forceRefreshNow)
+  {
+    // User set a manual forced refresh flag for equity quotes; clear it
+    if (verbose)
+    {
+      Logger.log("[RunOptions] Clearing the flag for manual refresh of option pricess...");
+    }
+
+    SetValueByName(sheetID, forceRefreshNowName, "", verbose);
+  }
+
+  return success;
 };
 
 
@@ -440,21 +504,20 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
  */
 function GetQuotes(id, symbols, labels, urlHead, optionPrices, verbose, test)
 {
-
   if (test)
   {
     Logger.log("[GetQuotes] Still testing...");
-    return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
+    // return GetQuotesTradierAll(symbols, labels, urlHead, verbose);
+    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
   }
   else if (optionPrices)
   {
     return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
-    //return GetQuotesTradierAll(symbols, labels, urlHead, optionPrices, verbose);
   }
   else
   {
-    return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
-    //return GetQuotesCNBCAll(symbols, labels, urlHead, optionPrices, verbose);
+    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
+    // return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
   }
 };
 

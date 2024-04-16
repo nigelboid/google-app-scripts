@@ -1,10 +1,10 @@
 /**
- * GetQuotesTDA()
+ * GetQuotesSchwab()
  *
- * Obtain prices from TDA
+ * Obtain prices from Schwab
  *
  */
-function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
+function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
 {
   // Declare constants and local variables
   var firstDataRow= 1;
@@ -15,10 +15,9 @@ function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
   var response= null;
   var prices= {};
   
-  var apiKey= GetValueByName(id, "ParameterTDAKey", verbose);
-  var headers= ComposeHeadersTDA(id, verbose);
+  var headers= ComposeHeadersSchwab(id, verbose);
   
-  if (symbols && apiKey && headers)
+  if (symbols && headers)
   {
     // We have viable headers and query parameters, proceed
     
@@ -37,9 +36,9 @@ function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
       }
     }
     
-    // Option quotes from TDA require symbol remapping
-    symbolMap= RemapSymbolsTDA(id, Object.keys(urls), verbose);
-    url= ConstructUrlQuoteTDA(apiKey, Object.keys(symbolMap));
+    // Option quotes from Schwab require symbol remapping
+    symbolMap= RemapSymbolsSchwab(id, Object.keys(urls), verbose);
+    url= ConstructUrlQuoteSchwab(Object.keys(symbolMap));
 
     if (url)
     {
@@ -49,30 +48,30 @@ function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
       }
       catch (error)
       {
-        return "[GetQuotesTDA] ".concat(error);
+        return "[GetQuotesSchwab] ".concat(error);
       }
       
       if (response)
       {
         // Data fetched -- extract
-        prices= ExtractQuotesTDA(response, symbolMap, urls, labels, verbose);
+        prices= ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose);
       }
       else
       {
         // Failed to fetch web pages
-        return "[GetQuotesTDA] Could not fetch quotes!";
+        return "[GetQuotesSchwab] Could not fetch quotes!";
       }
     }
     else
     {
       // No prices to fetch?
-      return "[GetQuotesTDA] Could not compile queries.";
+      return "[GetQuotesSchwab] Could not compile queries.";
     }
   }
   else
   {
     // Missing parameters
-    Logger.log("[GetQuotesTDA] Missing parameters: apiKey= %s, symbols= %s, headers= %s", apiKey, symbols, headers);
+    Logger.log("[GetQuotesSchwab] Missing parameters: apiKey= %s, symbols= %s, headers= %s", apiKey, symbols, headers);
   }
   
   return prices;
@@ -80,39 +79,37 @@ function GetQuotesTDA(id, symbols, labels, urlHead, verbose)
 
 
 /**
- * ExtractQuotesTDA()
+ * ExtractQuotesSchwab()
  *
- * Extract pricing data from Tradier JSON result
+ * Extract pricing data from Schwab JSON result
  *
  */
-function ExtractQuotesTDA(response, symbolMap, urls, labels, verbose)
+function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
 {
   // Declare constants and local variables
-  var quotes= ExtractContentTDA(response);
+  var quotes= ExtractContentSchwab(response);
   var prices= {};
+  var quoteSymbol= null;
   
   if (quotes)
   {
     // We have quotes -- process them
     
     // First, define interesting quote parameters
-    const labelType= "assetType";
+    const labelQuote= "quote";
+    const labelAssetType= "assetMainType";
     const labelSymbol= "symbol";
-    const labelChange= "netChange";
-    const labelChangeInDouble= "changeInDouble";
-    const labelNetChange= "netChange";
-    const labelLast= "lastPrice";
-    const labelLastInDouble= "lastPriceInDouble";
-    const labelNAV= "nAV";
-    const labelClose= "closePrice";
-    const labelCloseInDouble= "closePriceInDouble";
+    const labelChangePrice= "netChange";
+    const labelLastPrice= "lastPrice";
     const labelClosePrice= "closePrice";
-    const labelBid= "bidPrice";
-    const labelAsk= "askPrice";
-    const labelDelta= "delta";
+    const labelBidPrice= "bidPrice";
+    const labelAskPrice= "askPrice";
+    const labelOptionDelta= "delta";
+    const labelNAV= "nAV";
     const labelURL= "URL";
     const labelDebug= "Debug";
-    
+    const symbolFuturesCruftLength= 3;
+
     // Second, seed the default table column to quote parameter map
     const columnBid= "Bid";
     const columnAsk= "Ask";
@@ -121,12 +118,12 @@ function ExtractQuotesTDA(response, symbolMap, urls, labels, verbose)
     const columnChange= "Change";
     const columnDelta= "Delta";
     var labelMap= {};
-    labelMap[columnBid]= labelBid;
-    labelMap[columnAsk]= labelAsk;
-    labelMap[columnLast]= labelLast;
-    labelMap[columnClose]= labelClose;
-    labelMap[columnChange]= labelChange;
-    labelMap[columnDelta]= labelDelta;
+    labelMap[columnBid]= labelBidPrice;
+    labelMap[columnAsk]= labelAskPrice;
+    labelMap[columnLast]= labelLastPrice;
+    labelMap[columnClose]= labelClosePrice;
+    labelMap[columnChange]= labelChangePrice;
+    labelMap[columnDelta]= labelOptionDelta;
     
     // Lastly, define type exeptions
     const typeMutualFund= "MUTUAL_FUND";
@@ -138,49 +135,53 @@ function ExtractQuotesTDA(response, symbolMap, urls, labels, verbose)
       if (quotes[quote][labelSymbol] != undefined)
       {
         // Symbol exists
-        prices[symbolMap[quotes[quote][labelSymbol]]]= {};
-        prices[symbolMap[quotes[quote][labelSymbol]]][labelURL]= urls[symbolMap[quotes[quote][labelSymbol]]];
+        quoteSymbol= quotes[quote][labelSymbol];
+        if (quotes[quote][labelAssetType] == typeFuture)
+        {
+          // Adjust futures symbols to remove expiration reference
+          quoteSymbol= quoteSymbol.substring(0, quoteSymbol.length - symbolFuturesCruftLength);
+          
+          // Make a copy under the adjusted symbol for future reference
+          quotes[quoteSymbol]= quotes[quote];
+        }
+
+        prices[symbolMap[quoteSymbol]]= {};
+        prices[symbolMap[quoteSymbol]][labelURL]= urls[symbolMap[quoteSymbol]];
         
         if (labelDebug != undefined)
         {
           // debug activated -- commit raw data
-          prices[symbolMap[quotes[quote][labelSymbol]]][labelDebug]= quotes[quote];
+          prices[symbolMap[quoteSymbol]][labelDebug]= quotes[quoteSymbol];
         }
         
         // Adjust labelMap based quote specifics
-        if (quotes[quote][labelType] == typeMutualFund)
+        if (quotes[quote][labelAssetType] == typeMutualFund)
         {
           // Use NAV as last price for mutual funds
           labelMap[columnLast]= labelNAV;
-          labelMap[columnChange]= labelNetChange;
+          labelMap[columnChange]= labelChangePrice;
           labelMap[columnClose]= labelClosePrice;
-        }
-        else if (quotes[quote][labelType] == typeFuture)
-        {
-          // Use NAV as last price for mutual funds
-          labelMap[columnLast]= labelLastInDouble;
-          labelMap[columnChange]= labelChangeInDouble;
-          labelMap[columnClose]= labelCloseInDouble;
         }
         else
         {
-          // Revert to defaults
-          labelMap[columnLast]= labelLast;
-          labelMap[columnChange]= labelChange;
-          labelMap[columnClose]= labelClose;
+          // Set to defaults
+          labelMap[columnLast]= labelLastPrice;
+          labelMap[columnChange]= labelChangePrice;
+          labelMap[columnClose]= labelClosePrice;
         }
         
         for (const label in labels)
         {
           // Pull a value for each desired label
-          if (quotes[quote][labelMap[labels[label]]] == undefined)
+          if (quotes[quote][labelQuote][labelMap[labels[label]]] == undefined)
           {
-            // No top-level data
-            prices[symbolMap[quotes[quote][labelSymbol]]][labels[label]]= "no data";
+            // No data for this quote item
+            prices[symbolMap[quoteSymbol]][labels[label]]= "no data";
           }
           else
           {
-            prices[symbolMap[quotes[quote][labelSymbol]]][labels[label]]= quotes[quote][labelMap[labels[label]]];
+            // Data obtained -- translate and commit to our storage
+            prices[symbolMap[quoteSymbol]][labels[label]]= quotes[quoteSymbol][labelQuote][labelMap[labels[label]]];
           }
         }
       }
@@ -188,7 +189,7 @@ function ExtractQuotesTDA(response, symbolMap, urls, labels, verbose)
   }
   else
   {
-    Logger.log("[ExtractQuotesTDA] Could not obtain quotes!");
+    Logger.log("[ExtractQuotesSchwab] Could not obtain quotes!");
   }
   
   return prices;
@@ -196,19 +197,18 @@ function ExtractQuotesTDA(response, symbolMap, urls, labels, verbose)
 
 
 /**
- * RemapSymbolsTDA()
+ * RemapSymbolsSchwab()
  *
- * Remap symbols to the TDA format
+ * Remap symbols to the Schwab format
  *   covers: options, indexes, futures, special cases (e.g., US10Y)
  *
  */
-function RemapSymbolsTDA(id, symbols, verbose)
+function RemapSymbolsSchwab(id, symbols, verbose)
 {
   // Declare constants and local variables
   var symbolMap= {};
-  var symbol= "";
   
-  var symbolTDA= "";
+  var symbolSchwab= "";
   var underlying= "";
   var date= "";
   var month= "";
@@ -218,37 +218,52 @@ function RemapSymbolsTDA(id, symbols, verbose)
   var symbolIndex= 0;
   var optionDetailsLength= "YYMMDDT00000000".length;
   var symbolMapProvided= GetParameters(id, "ParameterMapSymbols", verbose);
-  
-  for (const symbol of symbols)
+
+  for (const quoteSymbol of symbols)
   {
-    if (symbolMapProvided[symbol] != undefined)
+    if (symbolMapProvided[quoteSymbol] != undefined)
     {
-      symbolMap[symbolMapProvided[symbol.toUpperCase()]]= symbol;
+      // Create our symbol map
+
+      // Temporary compatibility for the TDA to Schwab transition
+      var mappedSymbol= symbolMapProvided[quoteSymbol.toUpperCase()];
+      if (mappedSymbol.endsWith(".X"))
+      {
+        mappedSymbol= mappedSymbol.slice(0, -2);
+      }
+      else if (mappedSymbol == "BRK.B")
+      {
+        mappedSymbol= "BRK/B";
+      }
+      symbolMap[mappedSymbol]= quoteSymbol;
+
+
+      // Original: returt after compatibility testing
+      // symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]]= quoteSymbol;
     }
-    else if (symbol.length > optionDetailsLength)
+    else if (quoteSymbol.length > optionDetailsLength)
     {
       // Re-map each apparent option symbol
     
-      underlying= symbol.slice(0, -optionDetailsLength);
+      underlying= quoteSymbol.slice(0, -optionDetailsLength);
       
       symbolIndex= underlying.length;
-      year= symbol.slice(symbolIndex, symbolIndex+= 2);
-      month= symbol.slice(symbolIndex, symbolIndex+= 2);
-      date= symbol.slice(symbolIndex, symbolIndex+= 2);
+      year= quoteSymbol.slice(symbolIndex, symbolIndex+= 2);
+      month= quoteSymbol.slice(symbolIndex, symbolIndex+= 2);
+      date= quoteSymbol.slice(symbolIndex, symbolIndex+= 2);
       
-      type= symbol.slice(symbolIndex, symbolIndex+= 1);
+      type= quoteSymbol.slice(symbolIndex, symbolIndex+= 1);
       
-      strike= symbol.slice(symbolIndex);
+      strike= quoteSymbol.slice(symbolIndex);
       strike= strike / 1000;
       
-      symbolTDA= underlying + "_" + month + date + year + type + strike;
-      symbolMap[symbolTDA]= symbol;
+      symbolSchwab= underlying + "_" + month + date + year + type + strike;
+      symbolMap[symbolSchwab]= quoteSymbol;
     }
     else
     {
       // Preserve all other symbols
-      
-      symbolMap[symbol]= symbol;
+      symbolMap[quoteSymbol]= quoteSymbol;
     }
   }
   
@@ -257,12 +272,12 @@ function RemapSymbolsTDA(id, symbols, verbose)
 
 
 /**
- * GetIndexStrangleContractsTDA()
+ * GetIndexStrangleContractsSchwab()
  *
  * Obtain and select best matching strangles
  *
  */
-function GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
+function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
 {
   // Declare constants and local variables
   const labelPuts= "putExpDateMap";
@@ -278,12 +293,12 @@ function GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut
     
     if (symbol)
     {
-      contracts= GetContractsForSymbolByExpirationTDA(sheetID, symbol, dte, labelPuts, labelCalls, verbose);
+      contracts= GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts, labelCalls, verbose);
     
       if (typeof contracts == "string")
       {
         // Looks like we have an error message
-        Logger.log("[GetIndexStrangleContractsTDA] Could not get contracts! (%s)", contracts);
+        Logger.log("[GetIndexStrangleContractsSchwab] Could not get contracts! (%s)", contracts);
       }
       else if (contracts)
       {
@@ -291,18 +306,18 @@ function GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut
         if (contracts[labelPuts])
         {
           // Viable puts data
-          results= results.concat(FindBestDeltaMatchTDA(contracts[labelPuts], deltaPut, verbose));
+          results= results.concat(FindBestDeltaMatchSchwab(contracts[labelPuts], deltaPut, verbose));
         }
         
         if (contracts[labelCalls])
         {
           // Viable calls data
-          results= results.concat(FindBestDeltaMatchTDA(contracts[labelCalls], deltaCall, verbose));
+          results= results.concat(FindBestDeltaMatchSchwab(contracts[labelCalls], deltaCall, verbose));
         }
       }
       else
       {
-        Logger.log("[GetIndexStrangleContractsTDA] Failed to obtain a list of valid option contracts <%s>!", contracts);
+        Logger.log("[GetIndexStrangleContractsSchwab] Failed to obtain a list of valid option contracts <%s>!", contracts);
       }
     }
   }
@@ -312,12 +327,12 @@ function GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut
 
 
 /**
- * FindBestDeltaMatchTDA()
+ * FindBestDeltaMatchSchwab()
  *
  * Find a contract in the given set with closest delta value match
  *
  */
-function FindBestDeltaMatchTDA(contracts, deltaTarget, verbose)
+function FindBestDeltaMatchSchwab(contracts, deltaTarget, verbose)
 {
   // Declare constants and local variables
   var strikes= Object.keys(contracts);
@@ -397,26 +412,26 @@ function FindBestDeltaMatchTDA(contracts, deltaTarget, verbose)
 
 
 /**
- * GetContractsForSymbolByExpirationTDA()
+ * GetContractsForSymbolByExpirationSchwab()
  *
  * Obtain option contract expiration dates for a given symbol
  *
  */
-function GetContractsForSymbolByExpirationTDA(sheetID, symbol, dte, labelPuts, labelCalls, verbose)
+function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts, labelCalls, verbose)
 {
   // Declare constants and local variables
   var contracts= {};
-  const response= GetChainForSymbolByExpirationTDA(sheetID, symbol, dte, dte, verbose);
+  const response= GetChainForSymbolByExpirationSchwab(sheetID, symbol, dte, dte, verbose);
   
   if (response)
   {
     // Data fetched -- extract
-    contracts= ExtractEarliestContractsTDA(response, labelPuts, labelCalls);
+    contracts= ExtractEarliestContractsSchwab(response, labelPuts, labelCalls);
   }
   else
   {
     // Failed to fetch results
-    Logger.log("[GetContractsForSymbolByExpirationTDA] Could not fetch expirations!");
+    Logger.log("[GetContractsForSymbolByExpirationSchwab] Could not fetch expirations!");
   }
 
   return contracts;
@@ -424,27 +439,27 @@ function GetContractsForSymbolByExpirationTDA(sheetID, symbol, dte, labelPuts, l
 
 
 /**
- * GetChainForSymbolByExpirationTDA()
+ * GetChainForSymbolByExpirationSchwab()
  *
  * Obtain option contract expiration dates for a given symbol
  *
  */
-function GetChainForSymbolByExpirationTDA(sheetID, symbol, dteEarliest, dteLatest, verbose)
+function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLatest, verbose)
 {
   // Declare constants and local variables
-  var apiKey= GetValueByName(sheetID, "ParameterTDAKey", verbose);
-  var headers= ComposeHeadersTDA(sheetID, verbose);
+  var apiKey= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
+  var headers= ComposeHeadersSchwab(sheetID, verbose);
   var url= null;
   var response= null;
   
   if (apiKey && headers)
   {
     // We have viable headers and query parameters, proceed
-    url= ConstructUrlExpirationsTDA(apiKey, symbol, dteEarliest, dteLatest);
+    url= ConstructUrlExpirationsSchwab(apiKey, symbol, dteEarliest, dteLatest);
 
     if (verbose)
     {
-      Logger.log("[GetContractsForSymbolByExpirationTDA] Query: %s", url);
+      Logger.log("[GetContractsForSymbolByExpirationSchwab] Query: %s", url);
     }
 
     if (url)
@@ -456,19 +471,19 @@ function GetChainForSymbolByExpirationTDA(sheetID, symbol, dteEarliest, dteLates
       }
       catch (error)
       {
-        return "[GetChainForSymbolByExpirationTDA] ".concat(error);
+        return "[GetChainForSymbolByExpirationSchwab] ".concat(error);
       }
     }
     else
     {
       // No prices to fetch?
-      Logger.log("[GetContractsForSymbolByExpirationTDA] Could not compile query.");
+      Logger.log("[GetContractsForSymbolByExpirationSchwab] Could not compile query.");
     }
   }
   else
   {
     // Missing parameters
-    Logger.log("[GetChainForSymbolByExpirationTDA] Missing parameters: apiKey= %s, headers= %s", apiKey, headers);
+    Logger.log("[GetChainForSymbolByExpirationSchwab] Missing parameters: apiKey= %s, headers= %s", apiKey, headers);
   }
 
   return response;
@@ -476,14 +491,14 @@ function GetChainForSymbolByExpirationTDA(sheetID, symbol, dteEarliest, dteLates
 
 
 /**
- * ExtractEarliestContractsTDA()
+ * ExtractEarliestContractsSchwab()
  *
  * Extract contract expiration dates from a list of returned contracts
  */
-function ExtractEarliestContractsTDA(response, labelPuts, labelCalls)
+function ExtractEarliestContractsSchwab(response, labelPuts, labelCalls)
 {
   // Declare constants and local variables
-  var contentParsed= ExtractContentTDA(response);
+  var contentParsed= ExtractContentSchwab(response);
   var labelDate= null;
   var expirations= [];
   var contractTypes= [labelPuts, labelCalls];
@@ -517,14 +532,14 @@ function ExtractEarliestContractsTDA(response, labelPuts, labelCalls)
       }
       else
       {
-        Logger.log("[ExtractExpirationDatesTDA] Data query returned no content");
+        Logger.log("[ExtractExpirationDatesSchwab] Data query returned no content");
         Logger.log(content);
       }
     }
   }
   else
   {
-    Logger.log("[ExtractExpirationDatesTDA] Query returned no data!");
+    Logger.log("[ExtractExpirationDatesSchwab] Query returned no data!");
   }
   
   return contracts;
@@ -532,15 +547,15 @@ function ExtractEarliestContractsTDA(response, labelPuts, labelCalls)
 
 
 /**
- * ExtractExpirationsTDA()
+ * ExtractExpirationsSchwab()
  *
  * Extract matching contract expiration dates from an option chain
  */
-function ExtractExpirationsTDA(response, expirationTargets, verbose)
+function ExtractExpirationsSchwab(response, expirationTargets, verbose)
 {
   // Declare constants and local variables
   const labelPuts= "putExpDateMap";
-  const contentParsed= ExtractContentTDA(response);
+  const contentParsed= ExtractContentSchwab(response);
   
   if (contentParsed)
   {
@@ -592,13 +607,13 @@ function ExtractExpirationsTDA(response, expirationTargets, verbose)
     }
     else
     {
-      Logger.log("[ExtractExpirationDatesTDA] Data query returned no viable expirations: <%s>", expirations);
+      Logger.log("[ExtractExpirationDatesSchwab] Data query returned no viable expirations: <%s>", expirations);
       Logger.log(contentParsed);
     }
   }
   else
   {
-    Logger.log("[ExtractExpirationDatesTDA] Query returned no data!");
+    Logger.log("[ExtractExpirationDatesSchwab] Query returned no data!");
   }
 
   return expirationsMapped;
@@ -632,28 +647,29 @@ function ValidateContracts(contracts)
 
 
 /**
- * ConstructUrlQuoteTDA()
+ * ConstructUrlQuoteSchwab()
  *
- * Construct a TDA quote query URL for specified symbols
+ * Construct a Schwab quote query URL for specified symbols
  *
  */
-function ConstructUrlQuoteTDA(apiKey, symbols)
+function ConstructUrlQuoteSchwab(symbols)
 {
   // Declare constants and local variables
-  var urlHead= "https://api.tdameritrade.com/v1/marketdata/quotes?";
-  var urlAPIKey= "apikey=" + apiKey;
-  var urlSymbols= "&symbol=" + symbols.join(",");
+  const urlHead= "https://api.schwabapi.com/marketdata/v1/quotes?";
+  const urlSymbols= "symbols=" + symbols.join(",");
+  const urlFileds= "&fields=quote";
+  const urlIndicative= "&indicative=false";
   
-  return urlHead + urlAPIKey + urlSymbols;
+  return urlHead + urlSymbols + urlFileds + urlIndicative;
 };
 
 
 /**
- * ConstructUrlExpirationsTDA()
+ * ConstructUrlExpirationsSchwab()
  *
- * Construct a URL to obtain a list of contracts with expiration dates from TDA
+ * Construct a URL to obtain a list of contracts with expiration dates from Schwab
  */
-function ConstructUrlExpirationsTDA(apiKey, symbol, dteEarliest, dteLatest)
+function ConstructUrlExpirationsSchwab(apiKey, symbol, dteEarliest, dteLatest)
 {
   // Declare constants and local variables
   var urlHead= "https://api.tdameritrade.com/v1/marketdata/chains?strikeCount=500&strategy=SINGLE";
@@ -678,29 +694,29 @@ function ConstructUrlExpirationsTDA(apiKey, symbol, dteEarliest, dteLatest)
 
 
 /**
- * ComposeHeadersTDA()
+ * ComposeHeadersSchwab()
  *
  * Compose required headers for our requests
  */
-function ComposeHeadersTDA(sheetID, verbose)
+function ComposeHeadersSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
-  var accessToken= GetAccessTokenTDA(sheetID, verbose);
+  const accessToken= GetAccessTokenSchwab(sheetID, verbose);
   var headers= {};
   
   if (accessToken)
   {
     // We have an access token, proceed
-    headers= { "Accept" : "application/json", "Authorization" : "Bearer " + accessToken };
+    headers= {
+      "Accept" : "application/json",
+      "Schwab-Client-CorrelId": "ISLE",
+      "Authorization" : "Bearer " + accessToken
+    };
   }
   else
   {
-    // We did not get an access token -- proceed without one for delayed quotes
-    headers= { "Accept" : "application/json" };
-    if (verbose)
-    {
-      Logger.log("[ComposeHeadersTDA] Cannot request real-time quotes without a valid access token [%s]!", accessToken);
-    }
+    // We did not get an access token!
+    Logger.log("[ComposeHeadersSchwab] Cannot request quotes without a valid access token [%s]!", accessToken);
   }
   
   return headers;
@@ -708,12 +724,12 @@ function ComposeHeadersTDA(sheetID, verbose)
 
 
 /**
- * GetAccessTokenTDA()
+ * GetAccessTokenSchwab()
  *
- * Obtain a fresh and valid access token for TDA API queries
+ * Obtain a fresh and valid access token for Schwab API queries
  *
  */
-function GetAccessTokenTDA(sheetID, verbose)
+function GetAccessTokenSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const currentTime= new Date();
@@ -723,114 +739,122 @@ function GetAccessTokenTDA(sheetID, verbose)
   const accessTokenTTLOffset= 300;
   
   // First, validate preserved access token
-  const accessTokenExpiration= GetValueByName(sheetID, "ParameterTDATokenAccessExpiration", verbose);
+  const accessTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
   if (accessTokenExpiration && (currentTime < accessTokenExpiration))
   {
     // our preserved access token remains valid
-    accessToken= GetValueByName(sheetID, "ParameterTDATokenAccess", verbose);
+    accessToken= GetValueByName(sheetID, "ParameterSchwabTokenAccess", verbose);
   }
   
   if (!accessToken)
   {
     // our preserved acces token has expired or is otherwise invalid -- refresh it
-    const key= GetValueByName(sheetID, "ParameterTDAKey", verbose);
-    var accessType= "";
-    var refreshToken= GetValueByName(sheetID, "ParameterTDATokenRefresh", verbose);
-    var refreshTokenExpiration= GetValueByName(sheetID, "ParameterTDATokenRefreshExpiration", verbose);
+    const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
+    var refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
+    var refreshTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", verbose);
     var response= null;
 
     if (verbose)
     {
-      Logger.log("[GetAccessTokenTDA] Refreshing invalid access token (expiration stamp <%s>)...", accessTokenExpiration);
-      Logger.log("[GetAccessTokenTDA] Old access token: %s", accessToken);
-      Logger.log("[GetAccessTokenTDA] Refresh token expiration stamp <%s>...", refreshTokenExpiration);
-      Logger.log("[GetAccessTokenTDA] Refresh token: %s", refreshToken);
+      Logger.log("[GetAccessTokenSchwab] Refreshing invalid access token (expiration stamp <%s>)...", accessTokenExpiration);
+      Logger.log("[GetAccessTokenSchwab] Old access token: %s", accessToken);
+      Logger.log("[GetAccessTokenSchwab] Refresh token expiration stamp <%s>...", refreshTokenExpiration);
+      Logger.log("[GetAccessTokenSchwab] Refresh token: %s", refreshToken);
     }
     
     if (!refreshTokenExpiration || (currentTime > refreshTokenExpiration))
     {
-      // our preserved refresh token has also expired
-      accessType= "offline";
-      
+      // Preserved refresh token has also expired or has no expiration value
       if (verbose)
       {
-        Logger.log("[GetAccessTokenTDA] Also refreshing stale refresh token...");
+        Logger.log("[GetAccessTokenSchwab] Refresh token has gone stale -- obtain a new one!!!");
       }
     }
-    
-    if (key && refreshToken)
+    else
     {
-      // we have necessary parameters, proceed to obtain token
-      const formData= {
-        'grant_type': 'refresh_token',
-        'refresh_token': refreshToken,
-        'access_type': accessType,
-        'client_id': key
-      };
-      
-      const options = {
-        'method' : 'post',
-        'payload' : formData
-      };
-      
-      try
+      // Request a new access token using our valid refreh token
+      if (verbose)
       {
-        response= UrlFetchApp.fetch("https://api.tdameritrade.com/v1/oauth2/token", options);
-        
-        if (response)
-        {
-          // Looks like we have a valid data response
-          const keyAccessToken= "access_token";
-          const keyAccessTokenTTL= "expires_in";
-          const keyRefreshToken= "refresh_token";
-          const keyRefreshTokenTTL= "refresh_token_expires_in";
-          const contentParsed= ExtractContentTDA(response);
-          
-          const accessTokenTTL= contentParsed[keyAccessTokenTTL];
-          const refreshToken= contentParsed[keyRefreshToken];
-          const refreshTokenTTL= contentParsed[keyRefreshTokenTTL];
-          var expiration= null;
+        Logger.log("[GetAccessTokenSchwab] Refresh token remains valid...");
+      }
 
-          accessToken= contentParsed[keyAccessToken];
+      if (key && refreshToken)
+      {
+        // we have necessary parameters, proceed to obtain token
+        const formData= {
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken
+        };
+
+        const headers = {
+          'Authorization': "Basic " + Utilities.base64Encode(key)
+        };
+        
+        const options = {
+          'method' : 'post',
+          'headers' : headers,
+          'payload' : formData
+        };
+        
+        try
+        {
+          response= UrlFetchApp.fetch("https://api.schwabapi.com/v1/oauth/token", options);
           
-          if (refreshToken && refreshTokenTTL)
+          if (response)
           {
-            // Preserve the new Refresh Token and its expiration time
-            expiration= new Date();
-            expiration.setSeconds(expiration.getSeconds() + refreshTokenTTL);
-            expiration.setDate(expiration.getDate() - 14);
+            // Looks like we have a valid data response
+            const keyAccessToken= "access_token";
+            const keyAccessTokenTTL= "expires_in";
+            // const keyRefreshToken= "refresh_token";
+            // const keyRefreshTokenTTL= "refresh_token_expires_in";
+            const contentParsed= ExtractContentSchwab(response);
             
-            SetValueByName(sheetID, "ParameterTDATokenRefresh", refreshToken, verbose);
-            SetValueByName(sheetID, "ParameterTDATokenRefreshExpiration", expiration, verbose);
-          }
-          
-          if (accessToken && accessTokenTTL)
-          {
-            // Preserve the new Access Token and its expiration time
-            expiration= new Date();
-            expiration.setSeconds(expiration.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
+            const accessTokenTTL= contentParsed[keyAccessTokenTTL];
+            // const refreshToken= contentParsed[keyRefreshToken];
+            // const refreshTokenTTL= contentParsed[keyRefreshTokenTTL];
+            var expiration= null;
+
+            accessToken= contentParsed[keyAccessToken];
             
-            SetValueByName(sheetID, "ParameterTDATokenAccess", accessToken, verbose);
-            SetValueByName(sheetID, "ParameterTDATokenAccessExpiration", expiration, verbose);
+            // if (refreshToken && refreshTokenTTL)
+            // {
+            //   // Preserve the new Refresh Token and its expiration time
+            //   expiration= new Date();
+            //   expiration.setSeconds(expiration.getSeconds() + refreshTokenTTL);
+            //   expiration.setDate(expiration.getDate() - 14);
+              
+            //   SetValueByName(sheetID, "ParameterSchwabTokenRefresh", refreshToken, verbose);
+            //   SetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", expiration, verbose);
+            // }
+            
+            if (accessToken && accessTokenTTL)
+            {
+              // Preserve the new Access Token and its expiration time
+              expiration= new Date();
+              expiration.setSeconds(expiration.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
+              
+              SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
+              SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", expiration, verbose);
+            }
+            else
+            {
+              Logger.log("[GetAccessTokenSchwab] Failed to obtain refreshed access token [%s] and its time-to-live [%s]!", accessToken, accessTokenTTL);
+            }
           }
           else
           {
-            Logger.log("[GetAccessTokenTDA] Failed to obtain refreshed access token [%s] and its time-to-live [%s]!", accessToken, accessTokenTTL);
+            Logger.log("[GetAccessTokenSchwab] Error repsonse code: [%s]", response.getResponseCode());
           }
         }
-        else
+        catch (error)
         {
-          Logger.log("[GetAccessTokenTDA] Error repsonse code: [%s]", response.getResponseCode());
+          return "[GetAccessTokenSchwab] ".concat(error);
         }
       }
-      catch (error)
+      else if (verbose)
       {
-        return "[GetAccessTokenTDA] ".concat(error);
+        Logger.log("[GetAccessTokenSchwab] Could not obtain parameters (key= <%s>, token= <%s>)!", key, refreshToken);
       }
-    }
-    else if (verbose)
-    {
-      Logger.log("[GetAccessTokenTDA] Could not obtain parameters (key= <%s>, token= <%s>)!", key, refreshToken);
     }
   }
   
@@ -839,11 +863,11 @@ function GetAccessTokenTDA(sheetID, verbose)
 
 
 /**
- * ExtractContentTDA()
+ * ExtractContentSchwab()
  *
- * Extract parsed JSON paylod from a TDA repsonse
+ * Extract parsed JSON payload from a Schwab response
  */
-function ExtractContentTDA(response)
+function ExtractContentSchwab(response)
 {
   // Declare constants and local variables
   const responseOK= 200;
@@ -857,7 +881,7 @@ function ExtractContentTDA(response)
   }
   else
   {
-    Logger.log("[ExtractContentTDA] Data query returned error code <%s>.", response.getResponseCode());
+    Logger.log("[ExtractContentSchwab] Data query returned error code <%s>.", response.getResponseCode());
     Logger.log(response.getAllHeaders());
   }
 
@@ -866,12 +890,12 @@ function ExtractContentTDA(response)
 
 
 /**
- * ExtractPriceTDA()
+ * ExtractPriceSchwab()
  *
  * Extract price from a given list of contracts for a specific strike and expiration
  *
  */
-function ExtractPriceTDA(quotes, amount, preferWeekly)
+function ExtractPriceSchwab(quotes, amount, preferWeekly)
 {
   // Declare constants and local variables
   const labelSymbol= "symbol";
