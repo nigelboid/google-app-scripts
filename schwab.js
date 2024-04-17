@@ -125,7 +125,7 @@ function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
     labelMap[columnChange]= labelChangePrice;
     labelMap[columnDelta]= labelOptionDelta;
     
-    // Lastly, define type exeptions
+    // Lastly, define type exceptions
     const typeMutualFund= "MUTUAL_FUND";
     const typeFuture= "FUTURE";
     
