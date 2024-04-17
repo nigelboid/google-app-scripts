@@ -4,13 +4,13 @@
  * Find suitable contracts based on a list of parameters
  *
  */
-function RunIndexStranglesCandidates(afterHours)
+function RunIndexStranglesCandidates(afterHours, test)
 {
   // Declare constants and local variables
   const sheetID= GetMainSheetID();
   const forceRefreshNowName= "IndexStranglesForceRefreshNow";
   const optionPrices= true;
-  const verbose= false;
+  var verbose= false;
   var success= false;
   
   const forceRefreshNow= GetValueByName(sheetID, forceRefreshNowName, verbose);
@@ -35,7 +35,16 @@ function RunIndexStranglesCandidates(afterHours)
     afterHours= true;
   }
   
-  if (forceRefreshNow || currentTime.getDate() != nextUpdateTime.getDate()
+  if (test == undefined)
+  {
+    test= false;
+  }
+  else
+  {
+    verbose= test;
+  }
+  
+  if (forceRefreshNow || test || currentTime.getDate() != nextUpdateTime.getDate()
       || ((IsMarketOpen(sheetID, optionPrices, verbose) || afterHours) && (currentTime > nextUpdateTime)))
   {
     // Only check during market hours or after a day change
@@ -115,9 +124,12 @@ function RunIndexStranglesCandidates(afterHours)
  */
 function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
 {
+  var candidates= [];
+  
   if (symbols && dte && deltaCall && deltaPut)
   {
-    candidates= GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
+    candidates= GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
+    // candidates= GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
   }
   else
   {

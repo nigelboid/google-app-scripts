@@ -151,7 +151,7 @@ function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
         if (labelDebug != undefined)
         {
           // debug activated -- commit raw data
-          prices[symbolMap[quoteSymbol]][labelDebug]= quotes[quoteSymbol];
+          prices[symbolMap[quoteSymbol]][labelDebug]= JSON.stringify(quotes[quoteSymbol], null, 4);
         }
         
         // Adjust labelMap based quote specifics
@@ -206,8 +206,13 @@ function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
 function RemapSymbolsSchwab(id, symbols, verbose)
 {
   // Declare constants and local variables
+  const optionDetailsLength= "YYMMDDT00000000".length;
+  const symbolMapProvided= GetParameters(id, "ParameterMapSymbols", verbose);
+  const symbolOptionUnderlyingPadding= 6;
+  const symbolOptionDateStep= 2;
+  const symbolOptionTypeStep= 1;
+
   var symbolMap= {};
-  
   var symbolSchwab= "";
   var underlying= "";
   var date= "";
@@ -216,29 +221,28 @@ function RemapSymbolsSchwab(id, symbols, verbose)
   var type= "";
   var strike= "";
   var symbolIndex= 0;
-  var optionDetailsLength= "YYMMDDT00000000".length;
-  var symbolMapProvided= GetParameters(id, "ParameterMapSymbols", verbose);
 
   for (const quoteSymbol of symbols)
   {
     if (symbolMapProvided[quoteSymbol] != undefined)
     {
       // Create our symbol map
+      symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]]= quoteSymbol;
 
       // Temporary compatibility for the TDA to Schwab transition
-      var mappedSymbol= symbolMapProvided[quoteSymbol.toUpperCase()];
-      if (mappedSymbol.endsWith(".X"))
-      {
-        mappedSymbol= mappedSymbol.slice(0, -2);
-      }
-      else if (mappedSymbol == "BRK.B")
-      {
-        mappedSymbol= "BRK/B";
-      }
-      symbolMap[mappedSymbol]= quoteSymbol;
+      // var mappedSymbol= symbolMapProvided[quoteSymbol.toUpperCase()];
+      // if (mappedSymbol.endsWith(".X"))
+      // {
+      //   mappedSymbol= mappedSymbol.slice(0, -2);
+      // }
+      // else if (mappedSymbol == "BRK.B")
+      // {
+      //   mappedSymbol= "BRK/B";
+      // }
+      // symbolMap[mappedSymbol]= quoteSymbol;
 
 
-      // Original: returt after compatibility testing
+      // Original: return after compatibility testing
       // symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]]= quoteSymbol;
     }
     else if (quoteSymbol.length > optionDetailsLength)
@@ -248,16 +252,15 @@ function RemapSymbolsSchwab(id, symbols, verbose)
       underlying= quoteSymbol.slice(0, -optionDetailsLength);
       
       symbolIndex= underlying.length;
-      year= quoteSymbol.slice(symbolIndex, symbolIndex+= 2);
-      month= quoteSymbol.slice(symbolIndex, symbolIndex+= 2);
-      date= quoteSymbol.slice(symbolIndex, symbolIndex+= 2);
+      year= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
+      month= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
+      date= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
       
-      type= quoteSymbol.slice(symbolIndex, symbolIndex+= 1);
+      type= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionTypeStep);
       
       strike= quoteSymbol.slice(symbolIndex);
-      strike= strike / 1000;
       
-      symbolSchwab= underlying + "_" + month + date + year + type + strike;
+      symbolSchwab= underlying.padEnd(symbolOptionUnderlyingPadding, " ") + year + month + date + type + strike;
       symbolMap[symbolSchwab]= quoteSymbol;
     }
     else
@@ -348,12 +351,13 @@ function FindBestDeltaMatchSchwab(contracts, deltaTarget, verbose)
   const labelLastPrice= "last";
   const labelDTE= "daysToExpiration";
   const labelContract= "contract";
-  const symbolDelimiter= "_";
+  const symbolDelimiter= " ";
   const weekly= "W";
+  const deltaTargetSensitivity= 0.01;
   
   deltaTarget/= 100;
-  const deltaTargetMinimum= deltaTarget - 0.01;
-  const deltaTargetMaximum= deltaTarget + 0.01;
+  const deltaTargetMinimum= deltaTarget - deltaTargetSensitivity;
+  const deltaTargetMaximum= deltaTarget + deltaTargetSensitivity;
   
   while (strike= strikes.shift())
   {
@@ -582,7 +586,7 @@ function ExtractExpirationsSchwab(response, expirationTargets, verbose)
             {
               // We found the earliest expiration date
               const labelSymbol= "symbol";
-              const symbolDelimiter= "_";
+              const symbolDelimiter= " ";
               const weekly= "W";
               const strike= Object.keys(contentParsed[labelPuts][expiration])[0];
               var underlying= "";
@@ -657,10 +661,10 @@ function ConstructUrlQuoteSchwab(symbols)
   // Declare constants and local variables
   const urlHead= "https://api.schwabapi.com/marketdata/v1/quotes?";
   const urlSymbols= "symbols=" + symbols.join(",");
-  const urlFileds= "&fields=quote";
+  const urlFields= "&fields=quote";
   const urlIndicative= "&indicative=false";
   
-  return urlHead + urlSymbols + urlFileds + urlIndicative;
+  return urlHead + urlSymbols + urlFields + urlIndicative;
 };
 
 
@@ -669,12 +673,11 @@ function ConstructUrlQuoteSchwab(symbols)
  *
  * Construct a URL to obtain a list of contracts with expiration dates from Schwab
  */
-function ConstructUrlExpirationsSchwab(apiKey, symbol, dteEarliest, dteLatest)
+function ConstructUrlExpirationsSchwab(apiKey, underlying, dteEarliest, dteLatest)
 {
   // Declare constants and local variables
-  var urlHead= "https://api.tdameritrade.com/v1/marketdata/chains?strikeCount=500&strategy=SINGLE";
-  var urlAPIKey= "&apikey=" + apiKey;
-  var urlSymbol= "&symbol=" + symbol;
+  var urlHead= "https://api.schwabapi.com/marketdata/v1/chains?strikeCount=500&strategy=SINGLE";
+  var urlSymbol= "&symbol=" + underlying;
   var urlFromDate= "&fromDate=";
   var urlToDate= "&toDate=";
   
@@ -689,7 +692,7 @@ function ConstructUrlExpirationsSchwab(apiKey, symbol, dteEarliest, dteLatest)
   dateParameter.setDate(dateParameter.getDate() + dteLatest);
   urlToDate+= dateParameter.toISOString().split('T').shift();
   
-  return urlHead + urlAPIKey + urlSymbol + urlFromDate + urlToDate;
+  return urlHead + urlSymbol + urlFromDate + urlToDate;
 };
 
 
@@ -905,7 +908,7 @@ function ExtractPriceSchwab(quotes, amount, preferWeekly)
   const labelAskPrice= "ask";
   const labelDelta= "delta";
   const deltaBad= "-999.0";
-  const symbolDelimiter= "_";
+  const symbolDelimiter= " ";
   const weekly= "W";
   var price= null;
 

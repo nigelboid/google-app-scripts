@@ -41,7 +41,7 @@ function RunQuotes(afterHours, test)
   {
     Logger.log("[RunQuotes] Testing...");
     verbose= true;
-    success= RunEquitiesTest(sheetID, verbose);
+    success= RunOptionsTest(sheetID, verbose);
   }
   else if (afterHours)
   {
@@ -508,16 +508,15 @@ function GetQuotes(id, symbols, labels, urlHead, optionPrices, verbose, test)
   {
     Logger.log("[GetQuotes] Still testing...");
     // return GetQuotesTradierAll(symbols, labels, urlHead, verbose);
-    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
+    return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
   }
   else if (optionPrices)
   {
-    return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
+    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
   }
   else
   {
     return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
-    // return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
   }
 };
 

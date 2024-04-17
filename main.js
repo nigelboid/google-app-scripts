@@ -117,8 +117,8 @@ function RunCustom()
  */
 function RunTest()
 {
-  // var afterHours= false;
-  // var test= true;
+  var afterHours= false;
+  var test= true;
 
-  RunPersonalTest()
+  RunIndexStranglesCandidates(afterHours, test);
 };
