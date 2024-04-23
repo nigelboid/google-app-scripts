@@ -71,7 +71,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
   else
   {
     // Missing parameters
-    Logger.log("[GetQuotesSchwab] Missing parameters: apiKey= %s, symbols= %s, headers= %s", apiKey, symbols, headers);
+    Logger.log("[GetQuotesSchwab] Missing parameters: symbols= %s, headers= %s", symbols, headers);
   }
   
   return prices;
@@ -451,15 +451,14 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
 function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLatest, verbose)
 {
   // Declare constants and local variables
-  var apiKey= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
   var headers= ComposeHeadersSchwab(sheetID, verbose);
   var url= null;
   var response= null;
   
-  if (apiKey && headers)
+  if (headers)
   {
     // We have viable headers and query parameters, proceed
-    url= ConstructUrlExpirationsSchwab(apiKey, symbol, dteEarliest, dteLatest);
+    url= ConstructUrlExpirationsSchwab(symbol, dteEarliest, dteLatest);
 
     if (verbose)
     {
@@ -487,7 +486,7 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
   else
   {
     // Missing parameters
-    Logger.log("[GetChainForSymbolByExpirationSchwab] Missing parameters: apiKey= %s, headers= %s", apiKey, headers);
+    Logger.log("[GetChainForSymbolByExpirationSchwab] Missing parameters: headers= %s", headers);
   }
 
   return response;
@@ -673,7 +672,7 @@ function ConstructUrlQuoteSchwab(symbols)
  *
  * Construct a URL to obtain a list of contracts with expiration dates from Schwab
  */
-function ConstructUrlExpirationsSchwab(apiKey, underlying, dteEarliest, dteLatest)
+function ConstructUrlExpirationsSchwab(underlying, dteEarliest, dteLatest)
 {
   // Declare constants and local variables
   var urlHead= "https://api.schwabapi.com/marketdata/v1/chains?strikeCount=500&strategy=SINGLE";
@@ -719,7 +718,9 @@ function ComposeHeadersSchwab(sheetID, verbose)
   else
   {
     // We did not get an access token!
-    Logger.log("[ComposeHeadersSchwab] Cannot request quotes without a valid access token [%s]!", accessToken);
+    Log("Cannot request quotes without a valid access token [%s]!", accessToken);
+    
+    // Logger.log("[ComposeHeadersSchwab] Cannot request quotes without a valid access token [%s]!", accessToken);
   }
   
   return headers;
@@ -736,10 +737,12 @@ function GetAccessTokenSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const currentTime= new Date();
+  var expirationTime= new Date();
   var accessToken= null;
   
-  // A 5-minute buffer
-  const accessTokenTTLOffset= 300;
+  // Token "time to live" buffers
+  const accessTokenTTLOffset= 60 * 5;
+  const refreshTokenTTLOffset= 60 * 60 * 24 * 7;
   
   // First, validate preserved access token
   const accessTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
@@ -753,8 +756,8 @@ function GetAccessTokenSchwab(sheetID, verbose)
   {
     // our preserved acces token has expired or is otherwise invalid -- refresh it
     const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
-    var refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
-    var refreshTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", verbose);
+    const refreshTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", verbose);
+    var refreshToken= null;
     var response= null;
 
     if (verbose)
@@ -762,7 +765,6 @@ function GetAccessTokenSchwab(sheetID, verbose)
       Logger.log("[GetAccessTokenSchwab] Refreshing invalid access token (expiration stamp <%s>)...", accessTokenExpiration);
       Logger.log("[GetAccessTokenSchwab] Old access token: %s", accessToken);
       Logger.log("[GetAccessTokenSchwab] Refresh token expiration stamp <%s>...", refreshTokenExpiration);
-      Logger.log("[GetAccessTokenSchwab] Refresh token: %s", refreshToken);
     }
     
     if (!refreshTokenExpiration || (currentTime > refreshTokenExpiration))
@@ -772,92 +774,87 @@ function GetAccessTokenSchwab(sheetID, verbose)
       {
         Logger.log("[GetAccessTokenSchwab] Refresh token has gone stale -- obtain a new one!!!");
       }
+      else
+      {
+        Log("Refresh token has gone stale -- obtain a new one!!!");
+      }
+
+      // Update refresh token expiration to tomorrow
+      // *** Schwab has not implemented Refresh Token time-based expiration (yet, it seems) ***
+      expirationTime.setSeconds(currentTime.getSeconds() + refreshTokenTTLOffset);
+      SetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", expirationTime, verbose);
     }
     else
     {
-      // Request a new access token using our valid refreh token
+      // Refresh token remains valid
+      refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose)
+      
       if (verbose)
       {
-        Logger.log("[GetAccessTokenSchwab] Refresh token remains valid...");
+        Logger.log("[GetAccessTokenSchwab] Refresh token: %s", refreshToken);
       }
+    }
 
-      if (key && refreshToken)
+    // Request a new access token using our valid refreh token
+    if (key && refreshToken)
+    {
+      // we have necessary parameters, proceed to obtain token
+      const formData= {
+        'grant_type': 'refresh_token',
+        'refresh_token': refreshToken
+      };
+
+      const headers = {
+        'Authorization': "Basic " + Utilities.base64Encode(key)
+      };
+      
+      const options = {
+        'method' : 'post',
+        'headers' : headers,
+        'payload' : formData
+      };
+      
+      try
       {
-        // we have necessary parameters, proceed to obtain token
-        const formData= {
-          'grant_type': 'refresh_token',
-          'refresh_token': refreshToken
-        };
-
-        const headers = {
-          'Authorization': "Basic " + Utilities.base64Encode(key)
-        };
+        response= UrlFetchApp.fetch("https://api.schwabapi.com/v1/oauth/token", options);
         
-        const options = {
-          'method' : 'post',
-          'headers' : headers,
-          'payload' : formData
-        };
-        
-        try
+        if (response)
         {
-          response= UrlFetchApp.fetch("https://api.schwabapi.com/v1/oauth/token", options);
+          // Looks like we have a valid data response
+          const keyAccessToken= "access_token";
+          const keyAccessTokenTTL= "expires_in";
+          const contentParsed= ExtractContentSchwab(response);
           
-          if (response)
-          {
-            // Looks like we have a valid data response
-            const keyAccessToken= "access_token";
-            const keyAccessTokenTTL= "expires_in";
-            // const keyRefreshToken= "refresh_token";
-            // const keyRefreshTokenTTL= "refresh_token_expires_in";
-            const contentParsed= ExtractContentSchwab(response);
-            
-            const accessTokenTTL= contentParsed[keyAccessTokenTTL];
-            // const refreshToken= contentParsed[keyRefreshToken];
-            // const refreshTokenTTL= contentParsed[keyRefreshTokenTTL];
-            var expiration= null;
+          const accessTokenTTL= contentParsed[keyAccessTokenTTL];
 
-            accessToken= contentParsed[keyAccessToken];
+          accessToken= contentParsed[keyAccessToken];
+          
+          if (accessToken && accessTokenTTL)
+          {
+            // Preserve the new Access Token and its expiration time
+            expirationTime.setSeconds(currentTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
             
-            // if (refreshToken && refreshTokenTTL)
-            // {
-            //   // Preserve the new Refresh Token and its expiration time
-            //   expiration= new Date();
-            //   expiration.setSeconds(expiration.getSeconds() + refreshTokenTTL);
-            //   expiration.setDate(expiration.getDate() - 14);
-              
-            //   SetValueByName(sheetID, "ParameterSchwabTokenRefresh", refreshToken, verbose);
-            //   SetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", expiration, verbose);
-            // }
-            
-            if (accessToken && accessTokenTTL)
-            {
-              // Preserve the new Access Token and its expiration time
-              expiration= new Date();
-              expiration.setSeconds(expiration.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
-              
-              SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
-              SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", expiration, verbose);
-            }
-            else
-            {
-              Logger.log("[GetAccessTokenSchwab] Failed to obtain refreshed access token [%s] and its time-to-live [%s]!", accessToken, accessTokenTTL);
-            }
+            SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
+            SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", expirationTime, verbose);
           }
           else
           {
-            Logger.log("[GetAccessTokenSchwab] Error repsonse code: [%s]", response.getResponseCode());
+            Logger.log("[GetAccessTokenSchwab] Failed to obtain refreshed access token [%s] and its time-to-live [%s]!", accessToken, accessTokenTTL);
           }
         }
-        catch (error)
+        else
         {
-          return "[GetAccessTokenSchwab] ".concat(error);
+          Logger.log("[GetAccessTokenSchwab] Error repsonse code: [%s]", response.getResponseCode());
         }
       }
-      else if (verbose)
+      catch (error)
       {
-        Logger.log("[GetAccessTokenSchwab] Could not obtain parameters (key= <%s>, token= <%s>)!", key, refreshToken);
+        return "[GetAccessTokenSchwab] ".concat(error);
       }
+    }
+    else if (verbose)
+    {
+      Logger.log("[GetAccessTokenSchwab] Could not obtain parameters (key= <%s>, token= <%s>)!", key, refreshToken);
     }
   }
   

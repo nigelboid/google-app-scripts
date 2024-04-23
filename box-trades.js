@@ -77,12 +77,18 @@ function FindBestBoxTradeCandidates(parameters)
   var candidates= [];
   var top= parameters["top"];
 
-  const response= GetChainForSymbolByExpirationTDA(parameters["id"], parameters["underlying"], parameters["dte_earliest"],
-                                                    parameters["dte_latest"], parameters["verbose"]);
-  if (response)
+  const response= GetChainForSymbolByExpirationSchwab(parameters["id"], parameters["underlying"], parameters["dte_earliest"],
+                                                      parameters["dte_latest"], parameters["verbose"]);
+
+  if (typeof response == "string")
+  {
+    // Looks like we have an error message
+    Logger.log("[FindBestBoxTradeCandidates] Could not get contracts! (%s)", response);
+  }
+  else if (response)
   {
     // Data fetched -- extract
-    const contentParsed= ExtractContentTDA(response);
+    const contentParsed= ExtractContentSchwab(response);
     const locale= "en-US";
     const options= { style : "percent", maximumFractionDigits : 7, minimumFractionDigits : 2 }
 
@@ -169,10 +175,10 @@ function FindBoxTradeYields(puts, calls, amountMaximum, commission, iterationsMa
           if (contractsPuts[strikeHigh] != undefined && contractsCalls[strikeLow] != undefined && contractsCalls[strikeHigh] != undefined)
           {
             // Our box ostensibly exists -- find and confirm weekly contracts
-            const pricePutLow= ExtractPriceTDA(contractsPuts[strikeLow], amount, preferWeekly);
-            const pricePutHigh= ExtractPriceTDA(contractsPuts[strikeHigh], amount, preferWeekly);
-            const priceCallLow= ExtractPriceTDA(contractsCalls[strikeLow], amount, preferWeekly);
-            const priceCallHigh= ExtractPriceTDA(contractsCalls[strikeHigh], amount, preferWeekly);
+            const pricePutLow= ExtractPriceSchwab(contractsPuts[strikeLow], amount, preferWeekly);
+            const pricePutHigh= ExtractPriceSchwab(contractsPuts[strikeHigh], amount, preferWeekly);
+            const priceCallLow= ExtractPriceSchwab(contractsCalls[strikeLow], amount, preferWeekly);
+            const priceCallHigh= ExtractPriceSchwab(contractsCalls[strikeHigh], amount, preferWeekly);
             const yieldToMaturity= BoxYield(pricePutLow, pricePutHigh, priceCallLow, priceCallHigh, dte, amount, commission);
 
             if (yieldToMaturity)
