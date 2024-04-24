@@ -369,78 +369,65 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
             }
             else if (prices)
             {
-              if (typeof prices == "string")
-              {
-                // Looks like we have an error message
-                Log("We should never hit this code block!!!");
-                LogThrottled(sheetID, `Could not get quotes! ${prices}`, verbose);
+              // Looks like we have prices, check time stamp
+              timeStamp= GetValueByName(sheetID, timeStampName, verbose);
                 
-                var updateTime= new Date();
-                SetValueByName(sheetID, updateStatusName, "Could not get quotes [" + DateToLocaleString(updateTime) + "]", verbose);
-                SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
-              }
-              else
+              if (timeStamp == scriptTime.getTime())
               {
-                // Looks like we have prices, check time stamp
-                timeStamp= GetValueByName(sheetID, timeStampName, verbose);
-                  
-                if (timeStamp == scriptTime.getTime())
+                // Looks like nothing has clobbered our run, proceed
+                if (priceTable= GetTableByNameSimple(sheetID, pricesTableName, verbose))
                 {
-                  // Looks like nothing has clobbered our run, proceed
-                  if (priceTable= GetTableByNameSimple(sheetID, pricesTableName, verbose))
+                  // Previous price table obtained, apply updates
+                  if (priceTable= UpdatePrices(symbols, priceTable, prices, verbose))
                   {
-                    // Previous price table obtained, apply updates
-                    if (priceTable= UpdatePrices(symbols, priceTable, prices, verbose))
+                    // Commit updates
+                    if (SetTableByName(sheetID, pricesTableName, priceTable, verbose))
                     {
-                      // Commit updates
-                      if (SetTableByName(sheetID, pricesTableName, priceTable, verbose))
-                      {
-                        // Updates applied, update stamps
-                        var updateTime= new Date();
-                        SetValueByName(sheetID, timeStampName, updateTime.getTime(), verbose);
-                        SetValueByName(sheetID, updateTimeName, DateToLocaleString(updateTime), verbose);
-                        SetValueByName(sheetID, updateStatusName, "Updated [" + DateToLocaleString(updateTime) + "]", verbose);
-                        SetValueByName(sheetID, checkStatusName, "Completed [" + DateToLocaleString(scriptTime) + "]", verbose);
-                        
-                        success= true;
-                      }
-                      else
-                      {
-                        Logger.log("[RefreshPrices] Could not write data to range named <%s> in spreadsheet ID <%s>.",
-                                   pricesTableName, sheetID);
-                        
-                        var updateTime= new Date();
-                        SetValueByName(sheetID, updateStatusName, "Could not write prices [" + DateToLocaleString(updateTime) + "]",
-                                        verbose);
-                        SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
-                      }
+                      // Updates applied, update stamps
+                      var updateTime= new Date();
+                      SetValueByName(sheetID, timeStampName, updateTime.getTime(), verbose);
+                      SetValueByName(sheetID, updateTimeName, DateToLocaleString(updateTime), verbose);
+                      SetValueByName(sheetID, updateStatusName, "Updated [" + DateToLocaleString(updateTime) + "]", verbose);
+                      SetValueByName(sheetID, checkStatusName, "Completed [" + DateToLocaleString(scriptTime) + "]", verbose);
+                      
+                      success= true;
                     }
                     else
                     {
-                      Logger.log("[RefreshPrices] Could not update transform data into form ready for writing.");
-                        
+                      Logger.log("[RefreshPrices] Could not write data to range named <%s> in spreadsheet ID <%s>.",
+                                  pricesTableName, sheetID);
+                      
                       var updateTime= new Date();
-                      SetValueByName(sheetID, updateStatusName, "Could not transform prices [" + DateToLocaleString(updateTime) + "]",
+                      SetValueByName(sheetID, updateStatusName, "Could not write prices [" + DateToLocaleString(updateTime) + "]",
                                       verbose);
                       SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
                     }
                   }
                   else
                   {
-                    Logger.log("[RefreshPrices] Could not read data from range named <%s> in spreadsheet ID <%s>.",
-                                pricesTableName, sheetID);
-                        
+                    Logger.log("[RefreshPrices] Could not update transform data into form ready for writing.");
+                      
                     var updateTime= new Date();
-                    SetValueByName(sheetID, updateStatusName, "Could not read current snapshot [" + DateToLocaleString(updateTime) + "]",
+                    SetValueByName(sheetID, updateStatusName, "Could not transform prices [" + DateToLocaleString(updateTime) + "]",
                                     verbose);
                     SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
                   }
                 }
                 else
                 {
-                  Logger.log("[RefreshPrices] Superseded by another run (%s minutes later).",
-                             ((timeStamp - scriptTime.getTime()) / minuteToMillisecondConversionFactor).toFixed(2));
+                  Logger.log("[RefreshPrices] Could not read data from range named <%s> in spreadsheet ID <%s>.",
+                              pricesTableName, sheetID);
+                      
+                  var updateTime= new Date();
+                  SetValueByName(sheetID, updateStatusName, "Could not read current snapshot [" + DateToLocaleString(updateTime) + "]",
+                                  verbose);
+                  SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
                 }
+              }
+              else
+              {
+                Logger.log("[RefreshPrices] Superseded by another run (%s minutes later).",
+                            ((timeStamp - scriptTime.getTime()) / minuteToMillisecondConversionFactor).toFixed(2));
               }
             }
             else
