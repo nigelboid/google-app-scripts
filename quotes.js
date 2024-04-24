@@ -372,7 +372,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
               if (typeof prices == "string")
               {
                 // Looks like we have an error message
-                Logger.log("[RefreshPrices] Could not get quotes! (%s)", prices);
+                LogThrottled(sheetID, `Could not get quotes! ${prices}`, verbose);
                 
                 var updateTime= new Date();
                 SetValueByName(sheetID, updateStatusName, "Could not get quotes [" + DateToLocaleString(updateTime) + "]", verbose);
@@ -507,8 +507,8 @@ function GetQuotes(id, symbols, labels, urlHead, optionPrices, verbose, test)
   if (test)
   {
     Logger.log("[GetQuotes] Still testing...");
-    // return GetQuotesTradierAll(symbols, labels, urlHead, verbose);
-    return GetQuotesTDA(id, symbols, labels, urlHead, verbose);
+    
+    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
   }
   else if (optionPrices)
   {

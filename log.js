@@ -1,11 +1,79 @@
 /**
  * Log()
  *
- * Create a log entry woth a label from the calling function
+ * Create a log entry with a label from the calling function
  */
-function Log()
+function Log(logMessage)
 {
-  Logger.log(`[${Log.caller.name}] ${arguments[0]}`);
+  Logger.log(`[${Log.caller.name}] ${logMessage}`);
+};
+  
+  
+/**
+ * LogVerbose()
+ *
+ * Create a log entry with a label from the calling function
+ */
+function LogVerbose(logMessage, verbose)
+{
+  if (verbose)
+  {
+    Logger.log(`[${LogVerbose.caller.name}] ${logMessage}`);
+  }
+};
+  
+  
+/**
+ * LogThrottled()
+ *
+ * Create a log entry with a label from the calling function if outside the throttled window
+ */
+function LogThrottled(id, logMessage, verbose)
+{
+  if (verbose == undefined)
+  {
+    verbose = false;
+  }
+  
+  const defaultThrottleOffset= 10 * 60;
+  const throttledTime= GetValueByName(id, "ParameterAlertThrottleTime", verbose);
+  const currentTime= new Date();
+  
+  if (currentTime > throttledTime)
+  {
+    Logger.log(`[${LogThrottled.caller.name}] ${logMessage}`);
+    ThrottleLog(id, defaultThrottleOffset, verbose);
+  }
+  else if (verbose)
+  {
+    Log(`Log messages throttled until ${throttledTime}`);
+  }
+};
+  
+  
+/**
+ * ThrottleLog()
+ *
+ * Set a time until which throttled log messages will be supporessed
+ */
+function ThrottleLog(id, untilTimeOffset, verbose)
+{
+  const defaultThrottleOffset= 10 * 60;
+  const throttleTime= new Date();
+
+  if (untilTimeOffset == undefined)
+  {
+    untilTimeOffset= defaultThrottleOffset;
+  }
+
+  if (verbose == undefined)
+  {
+    verbose = false;
+  }
+
+  throttleTime.setSeconds(throttleTime.getSeconds() + untilTimeOffset);
+
+  SetValueByName(id, "ParameterAlertThrottleTime", throttleTime, verbose);
 };
   
   

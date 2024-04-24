@@ -71,7 +71,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
   else
   {
     // Missing parameters
-    Logger.log("[GetQuotesSchwab] Missing parameters: symbols= %s, headers= %s", symbols, headers);
+    Log(`Missing parameters: symbols= ${symbols}, headers= ${headers}`);
   }
   
   return prices;
@@ -189,7 +189,7 @@ function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
   }
   else
   {
-    Logger.log("[ExtractQuotesSchwab] Could not obtain quotes!");
+    Log("Could not obtain quotes!");
   }
   
   return prices;
@@ -228,22 +228,6 @@ function RemapSymbolsSchwab(id, symbols, verbose)
     {
       // Create our symbol map
       symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]]= quoteSymbol;
-
-      // Temporary compatibility for the TDA to Schwab transition
-      // var mappedSymbol= symbolMapProvided[quoteSymbol.toUpperCase()];
-      // if (mappedSymbol.endsWith(".X"))
-      // {
-      //   mappedSymbol= mappedSymbol.slice(0, -2);
-      // }
-      // else if (mappedSymbol == "BRK.B")
-      // {
-      //   mappedSymbol= "BRK/B";
-      // }
-      // symbolMap[mappedSymbol]= quoteSymbol;
-
-
-      // Original: return after compatibility testing
-      // symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]]= quoteSymbol;
     }
     else if (quoteSymbol.length > optionDetailsLength)
     {
@@ -301,7 +285,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, delta
       if (typeof contracts == "string")
       {
         // Looks like we have an error message
-        Logger.log("[GetIndexStrangleContractsSchwab] Could not get contracts! (%s)", contracts);
+        Log(`Could not get contracts! (${contracts})`);
       }
       else if (contracts)
       {
@@ -320,7 +304,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, delta
       }
       else
       {
-        Logger.log("[GetIndexStrangleContractsSchwab] Failed to obtain a list of valid option contracts <%s>!", contracts);
+        Log(`Failed to obtain a list of valid option contracts! (${contracts})`);
       }
     }
   }
@@ -435,7 +419,7 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
   else
   {
     // Failed to fetch results
-    Logger.log("[GetContractsForSymbolByExpirationSchwab] Could not fetch expirations!");
+    Log("Could not fetch expirations!");
   }
 
   return contracts;
@@ -462,7 +446,7 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
 
     if (verbose)
     {
-      Logger.log("[GetContractsForSymbolByExpirationSchwab] Query: %s", url);
+      Log(`Query: ${url}`);
     }
 
     if (url)
@@ -480,13 +464,13 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
     else
     {
       // No prices to fetch?
-      Logger.log("[GetContractsForSymbolByExpirationSchwab] Could not compile query.");
+      Log("Could not compile query.");
     }
   }
   else
   {
     // Missing parameters
-    Logger.log("[GetChainForSymbolByExpirationSchwab] Missing parameters: headers= %s", headers);
+    Log(`Missing parameters: headers= ${headers}`);
   }
 
   return response;
@@ -535,14 +519,14 @@ function ExtractEarliestContractsSchwab(response, labelPuts, labelCalls)
       }
       else
       {
-        Logger.log("[ExtractExpirationDatesSchwab] Data query returned no content");
-        Logger.log(content);
+        Log("Data query returned no content");
+        Log(contentParsed);
       }
     }
   }
   else
   {
-    Logger.log("[ExtractExpirationDatesSchwab] Query returned no data!");
+    Log("Query returned no data!");
   }
   
   return contracts;
@@ -610,13 +594,13 @@ function ExtractExpirationsSchwab(response, expirationTargets, verbose)
     }
     else
     {
-      Logger.log("[ExtractExpirationDatesSchwab] Data query returned no viable expirations: <%s>", expirations);
-      Logger.log(contentParsed);
+      Log(`Data query returned no viable expirations: <${expirations}>`);
+      Log(contentParsed);
     }
   }
   else
   {
-    Logger.log("[ExtractExpirationDatesSchwab] Query returned no data!");
+    Log("Query returned no data!");
   }
 
   return expirationsMapped;
@@ -718,9 +702,7 @@ function ComposeHeadersSchwab(sheetID, verbose)
   else
   {
     // We did not get an access token!
-    Log("Cannot request quotes without a valid access token [%s]!", accessToken);
-    
-    // Logger.log("[ComposeHeadersSchwab] Cannot request quotes without a valid access token [%s]!", accessToken);
+    LogThrottled(sheetID, `Cannot request quotes without a valid access token [${accessToken}]!`, verbose);
   }
   
   return headers;
@@ -737,12 +719,8 @@ function GetAccessTokenSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const currentTime= new Date();
-  var expirationTime= new Date();
+  var accessTokenExpirationTime= new Date();
   var accessToken= null;
-  
-  // Token "time to live" buffers
-  const accessTokenTTLOffset= 60 * 5;
-  const refreshTokenTTLOffset= 60 * 60 * 24 * 7;
   
   // First, validate preserved access token
   const accessTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
@@ -756,43 +734,36 @@ function GetAccessTokenSchwab(sheetID, verbose)
   {
     // our preserved acces token has expired or is otherwise invalid -- refresh it
     const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
-    const refreshTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", verbose);
+    const refreshTokenExpirationTime= GetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", verbose);
+    const refreshTokenTTLOffsetDays= 8;
+    const refreshTokenStaleLoggingThrottle= 60 * 60 * 24;
     var refreshToken= null;
     var response= null;
 
-    if (verbose)
-    {
-      Logger.log("[GetAccessTokenSchwab] Refreshing invalid access token (expiration stamp <%s>)...", accessTokenExpiration);
-      Logger.log("[GetAccessTokenSchwab] Old access token: %s", accessToken);
-      Logger.log("[GetAccessTokenSchwab] Refresh token expiration stamp <%s>...", refreshTokenExpiration);
-    }
+    LogVerbose(`Refreshing invalid access token (expiration stamp ${accessTokenExpiration})...`, verbose);
+    LogVerbose(`Old access token: ${accessToken}`, verbose);
+    LogVerbose(`Refresh token time stamp ${refreshTokenExpirationTime}...`, verbose);
     
-    if (!refreshTokenExpiration || (currentTime > refreshTokenExpiration))
+    if (refreshTokenExpirationTime)
+    {
+      // Adjust the refresh token time stamp by the TTL offset for upcoming comparison
+      refreshTokenExpirationTime.setDate(refreshTokenExpirationTime.getDate() + refreshTokenTTLOffsetDays);
+
+      LogVerbose(`Refresh token expiration time ${refreshTokenExpirationTime}...`, verbose);
+    }
+
+    if (currentTime > refreshTokenExpirationTime)
     {
       // Preserved refresh token has also expired or has no expiration value
-      if (verbose)
-      {
-        Logger.log("[GetAccessTokenSchwab] Refresh token has gone stale -- obtain a new one!!!");
-      }
-      else
-      {
-        Log("Refresh token has gone stale -- obtain a new one!!!");
-      }
-
-      // Update refresh token expiration to tomorrow
-      // *** Schwab has not implemented Refresh Token time-based expiration (yet, it seems) ***
-      expirationTime.setSeconds(currentTime.getSeconds() + refreshTokenTTLOffset);
-      SetValueByName(sheetID, "ParameterSchwabTokenRefreshExpiration", expirationTime, verbose);
+      LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose);
+      ThrottleLog(sheetID, refreshTokenStaleLoggingThrottle, verbose);
     }
     else
     {
       // Refresh token remains valid
       refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose)
       
-      if (verbose)
-      {
-        Logger.log("[GetAccessTokenSchwab] Refresh token: %s", refreshToken);
-      }
+      LogVerbose(`Refresh token: ${refreshToken}`, verbose);
     }
 
     // Request a new access token using our valid refreh token
@@ -826,25 +797,27 @@ function GetAccessTokenSchwab(sheetID, verbose)
           const contentParsed= ExtractContentSchwab(response);
           
           const accessTokenTTL= contentParsed[keyAccessTokenTTL];
+          const accessTokenTTLOffset= 60 * 5;
 
           accessToken= contentParsed[keyAccessToken];
           
           if (accessToken && accessTokenTTL)
           {
             // Preserve the new Access Token and its expiration time
-            expirationTime.setSeconds(currentTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
+
+            accessTokenExpirationTime.setSeconds(accessTokenExpirationTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
             
             SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
-            SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", expirationTime, verbose);
+            SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", accessTokenExpirationTime, verbose);
           }
           else
           {
-            Logger.log("[GetAccessTokenSchwab] Failed to obtain refreshed access token [%s] and its time-to-live [%s]!", accessToken, accessTokenTTL);
+            Log(`Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
           }
         }
         else
         {
-          Logger.log("[GetAccessTokenSchwab] Error repsonse code: [%s]", response.getResponseCode());
+          Log(`Error repsonse code: [${response.getResponseCode()}]`, );
         }
       }
       catch (error)
@@ -854,7 +827,7 @@ function GetAccessTokenSchwab(sheetID, verbose)
     }
     else if (verbose)
     {
-      Logger.log("[GetAccessTokenSchwab] Could not obtain parameters (key= <%s>, token= <%s>)!", key, refreshToken);
+      Log(`Could not obtain parameters (key= <${key}>, token= <${refreshToken}>)!`);
     }
   }
   
@@ -881,8 +854,8 @@ function ExtractContentSchwab(response)
   }
   else
   {
-    Logger.log("[ExtractContentSchwab] Data query returned error code <%s>.", response.getResponseCode());
-    Logger.log(response.getAllHeaders());
+    Log(`Data query returned error code <${response.getResponseCode()}>.`);
+    Log(response.getAllHeaders());
   }
 
   return contentParsed;

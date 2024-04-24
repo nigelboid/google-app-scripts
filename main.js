@@ -62,7 +62,6 @@ function RunHourly()
 function RunFrequently()
 {
   var afterHours= false;
-  // afterHours= true;
   
   if (!RunIndexStranglesCandidates(afterHours))
   {
@@ -92,33 +91,4 @@ function RunAfterHours()
   var afterHours= true;
   
   RunQuotes(afterHours);
-};
-
-
-/**
- * RunCustom()
- *
- * Custom short name wrapper for a longer named function
- *
- */
-function RunCustom()
-{
-  var afterHours= false;
-
-  RunQuotes(afterHours);
-};
-
-
-/**
- * RunTest()
- *
- * Custom short name wrapper for a longer named function
- *
- */
-function RunTest()
-{
-  var afterHours= false;
-  var test= true;
-
-  RunIndexStranglesCandidates(afterHours, test);
 };

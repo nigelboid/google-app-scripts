@@ -40,12 +40,7 @@ function GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, 
 {
   var spreadsheet= null;
   var range= null;
-  var data= null;
   var table= [];
-  var good= true;
-  var maxIterations= 10;
-  var sleepInterval= 5000;
-  var iterationErrors= [];
   
   if (spreadsheet= SpreadsheetApp.openById(id))
   {
@@ -55,19 +50,13 @@ function GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, 
     }
     else
     {
-      if (verbose)
-      {
-        Logger.log("[GetTableByName] Could not get range named <%s> in spreadsheet <%s>.", sourceName, spreadsheet.getName());
-      }
+      LogVerbose(`Could not get range named <${sourceName}> in spreadsheet <${spreadsheet.getName()}>.`, verbose);
       table= null;
     }
   }
   else
   {
-    if (verbose)
-    {
-      Logger.log("[GetTableByName] Could not open spreadsheet ID <%s>.", id);
-    }
+    LogVerbose(`Could not open spreadsheet ID <${id}>.`, verbose);
     table= null;
   }
   
