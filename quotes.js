@@ -372,6 +372,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
               if (typeof prices == "string")
               {
                 // Looks like we have an error message
+                Log("We should never hit this code block!!!");
                 LogThrottled(sheetID, `Could not get quotes! ${prices}`, verbose);
                 
                 var updateTime= new Date();

@@ -4,7 +4,7 @@
  * Obtain prices from Schwab
  *
  */
-function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
+function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
 {
   // Declare constants and local variables
   var firstDataRow= 1;
@@ -15,7 +15,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
   var response= null;
   var prices= {};
   
-  var headers= ComposeHeadersSchwab(id, verbose);
+  var headers= ComposeHeadersSchwab(sheetID, verbose);
   
   if (symbols && headers)
   {
@@ -37,7 +37,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
     }
     
     // Option quotes from Schwab require symbol remapping
-    symbolMap= RemapSymbolsSchwab(id, Object.keys(urls), verbose);
+    symbolMap= RemapSymbolsSchwab(sheetID, Object.keys(urls), verbose);
     url= ConstructUrlQuoteSchwab(Object.keys(symbolMap));
 
     if (url)
@@ -48,7 +48,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
       }
       catch (error)
       {
-        return "[GetQuotesSchwab] ".concat(error);
+        LogThrottled(sheetID, error.message, verbose);
       }
       
       if (response)
@@ -71,7 +71,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
   else
   {
     // Missing parameters
-    LogThrottled(id, `Missing parameters: symbols= ${symbols}, headers= ${headers}`);
+    LogThrottled(sheetID, `Missing parameters: symbols= ${symbols}, headers= ${headers}`);
   }
   
   return prices;
@@ -203,11 +203,11 @@ function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
  *   covers: options, indexes, futures, special cases (e.g., US10Y)
  *
  */
-function RemapSymbolsSchwab(id, symbols, verbose)
+function RemapSymbolsSchwab(sheetID, symbols, verbose)
 {
   // Declare constants and local variables
   const optionDetailsLength= "YYMMDDT00000000".length;
-  const symbolMapProvided= GetParameters(id, "ParameterMapSymbols", verbose);
+  const symbolMapProvided= GetParameters(sheetID, "ParameterMapSymbols", verbose);
   const symbolOptionUnderlyingPadding= 6;
   const symbolOptionDateStep= 2;
   const symbolOptionTypeStep= 1;
@@ -406,7 +406,7 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
   var contracts= {};
   const response= GetChainForSymbolByExpirationSchwab(sheetID, symbol, dte, dte, verbose);
   
-  if (response && typeof response != "string")
+  if (response)
   {
     // Data fetched -- extract
     contracts= ExtractEarliestContractsSchwab(response, labelPuts, labelCalls);
@@ -454,7 +454,7 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
       }
       catch (error)
       {
-        return error;
+        LogThrottled(sheetID, error.message, verbose);
       }
     }
     else
@@ -760,33 +760,40 @@ function GetAccessTokenSchwab(sheetID, verbose)
           const keyAccessTokenTTL= "expires_in";
           const contentParsed= ExtractContentSchwab(response);
           
-          const accessTokenTTL= contentParsed[keyAccessTokenTTL];
-          const accessTokenTTLOffset= 60 * 5;
-
-          accessToken= contentParsed[keyAccessToken];
-          
-          if (accessToken && accessTokenTTL)
+          if (contentParsed)
           {
-            // Preserve the new Access Token and its expiration time
-            accessTokenExpirationTime= new Date();
-            accessTokenExpirationTime.setSeconds(accessTokenExpirationTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
+            const accessTokenTTL= contentParsed[keyAccessTokenTTL];
+            const accessTokenTTLOffset= 60 * 5;
+
+            accessToken= contentParsed[keyAccessToken];
             
-            SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
-            SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", accessTokenExpirationTime, verbose);
+            if (accessToken && accessTokenTTL)
+            {
+              // Preserve the new Access Token and its expiration time
+              accessTokenExpirationTime= new Date();
+              accessTokenExpirationTime.setSeconds(accessTokenExpirationTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
+              
+              SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
+              SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", accessTokenExpirationTime, verbose);
+            }
+            else
+            {
+              Log(`Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
+            }
           }
           else
           {
-            Log(`Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
+            LogThrottled(sheetID, "Received error while trying to refresh access token.");
           }
         }
         else
         {
-          Log(`Error repsonse code: [${response.getResponseCode()}]`, );
+          LogThrottled(sheetID, "Received no response while trying to refresh access token.");
         }
       }
       catch (error)
       {
-        LogThrottled(sheetID, error, verbose);
+        LogThrottled(sheetID, error.message, verbose);
       }
     }
     else if (verbose)
