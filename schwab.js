@@ -414,8 +414,8 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
   else
   {
     // Failed to fetch results
-    Log("Could not fetch option chains!");
-    Log(`Response: ${response}`);
+    LogThrottled(sheetID, "Could not fetch option chains!");
+    LogThrottled(sheetID, `Response: ${response}`);
   }
 
   return contracts;
