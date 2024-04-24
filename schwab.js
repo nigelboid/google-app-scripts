@@ -719,52 +719,18 @@ function GetAccessTokenSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const currentTime= new Date();
-  var accessTokenExpirationTime= new Date();
-  var accessToken= null;
+  var accessTokenExpirationTime= GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
+  var accessToken= GetValueByName(sheetID, "ParameterSchwabTokenAccess", verbose);
   
-  // First, validate preserved access token
-  const accessTokenExpiration= GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
-  if (accessTokenExpiration && (currentTime < accessTokenExpiration))
+  if (!accessToken || !accessTokenExpirationTime || (currentTime > accessTokenExpirationTime))
   {
-    // our preserved access token remains valid
-    accessToken= GetValueByName(sheetID, "ParameterSchwabTokenAccess", verbose);
-  }
+    LogVerbose(`Refreshing invalid access token (expiration stamp ${accessTokenExpirationTime})...`, verbose);
+    LogVerbose(`Old access token: ${accessToken}`, verbose);
   
-  if (!accessToken)
-  {
     // our preserved acces token has expired or is otherwise invalid -- refresh it
     const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
-    const refreshTokenExpirationTime= GetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", verbose);
-    const refreshTokenTTLOffsetDays= 8;
-    const refreshTokenStaleLoggingThrottle= 60 * 60 * 24;
-    var refreshToken= null;
+    const refreshToken= GetRefreshTokenSchwab(sheetID, verbose);
     var response= null;
-
-    LogVerbose(`Refreshing invalid access token (expiration stamp ${accessTokenExpiration})...`, verbose);
-    LogVerbose(`Old access token: ${accessToken}`, verbose);
-    LogVerbose(`Refresh token time stamp ${refreshTokenExpirationTime}...`, verbose);
-    
-    if (refreshTokenExpirationTime)
-    {
-      // Adjust the refresh token time stamp by the TTL offset for upcoming comparison
-      refreshTokenExpirationTime.setDate(refreshTokenExpirationTime.getDate() + refreshTokenTTLOffsetDays);
-
-      LogVerbose(`Refresh token expiration time ${refreshTokenExpirationTime}...`, verbose);
-    }
-
-    if (currentTime > refreshTokenExpirationTime)
-    {
-      // Preserved refresh token has also expired or has no expiration value
-      LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose);
-      ThrottleLog(sheetID, refreshTokenStaleLoggingThrottle, verbose);
-    }
-    else
-    {
-      // Refresh token remains valid
-      refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose)
-      
-      LogVerbose(`Refresh token: ${refreshToken}`, verbose);
-    }
 
     // Request a new access token using our valid refreh token
     if (key && refreshToken)
@@ -804,7 +770,7 @@ function GetAccessTokenSchwab(sheetID, verbose)
           if (accessToken && accessTokenTTL)
           {
             // Preserve the new Access Token and its expiration time
-
+            accessTokenExpirationTime= new Date();
             accessTokenExpirationTime.setSeconds(accessTokenExpirationTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
             
             SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
@@ -822,7 +788,9 @@ function GetAccessTokenSchwab(sheetID, verbose)
       }
       catch (error)
       {
-        return "[GetAccessTokenSchwab] ".concat(error);
+        // Something went wrong -- report the error, throttle the log, and invalidate the access token
+        LogThrottled(sheetID, error, verbose);
+        accessToken= null;
       }
     }
     else if (verbose)
@@ -832,6 +800,58 @@ function GetAccessTokenSchwab(sheetID, verbose)
   }
   
   return accessToken;
+};
+
+
+/**
+ * GetRefreshTokenSchwab()
+ *
+ * Obtain a valid refresh token for Schwab API queries
+ *
+ */
+function GetRefreshTokenSchwab(sheetID, verbose)
+{
+  var refreshTokenExpirationTime= null;
+  const refreshTokenTTLOffsetDays= 7;
+  const refreshTokenStaleLoggingThrottle= 60 * 60 * 24;
+  const currentTime= new Date();
+  const refreshTokenCopy= GetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", verbose);
+  const refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
+
+  if (!refreshToken)
+  {
+    // Missing refresh token
+    LogThrottled(sheetID, `Refresh token missing <${refreshToken}>-- obtain a new one!!!`, verbose);
+    ThrottleLog(sheetID, refreshTokenStaleLoggingThrottle, verbose);
+  }
+  else if (refreshToken != refreshTokenCopy)
+  {
+    // Looks like we have a new refresh token -- save a copy and update expiration time
+    SetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", refreshToken, verbose);
+
+    refreshTokenExpirationTime= currentTime;
+    refreshTokenExpirationTime.setDate(refreshTokenExpirationTime.getDate() + refreshTokenTTLOffsetDays);
+    SetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", refreshTokenExpirationTime, verbose);
+  }
+  else
+  {
+    // The refresh token has not changed -- get its expiration time stamp
+    refreshTokenExpirationTime= GetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", verbose);
+  }
+  
+  LogVerbose(`Refresh token: ${refreshToken}`, verbose);
+  LogVerbose(`Refresh token expiration: ${refreshTokenExpirationTime}`, verbose);
+    
+  if (currentTime > refreshTokenExpirationTime)
+  {
+    // Current refresh token has also expired or has no expiration value -- report and invalidate
+    LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose);
+    ThrottleLog(sheetID, refreshTokenStaleLoggingThrottle, verbose);
+
+    refreshToken= null;
+  }
+
+  return refreshToken;
 };
 
 
