@@ -28,21 +28,26 @@ function LogVerbose(logMessage, verbose)
  *
  * Create a log entry with a label from the calling function if outside the throttled window
  */
-function LogThrottled(id, logMessage, verbose)
+function LogThrottled(id, logMessage, verbose, throttleOffset)
 {
-  if (verbose == undefined)
-  {
-    verbose = false;
-  }
-  
   const defaultThrottleOffset= 10 * 60;
   const throttledTime= GetValueByName(id, "ParameterAlertThrottleTime", verbose);
   const currentTime= new Date();
   
+  if (verbose == undefined)
+  {
+    verbose = false;
+  }
+
+  if (throttleOffset == undefined)
+  {
+    throttleOffset= defaultThrottleOffset;
+  }
+  
   if (currentTime > throttledTime)
   {
     Logger.log(`[${LogThrottled.caller.name}] ${logMessage}`);
-    ThrottleLog(id, defaultThrottleOffset, verbose);
+    ThrottleLog(id, throttleOffset, verbose);
   }
   else if (verbose)
   {

@@ -71,7 +71,7 @@ function GetQuotesSchwab(id, symbols, labels, urlHead, verbose)
   else
   {
     // Missing parameters
-    Log(`Missing parameters: symbols= ${symbols}, headers= ${headers}`);
+    LogThrottled(id, `Missing parameters: symbols= ${symbols}, headers= ${headers}`);
   }
   
   return prices;
@@ -282,12 +282,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, delta
     {
       contracts= GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts, labelCalls, verbose);
     
-      if (typeof contracts == "string")
-      {
-        // Looks like we have an error message
-        Log(`Could not get contracts! (${contracts})`);
-      }
-      else if (contracts)
+      if (contracts)
       {
         // We have valid contracts -- sift through them for best delta matches
         if (contracts[labelPuts])
@@ -411,7 +406,7 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
   var contracts= {};
   const response= GetChainForSymbolByExpirationSchwab(sheetID, symbol, dte, dte, verbose);
   
-  if (response)
+  if (response && typeof response != "string")
   {
     // Data fetched -- extract
     contracts= ExtractEarliestContractsSchwab(response, labelPuts, labelCalls);
@@ -419,7 +414,8 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
   else
   {
     // Failed to fetch results
-    Log("Could not fetch expirations!");
+    Log("Could not fetch option chains!");
+    Log(`Response: ${response}`);
   }
 
   return contracts;
@@ -458,7 +454,7 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
       }
       catch (error)
       {
-        return "[GetChainForSymbolByExpirationSchwab] ".concat(error);
+        return error;
       }
     }
     else
@@ -470,7 +466,7 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
   else
   {
     // Missing parameters
-    Log(`Missing parameters: headers= ${headers}`);
+    LogThrottled(sheetID, `Missing parameters: headers= ${headers}`);
   }
 
   return response;
@@ -688,7 +684,7 @@ function ComposeHeadersSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const accessToken= GetAccessTokenSchwab(sheetID, verbose);
-  var headers= {};
+  var headers= null;
   
   if (accessToken)
   {
@@ -724,10 +720,12 @@ function GetAccessTokenSchwab(sheetID, verbose)
   
   if (!accessToken || !accessTokenExpirationTime || (currentTime > accessTokenExpirationTime))
   {
+    // Invalidate the expired or unstamped access token
     LogVerbose(`Refreshing invalid access token (expiration stamp ${accessTokenExpirationTime})...`, verbose);
     LogVerbose(`Old access token: ${accessToken}`, verbose);
+    accessToken= null;
   
-    // our preserved acces token has expired or is otherwise invalid -- refresh it
+    // Attempt to refresh an invalid access token
     const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
     const refreshToken= GetRefreshTokenSchwab(sheetID, verbose);
     var response= null;
@@ -788,9 +786,7 @@ function GetAccessTokenSchwab(sheetID, verbose)
       }
       catch (error)
       {
-        // Something went wrong -- report the error, throttle the log, and invalidate the access token
         LogThrottled(sheetID, error, verbose);
-        accessToken= null;
       }
     }
     else if (verbose)
@@ -816,13 +812,12 @@ function GetRefreshTokenSchwab(sheetID, verbose)
   const refreshTokenStaleLoggingThrottle= 60 * 60 * 24;
   const currentTime= new Date();
   const refreshTokenCopy= GetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", verbose);
-  const refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
+  var refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
 
   if (!refreshToken)
   {
     // Missing refresh token
-    LogThrottled(sheetID, `Refresh token missing <${refreshToken}>-- obtain a new one!!!`, verbose);
-    ThrottleLog(sheetID, refreshTokenStaleLoggingThrottle, verbose);
+    LogThrottled(sheetID, `Refresh token missing <${refreshToken}>-- obtain a new one!!!`, verbose, refreshTokenStaleLoggingThrottle);
   }
   else if (refreshToken != refreshTokenCopy)
   {
@@ -845,8 +840,7 @@ function GetRefreshTokenSchwab(sheetID, verbose)
   if (currentTime > refreshTokenExpirationTime)
   {
     // Current refresh token has also expired or has no expiration value -- report and invalidate
-    LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose);
-    ThrottleLog(sheetID, refreshTokenStaleLoggingThrottle, verbose);
+    LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose, refreshTokenStaleLoggingThrottle);
 
     refreshToken= null;
   }

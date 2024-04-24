@@ -21,11 +21,8 @@ function RunIndexStranglesCandidates(afterHours, test)
   if (forceRefreshNow)
   {
     // User set a manual forced refresh flag for index strangles...
-    if (verbose)
-    {
-      Logger.log("[RunIndexStranglesCandidates] Forcing a manual refresh of index strangles...");
-      Logger.log("[RunIndexStranglesCandidates] Clearing the flag for manual refresh of index strangles...");
-    }
+    LogVerbose("Forcing a manual refresh of index strangles...");
+    LogVerbose("Clearing the flag for manual refresh of index strangles...");
     
     SetValueByName(sheetID, forceRefreshNowName, "", verbose);
   }
@@ -76,7 +73,7 @@ function RunIndexStranglesCandidates(afterHours, test)
     }
     else
     {
-      Logger.log("[RunIndexStranglesCandidates] Found no additional candidates <%s>!", candidatesAdditional);
+      LogThrottled(sheetID, `Found no additional candidates <${candidatesAdditional}>!`);
     }
 
     if (candidates.length > 0)
@@ -94,9 +91,7 @@ function RunIndexStranglesCandidates(afterHours, test)
         SetValueByName(sheetID, "IndexStranglesCandidatesUpdateStatus",
                         "Failed to set new candidates [" + DateToLocaleString(currentTime) + "]", verbose);
 
-        Logger.log(
-          "[RunIndexStranglesCandidates] Failed to update table named 'IndexStranglesCandidates' in sheet <%s> with candidates: <%s>!",
-          sheetID, candidates);
+        Log(`Failed to update table named 'IndexStranglesCandidates' in sheet <${sheetID}> with candidates: <${candidates}>!`);
       }
     }
     else
@@ -106,7 +101,7 @@ function RunIndexStranglesCandidates(afterHours, test)
       SetValueByName(sheetID, "IndexStranglesCandidatesUpdateStatus",
                       "Failed to find new candidates [" + DateToLocaleString(currentTime) + "]", verbose);
 
-      Logger.log("[RunIndexStranglesCandidates] Found no candidates <%s>!", candidates);
+      LogThrottled(sheetID, `Found no candidates <${candidates}>!`);
       success= true;
     }
   }
@@ -129,13 +124,11 @@ function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, v
   if (symbols && dte && deltaCall && deltaPut)
   {
     candidates= GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
-    // candidates= GetIndexStrangleContractsTDA(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
   }
   else
   {
     // Missing parameters
-    Logger.log("[GetIndexStrangleContracts] Missing parameters: symbols= %s, DTE= %s, calls delta= %s, puts delta= %s",
-                symbols, dte, deltaCall, deltaPut);
+    Log(`Missing parameters: symbols= ${symbols}, DTE= ${dte}, calls delta= ${deltaCall}, puts delta= ${deltaPut}`);
   }
 
   return candidates;
