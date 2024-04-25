@@ -59,7 +59,7 @@ function LogThrottled(id, logMessage, verbose, throttleOffset)
 /**
  * ThrottleLog()
  *
- * Set a time until which throttled log messages will be supporessed
+ * Set a time until which throttled log messages will be suppressed
  */
 function ThrottleLog(id, untilTimeOffset, verbose)
 {
@@ -79,6 +79,7 @@ function ThrottleLog(id, untilTimeOffset, verbose)
   throttleTime.setSeconds(throttleTime.getSeconds() + untilTimeOffset);
 
   SetValueByName(id, "ParameterAlertThrottleTime", throttleTime, verbose);
+  Log(`Throttling further log messages until ${throttleTime}`)
 };
   
   

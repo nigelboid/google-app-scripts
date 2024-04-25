@@ -11,9 +11,9 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
   var symbolColumn= 0;
   var url= null;
   var urls= {};
-  var symbolMap= {};
+  var symbolMap= null;
   var response= null;
-  var prices= {};
+  var prices= null;
   
   var headers= ComposeHeadersSchwab(sheetID, verbose);
   

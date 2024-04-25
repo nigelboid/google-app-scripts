@@ -39,7 +39,7 @@ function RunQuotes(afterHours, test)
   
   if (test)
   {
-    Logger.log("[RunQuotes] Testing...");
+    Log("Testing...");
     verbose= true;
     success= RunOptionsTest(sheetID, verbose);
   }
@@ -96,7 +96,7 @@ function RunEquities(sheetID, verbose)
     forceRefreshName= forceRefreshNowName;
     if (verbose)
     {
-      Logger.log("[RunEquities] Forcing a manual refresh of equity pricess...");
+      Log("Forcing a manual refresh of equity pricess...");
     }
   }
 
@@ -108,7 +108,7 @@ function RunEquities(sheetID, verbose)
     // User set a manual forced refresh flag for equity quotes; clear it
     if (verbose)
     {
-      Logger.log("[RunEquities] Clearing the flag for manual refresh of equity pricess...");
+      Log("Clearing the flag for manual refresh of equity pricess...");
     }
     
     SetValueByName(sheetID, forceRefreshNowName, "", verbose);
@@ -208,7 +208,7 @@ function RunOptions(sheetID, verbose)
     // User set a manual forced refresh flag for equity quotes; pass it forward...
     forceRefreshName= forceRefreshNowName;if (verbose)
     {
-      Logger.log("[RunOptions] Forcing a manual refresh of option pricess...");
+      Log("Forcing a manual refresh of option pricess...");
     }
   }
 
@@ -220,7 +220,7 @@ function RunOptions(sheetID, verbose)
     // User set a manual forced refresh flag for equity quotes; clear it
     if (verbose)
     {
-      Logger.log("[RunOptions] Clearing the flag for manual refresh of option pricess...");
+      Log("Clearing the flag for manual refresh of option pricess...");
     }
 
     SetValueByName(sheetID, forceRefreshNowName, "", verbose);
@@ -285,7 +285,7 @@ function RunOptionsTest(sheetID, verbose)
   var optionPrices= true;
   var test= true;
   
-  Logger.log("[RunOptionsTest] Testing...");
+  Log("Testing...");
   
   return RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
                         updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose, test);
@@ -302,20 +302,26 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                         updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose, test)
 {
   // Declare constants and local variables
+  const scriptTime= new Date();
+  const pollMinutes= GetValueByName(sheetID, pollMinutesName, verbose);
+  const pollIntervalDefault= 9;
+  const minuteToMillisecondConversionFactor= 60 * 1000;
+  var timeStamp= null;
   var symbols= null;
   var labels= null;
   var priceTable= null;
-  var scriptTime= new Date();
-  var pollMinutes= GetValueByName(sheetID, pollMinutesName, verbose);
   var pollInterval= null;
-  var pollIntervalDefault= 9;
-  var minuteToMillisecondConversionFactor= 60 * 1000;
   var forceRefresh= false;
   var success= false;
 
+  if (test == undefined)
+  {
+    test= false;
+  }
+
   if (test)
   {
-    Logger.log("[RefreshPrices] Forcing a run for testing...");
+    Log("Forcing a run for testing...");
     forceRefresh= test;
   }
   else if (forceRefreshName)
@@ -338,7 +344,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
   if (forceRefresh || IsMarketOpen(sheetID, optionPrices, verbose))
   {
     // Invoked during trading hours, proceed
-    var timeStamp= GetValueByName(sheetID, timeStampName, verbose);
+    timeStamp= GetValueByName(sheetID, timeStampName, verbose);
     
     if (forceRefresh || ((timeStamp + pollInterval) < scriptTime.getTime()))
     {
@@ -359,13 +365,13 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
           if (SetValueByName(sheetID, timeStampName, scriptTime.getTime(), verbose))
           {
             // Time stamp updated to current run, get latest prices
-            var urlHead= GetValueByName(sheetID, urlName, verbose);
-            var prices= GetQuotes(sheetID, symbols, labels, urlHead, optionPrices, verbose, test);
+            const urlHead= GetValueByName(sheetID, urlName, verbose);
+            const prices= GetQuotes(sheetID, symbols, labels, urlHead, optionPrices, verbose, test);
             
             if (test)
             {
-              Logger.log("[RefreshPrices] Test results for prices:");
-              Logger.log("[RefreshPrices] %s", DumpObjectAsPrettyText(prices, "  "));
+              Log("Test results for prices:");
+              Log(JSON.stringify(prices, null, 2));
             }
             else if (prices)
             {
@@ -384,7 +390,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                     if (SetTableByName(sheetID, pricesTableName, priceTable, verbose))
                     {
                       // Updates applied, update stamps
-                      var updateTime= new Date();
+                      const updateTime= new Date();
                       SetValueByName(sheetID, timeStampName, updateTime.getTime(), verbose);
                       SetValueByName(sheetID, updateTimeName, DateToLocaleString(updateTime), verbose);
                       SetValueByName(sheetID, updateStatusName, "Updated [" + DateToLocaleString(updateTime) + "]", verbose);
@@ -394,10 +400,9 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                     }
                     else
                     {
-                      Logger.log("[RefreshPrices] Could not write data to range named <%s> in spreadsheet ID <%s>.",
-                                  pricesTableName, sheetID);
+                      Log(`Could not write data to range named <${pricesTableName}> in spreadsheet ID <${sheetID}>.`);
                       
-                      var updateTime= new Date();
+                      const updateTime= new Date();
                       SetValueByName(sheetID, updateStatusName, "Could not write prices [" + DateToLocaleString(updateTime) + "]",
                                       verbose);
                       SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
@@ -405,9 +410,9 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                   }
                   else
                   {
-                    Logger.log("[RefreshPrices] Could not update transform data into form ready for writing.");
+                    Log("Could not update transform data into form ready for writing.");
                       
-                    var updateTime= new Date();
+                    const updateTime= new Date();
                     SetValueByName(sheetID, updateStatusName, "Could not transform prices [" + DateToLocaleString(updateTime) + "]",
                                     verbose);
                     SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
@@ -415,10 +420,9 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                 }
                 else
                 {
-                  Logger.log("[RefreshPrices] Could not read data from range named <%s> in spreadsheet ID <%s>.",
-                              pricesTableName, sheetID);
+                  Log(`Could not read data from range named <${pricesTableName}> in spreadsheet ID <${sheetID}>.`);
                       
-                  var updateTime= new Date();
+                  const updateTime= new Date();
                   SetValueByName(sheetID, updateStatusName, "Could not read current snapshot [" + DateToLocaleString(updateTime) + "]",
                                   verbose);
                   SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
@@ -426,42 +430,42 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
               }
               else
               {
-                Logger.log("[RefreshPrices] Superseded by another run (%s minutes later).",
-                            ((timeStamp - scriptTime.getTime()) / minuteToMillisecondConversionFactor).toFixed(2));
+                const minutes= ((timeStamp - scriptTime.getTime()) / minuteToMillisecondConversionFactor).toFixed(2);
+                Log(`Superseded by another run (${minutes} minutes later).`);
               }
             }
             else
             {
-              Logger.log("[RefreshPrices] Could not get price data.");
+              LogThrottled(sheetID, "Could not get price data.", verbose);
               
-              var updateTime= new Date();
+              const updateTime= new Date();
               SetValueByName(sheetID, updateStatusName, "Could not get prices [" + DateToLocaleString(updateTime) + "]", verbose);
               SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
             }
           }
           else
           {
-            Logger.log("[RefreshPrices] Could not update time stamp <%s> in spreadsheet ID <%s>.", timeStampName, sheetID);
+            Log(`Could not update time stamp <${timeStampName}> in spreadsheet ID <${sheetID}>.`);
               
-            var updateTime= new Date();
+            const updateTime= new Date();
             SetValueByName(sheetID, updateStatusName, "Could not update time stamp [" + DateToLocaleString(updateTime) + "]", verbose);
             SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
           }
         }
         else
         {
-          Logger.log("[RefreshPrices] Could not read data from range named <%s> in spreadsheet ID <%s>.", labelsTableName, sheetID);
+          Log(`Could not read data from range named <${labelsTableName}> in spreadsheet ID <${sheetID}>.`);
               
-          var updateTime= new Date();
+          const updateTime= new Date();
           SetValueByName(sheetID, updateStatusName, "Could not obtain list of labels [" + DateToLocaleString(updateTime) + "]", verbose);
           SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
         }
       }
       else
       {
-        Logger.log("[RefreshPrices] Could not read data from range named <%s> in spreadsheet ID <%s>.", symbolsTableName, sheetID);
+        Log(`Could not read data from range named <${symbolsTableName}> in spreadsheet ID <${sheetID}>.`);
             
-        var updateTime= new Date();
+        const updateTime= new Date();
         SetValueByName(sheetID, updateStatusName, "Could not obtain list of symbols [" + DateToLocaleString(updateTime) + "]", verbose);
         SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
       }
@@ -469,7 +473,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
     else
     {
       // Update status
-      var minutes= (pollInterval-(scriptTime.getTime()-timeStamp)) / minuteToMillisecondConversionFactor;
+      const minutes= (pollInterval - (scriptTime.getTime() - timeStamp)) / minuteToMillisecondConversionFactor;
       SetValueByName(sheetID, checkStatusName, "Invoked too soon (" + minutes.toFixed(2)
       + " minutes remaining) [" + DateToLocaleString(scriptTime) + "]", verbose);
     }
@@ -494,7 +498,7 @@ function GetQuotes(id, symbols, labels, urlHead, optionPrices, verbose, test)
 {
   if (test)
   {
-    Logger.log("[GetQuotes] Still testing...");
+    Log("Still testing...");
     
     return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
   }
