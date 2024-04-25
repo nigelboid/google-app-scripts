@@ -1,7 +1,7 @@
 /**
  * GetQuotesSchwab()
  *
- * Obtain prices from Schwab
+ * Obtain quotes for a list of symbols
  *
  */
 function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
@@ -12,15 +12,11 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
   var url= null;
   var urls= {};
   var symbolMap= null;
-  var response= null;
   var prices= null;
   
-  var headers= ComposeHeadersSchwab(sheetID, verbose);
-  
-  if (symbols && headers)
+  if (symbols)
   {
-    // We have viable headers and query parameters, proceed
-    
+    // We have symbols, proceed
     for (var vIndex= firstDataRow; vIndex < symbols.length; vIndex++)
     {
       // Compile a list of unique symbols
@@ -42,30 +38,23 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
 
     if (url)
     {
-      try
-      {
-        response= UrlFetchApp.fetch(url, {'headers' : headers});
-      }
-      catch (error)
-      {
-        LogThrottled(sheetID, error.message, verbose);
-      }
+      const quotes= GetURLSchwab(sheetID, url, verbose);
       
-      if (response)
+      if (quotes)
       {
         // Data fetched -- extract
-        prices= ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose);
+        prices= ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose);
       }
       else
       {
         // Failed to fetch web pages
-        return "[GetQuotesSchwab] Could not fetch quotes!";
+        Log("Could not fetch quotes!");
       }
     }
     else
     {
       // No prices to fetch?
-      return "[GetQuotesSchwab] Could not compile queries.";
+      Log("Could not compile query!");
     }
   }
   else
@@ -79,15 +68,14 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
 
 
 /**
- * ExtractQuotesSchwab()
+ * ExtractPricesSchwab()
  *
- * Extract pricing data from Schwab JSON result
+ * Extract pricing data from Schwab's JSON result
  *
  */
-function ExtractQuotesSchwab(response, symbolMap, urls, labels, verbose)
+function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
 {
   // Declare constants and local variables
-  var quotes= ExtractContentSchwab(response);
   var prices= {};
   var quoteSymbol= null;
   
@@ -270,7 +258,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, delta
   const labelPuts= "putExpDateMap";
   const labelCalls= "callExpDateMap";
   var symbol= null;
-  var contracts= {};
+  var contracts= null;
   var results= [];
   
   for (var index in symbols)
@@ -428,7 +416,7 @@ function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts
  * Obtain option contract expiration dates for a given symbol
  *
  */
-function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLatest, verbose)
+function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteSpan, verbose)
 {
   // Declare constants and local variables
   var headers= ComposeHeadersSchwab(sheetID, verbose);
@@ -438,7 +426,7 @@ function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteLa
   if (headers)
   {
     // We have viable headers and query parameters, proceed
-    url= ConstructUrlExpirationsSchwab(symbol, dteEarliest, dteLatest);
+    url= ConstructUrlChainByExpirationsSchwab(symbol, dteEarliest, dteSpan);
 
     if (verbose)
     {
@@ -639,39 +627,88 @@ function ConstructUrlQuoteSchwab(symbols)
 {
   // Declare constants and local variables
   const urlHead= "https://api.schwabapi.com/marketdata/v1/quotes?";
-  const urlSymbols= "symbols=" + symbols.join(",");
-  const urlFields= "&fields=quote";
+  const urlFields= "fields=quote";
   const urlIndicative= "&indicative=false";
+  const urlSymbols= "&symbols=" + symbols.join(",");
   
-  return urlHead + urlSymbols + urlFields + urlIndicative;
+  return urlHead + urlFields + urlIndicative + urlSymbols;
+};
+
+
+/**
+ * ConstructUrlChainByExpirationsSchwab()
+ *
+ * Construct a URL to obtain a list of contracts with expiration dates
+ */
+function ConstructUrlChainByExpirationsSchwab(underlying, dteEarliest, dteSpan)
+{
+  // Declare constants and local variables
+  const urlHead= "https://api.schwabapi.com/marketdata/v1/chains?";
+  const urlSymbol= "symbol=" + underlying;
+  const urlCount= "&strikeCount=500";
+  const urlStrategy= "&strategy=SINGLE";
+  var urlFromDate= "&fromDate=";
+  var urlToDate= "&toDate=";
+  
+  // Construct dates in yyyy-mm-dd format by abusing the ISO string output method
+  var dateParameter= new Date();
+  
+  // Aim for requested DTE
+  dateParameter.setDate(dateParameter.getDate() + dteEarliest);
+  urlFromDate+= dateParameter.toISOString().split('T').shift();
+  
+  // Collect expirations during the specified window (plus a buffer)
+  dateParameter.setDate(dateParameter.getDate() + dteSpan);
+  urlToDate+= dateParameter.toISOString().split('T').shift();
+  
+  return urlHead + urlSymbol + urlCount + urlStrategy + urlFromDate + urlToDate;
+};
+
+
+/**
+ * ConstructUrlChainByExpirationSchwab()
+ *
+ * Construct a URL to obtain a list of contracts for a specific expiration date
+ */
+function ConstructUrlChainByExpirationSchwab(underlying, expiration, contractType, verbose)
+{
+  // Declare constants and local variables
+  const urlHead= "https://api.schwabapi.com/marketdata/v1/chains?";
+  const urlSymbol= "symbol=" + underlying;
+  const urlCount= "&strikeCount=500";
+  const urlStrategy= "&strategy=SINGLE";
+  var urlFromDate= "&fromDate=" + expiration;
+  var urlToDate= "&toDate=" + expiration;
+  var urlContractType= "&contractType=";
+  
+  // Validate cotnact type parameter
+  if (!["ALL", "PUT", "CALL"].includes(contractType))
+  {
+    // Set to default (puts and calls)
+    urlContractType+= "ALL";
+    LogVerbose("Set contract type to default (ALL).", verbose)
+  }
+  else
+  {
+    urlContractType+= contractType;
+  }
+  
+  return urlHead + urlSymbol + urlCount + urlStrategy + urlFromDate + urlToDate + urlContractType;
 };
 
 
 /**
  * ConstructUrlExpirationsSchwab()
  *
- * Construct a URL to obtain a list of contracts with expiration dates from Schwab
+ * Construct a URL to obtain a list of expiration dates for a given underlying
  */
-function ConstructUrlExpirationsSchwab(underlying, dteEarliest, dteLatest)
+function ConstructUrlExpirationsSchwab(underlying)
 {
   // Declare constants and local variables
-  var urlHead= "https://api.schwabapi.com/marketdata/v1/chains?strikeCount=500&strategy=SINGLE";
-  var urlSymbol= "&symbol=" + underlying;
-  var urlFromDate= "&fromDate=";
-  var urlToDate= "&toDate=";
+  const urlHead= "https://api.schwabapi.com/marketdata/v1/expirationchain?";
+  const urlSymbol= "symbol=" + underlying;
   
-  // construct dates in yyyy-mm-dd format by abusing the ISO string output method
-  var dateParameter= new Date();
-  
-  // aim for requested DTE
-  dateParameter.setDate(dateParameter.getDate() + dteEarliest);
-  urlFromDate+= dateParameter.toISOString().split('T').shift();
-  
-  // collect expirations during the specified window (plus a buffer)
-  dateParameter.setDate(dateParameter.getDate() + dteLatest);
-  urlToDate+= dateParameter.toISOString().split('T').shift();
-  
-  return urlHead + urlSymbol + urlFromDate + urlToDate;
+  return urlHead + urlSymbol;
 };
 
 
@@ -853,6 +890,94 @@ function GetRefreshTokenSchwab(sheetID, verbose)
   }
 
   return refreshToken;
+};
+
+
+/**
+ * GetURLSchwab()
+ *
+ * Fetch the supplied Schwab API URL via GET
+ */
+function GetURLSchwab(sheetID, url, verbose)
+{
+  const headers= ComposeHeadersSchwab(sheetID, verbose);
+  var response= null;
+  var content= null;
+  
+  if (headers)
+  {
+    response= FetchURLSchwab(sheetID, url, headers, "get", null, verbose);
+  }
+  else
+  {
+    // Missing parameters
+    LogThrottled(sheetID, `Missing parameters: headers= ${headers}`);
+  }
+
+  if (response)
+  {
+    content= ExtractContentSchwab(response);
+  }
+  else
+  {
+    // Missing response
+    LogThrottled(sheetID, `Received no response for query  <${url}>`);
+  }
+
+  return content;
+};
+
+
+/**
+ * PostURLSchwab()
+ *
+ * Fetch the supplied Schwab API URL via POST
+ */
+function PostURLSchwab(url, headers, formData, verbose)
+{
+
+};
+
+
+/**
+ * FetchURLSchwab()
+ *
+ * Fetch the supplied Schwab API URL
+ */
+function FetchURLSchwab(sheetID, url, headers, method, payload, verbose)
+{
+  var response= null;
+  var options= {};
+
+  if (headers)
+  {
+    options["headers"]= headers;
+  }
+
+  if (method)
+  {
+    options["method"]= method;
+  }
+  else
+  {
+    options["method"]= "get";
+  }
+
+  if (payload)
+  {
+    options["payload"]= payload;
+  }
+  
+  try
+  {
+    response= UrlFetchApp.fetch(url, options);
+  }
+  catch (error)
+  {
+    LogThrottled(sheetID, error.message, verbose);
+  }
+
+  return response;
 };
 
 

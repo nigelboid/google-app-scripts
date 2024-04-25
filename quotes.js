@@ -494,21 +494,22 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
  * Obtain prices from a specific service with a specific method
  *
  */
-function GetQuotes(id, symbols, labels, urlHead, optionPrices, verbose, test)
+function GetQuotes(sheetID, symbols, labels, urlHead, optionPrices, verbose, test)
 {
   if (test)
   {
     Log("Still testing...");
     
-    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
+    // return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
+    return GetQuotesSchwabTest(sheetID, symbols, labels, urlHead, verbose)
   }
   else if (optionPrices)
   {
-    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
+    return GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose);
   }
   else
   {
-    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
+    return GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose);
   }
 };
 
