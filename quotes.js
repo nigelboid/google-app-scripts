@@ -500,8 +500,7 @@ function GetQuotes(sheetID, symbols, labels, urlHead, optionPrices, verbose, tes
   {
     Log("Still testing...");
     
-    // return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
-    return GetQuotesSchwabTest(sheetID, symbols, labels, urlHead, verbose)
+    return GetQuotesSchwab(id, symbols, labels, urlHead, verbose);
   }
   else if (optionPrices)
   {

@@ -79,105 +79,96 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
   var prices= {};
   var quoteSymbol= null;
   
-  if (quotes)
+  // First, define interesting quote parameters
+  const labelQuote= "quote";
+  const labelAssetType= "assetMainType";
+  const labelSymbol= "symbol";
+  const labelChangePrice= "netChange";
+  const labelLastPrice= "lastPrice";
+  const labelClosePrice= "closePrice";
+  const labelBidPrice= "bidPrice";
+  const labelAskPrice= "askPrice";
+  const labelOptionDelta= "delta";
+  const labelNAV= "nAV";
+  const labelURL= "URL";
+  const labelDebug= "Debug";
+  const symbolFuturesCruftLength= 3;
+
+  // Second, seed the default table column to quote parameter map
+  const columnBid= "Bid";
+  const columnAsk= "Ask";
+  const columnLast= "Last";
+  const columnClose= "Close";
+  const columnChange= "Change";
+  const columnDelta= "Delta";
+  var labelMap= {};
+  labelMap[columnBid]= labelBidPrice;
+  labelMap[columnAsk]= labelAskPrice;
+  labelMap[columnLast]= labelLastPrice;
+  labelMap[columnClose]= labelClosePrice;
+  labelMap[columnChange]= labelChangePrice;
+  labelMap[columnDelta]= labelOptionDelta;
+  
+  // Lastly, define type exceptions
+  const typeMutualFund= "MUTUAL_FUND";
+  const typeFuture= "FUTURE";
+  
+  for (const quote in quotes)
   {
-    // We have quotes -- process them
-    
-    // First, define interesting quote parameters
-    const labelQuote= "quote";
-    const labelAssetType= "assetMainType";
-    const labelSymbol= "symbol";
-    const labelChangePrice= "netChange";
-    const labelLastPrice= "lastPrice";
-    const labelClosePrice= "closePrice";
-    const labelBidPrice= "bidPrice";
-    const labelAskPrice= "askPrice";
-    const labelOptionDelta= "delta";
-    const labelNAV= "nAV";
-    const labelURL= "URL";
-    const labelDebug= "Debug";
-    const symbolFuturesCruftLength= 3;
-
-    // Second, seed the default table column to quote parameter map
-    const columnBid= "Bid";
-    const columnAsk= "Ask";
-    const columnLast= "Last";
-    const columnClose= "Close";
-    const columnChange= "Change";
-    const columnDelta= "Delta";
-    var labelMap= {};
-    labelMap[columnBid]= labelBidPrice;
-    labelMap[columnAsk]= labelAskPrice;
-    labelMap[columnLast]= labelLastPrice;
-    labelMap[columnClose]= labelClosePrice;
-    labelMap[columnChange]= labelChangePrice;
-    labelMap[columnDelta]= labelOptionDelta;
-    
-    // Lastly, define type exceptions
-    const typeMutualFund= "MUTUAL_FUND";
-    const typeFuture= "FUTURE";
-    
-    for (const quote in quotes)
+    // Process each returned quote
+    if (quotes[quote][labelSymbol] != undefined)
     {
-      // Process each returned quote
-      if (quotes[quote][labelSymbol] != undefined)
+      // Symbol exists
+      quoteSymbol= quotes[quote][labelSymbol];
+      if (quotes[quote][labelAssetType] == typeFuture)
       {
-        // Symbol exists
-        quoteSymbol= quotes[quote][labelSymbol];
-        if (quotes[quote][labelAssetType] == typeFuture)
-        {
-          // Adjust futures symbols to remove expiration reference
-          quoteSymbol= quoteSymbol.substring(0, quoteSymbol.length - symbolFuturesCruftLength);
-          
-          // Make a copy under the adjusted symbol for future reference
-          quotes[quoteSymbol]= quotes[quote];
-        }
+        // Adjust futures symbols to remove expiration reference
+        quoteSymbol= quoteSymbol.substring(0, quoteSymbol.length - symbolFuturesCruftLength);
+        
+        // Make a copy under the adjusted symbol for future reference
+        quotes[quoteSymbol]= quotes[quote];
+      }
 
-        prices[symbolMap[quoteSymbol]]= {};
-        prices[symbolMap[quoteSymbol]][labelURL]= urls[symbolMap[quoteSymbol]];
-        
-        if (labelDebug != undefined)
+      prices[symbolMap[quoteSymbol]]= {};
+      prices[symbolMap[quoteSymbol]][labelURL]= urls[symbolMap[quoteSymbol]];
+      
+      if (labelDebug != undefined)
+      {
+        // debug activated -- commit raw data
+        prices[symbolMap[quoteSymbol]][labelDebug]= JSON.stringify(quotes[quoteSymbol], null, 4);
+      }
+      
+      // Adjust labelMap based quote specifics
+      if (quotes[quote][labelAssetType] == typeMutualFund)
+      {
+        // Use NAV as last price for mutual funds
+        labelMap[columnLast]= labelNAV;
+        labelMap[columnChange]= labelChangePrice;
+        labelMap[columnClose]= labelClosePrice;
+      }
+      else
+      {
+        // Set to defaults
+        labelMap[columnLast]= labelLastPrice;
+        labelMap[columnChange]= labelChangePrice;
+        labelMap[columnClose]= labelClosePrice;
+      }
+      
+      for (const label in labels)
+      {
+        // Pull a value for each desired label
+        if (quotes[quote][labelQuote][labelMap[labels[label]]] == undefined)
         {
-          // debug activated -- commit raw data
-          prices[symbolMap[quoteSymbol]][labelDebug]= JSON.stringify(quotes[quoteSymbol], null, 4);
-        }
-        
-        // Adjust labelMap based quote specifics
-        if (quotes[quote][labelAssetType] == typeMutualFund)
-        {
-          // Use NAV as last price for mutual funds
-          labelMap[columnLast]= labelNAV;
-          labelMap[columnChange]= labelChangePrice;
-          labelMap[columnClose]= labelClosePrice;
+          // No data for this quote item
+          prices[symbolMap[quoteSymbol]][labels[label]]= "no data";
         }
         else
         {
-          // Set to defaults
-          labelMap[columnLast]= labelLastPrice;
-          labelMap[columnChange]= labelChangePrice;
-          labelMap[columnClose]= labelClosePrice;
-        }
-        
-        for (const label in labels)
-        {
-          // Pull a value for each desired label
-          if (quotes[quote][labelQuote][labelMap[labels[label]]] == undefined)
-          {
-            // No data for this quote item
-            prices[symbolMap[quoteSymbol]][labels[label]]= "no data";
-          }
-          else
-          {
-            // Data obtained -- translate and commit to our storage
-            prices[symbolMap[quoteSymbol]][labels[label]]= quotes[quoteSymbol][labelQuote][labelMap[labels[label]]];
-          }
+          // Data obtained -- translate and commit to our storage
+          prices[symbolMap[quoteSymbol]][labels[label]]= quotes[quoteSymbol][labelQuote][labelMap[labels[label]]];
         }
       }
     }
-  }
-  else
-  {
-    Log("Could not obtain quotes!");
   }
   
   return prices;
@@ -247,377 +238,6 @@ function RemapSymbolsSchwab(sheetID, symbols, verbose)
 
 
 /**
- * GetIndexStrangleContractsSchwab()
- *
- * Obtain and select best matching strangles
- *
- */
-function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
-{
-  // Declare constants and local variables
-  const labelPuts= "putExpDateMap";
-  const labelCalls= "callExpDateMap";
-  var symbol= null;
-  var contracts= null;
-  var results= [];
-  
-  for (var index in symbols)
-  {
-    // Find candidates for each requested symbol
-    symbol= symbols[index][0];
-    
-    if (symbol)
-    {
-      contracts= GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts, labelCalls, verbose);
-    
-      if (contracts)
-      {
-        // We have valid contracts -- sift through them for best delta matches
-        if (contracts[labelPuts])
-        {
-          // Viable puts data
-          results= results.concat(FindBestDeltaMatchSchwab(contracts[labelPuts], deltaPut, verbose));
-        }
-        
-        if (contracts[labelCalls])
-        {
-          // Viable calls data
-          results= results.concat(FindBestDeltaMatchSchwab(contracts[labelCalls], deltaCall, verbose));
-        }
-      }
-      else
-      {
-        Log(`Failed to obtain a list of valid option contracts! (${contracts})`);
-      }
-    }
-  }
-  
-  return results;
-};
-
-
-/**
- * FindBestDeltaMatchSchwab()
- *
- * Find a contract in the given set with closest delta value match
- *
- */
-function FindBestDeltaMatchSchwab(contracts, deltaTarget, verbose)
-{
-  // Declare constants and local variables
-  var strikes= Object.keys(contracts);
-  var contractsBestMatch= {};
-  var matches= [];
-  var strike= null;
-  var underlying= "";
-  var deltaNew= 0;
-  var deltaBest= 0;
-  
-  const labelSymbol= "symbol";
-  const labelDelta= "delta";
-  const labelLastPrice= "last";
-  const labelDTE= "daysToExpiration";
-  const labelContract= "contract";
-  const symbolDelimiter= " ";
-  const weekly= "W";
-  const deltaTargetSensitivity= 0.01;
-  
-  deltaTarget/= 100;
-  const deltaTargetMinimum= deltaTarget - deltaTargetSensitivity;
-  const deltaTargetMaximum= deltaTarget + deltaTargetSensitivity;
-  
-  while (strike= strikes.shift())
-  {
-    // check each contract for a best match
-    for (var contractDetails of contracts[strike])
-    {
-      // check each contract for this strike (e.g., AM and PM expiration for Index options
-      if (contractDetails && contractDetails[labelSymbol] && contractDetails[labelDelta])
-      {
-        // we have viable details -- find the contract with the smallest delta near our target
-        
-        deltaNew= Math.abs(contractDetails[labelDelta]);
-        if (deltaNew > deltaTargetMinimum && deltaNew < deltaTargetMaximum)
-        {
-          // within range
-          
-          underlying= contractDetails[labelSymbol].split(symbolDelimiter)[0];
-          if (contractsBestMatch[underlying] == undefined)
-          {
-            // first hit within range -- create instance
-            contractsBestMatch[underlying]= {};
-            contractsBestMatch[underlying][labelContract]= {};
-            contractsBestMatch[underlying][labelDelta]= 0;
-          }
-          
-          deltaBest= Math.abs(contractsBestMatch[underlying][labelDelta]);
-          
-          // Choose the best match that is not too high (within one delta of the target) and otherwise closest to the target delta
-          if ((deltaNew < deltaBest && deltaNew >= deltaTarget)
-              || (deltaNew > deltaBest && deltaNew < deltaTargetMaximum && deltaBest < deltaTarget))
-          {
-            // found a better match!
-            contractsBestMatch[underlying][labelContract]= contractDetails;
-            contractsBestMatch[underlying][labelDelta]= contractDetails[labelDelta];
-          }
-        }
-      }
-    }
-  }
-  
-  for (underlying in contractsBestMatch)
-  {
-    // Reformulate best matche as an array and add it to our list (prefer weeklies)
-    if (underlying.endsWith(weekly) || contractsBestMatch[underlying.concat(weekly)] == undefined)
-    {
-      matches.push([contractsBestMatch[underlying][labelContract][labelSymbol],
-                    contractsBestMatch[underlying][labelContract][labelLastPrice],
-                    contractsBestMatch[underlying][labelContract][labelDelta],
-                    contractsBestMatch[underlying][labelContract][labelDTE]
-                  ]);
-    }
-  }
-  
-  return matches;
-};
-
-
-/**
- * GetContractsForSymbolByExpirationSchwab()
- *
- * Obtain option contract expiration dates for a given symbol
- *
- */
-function GetContractsForSymbolByExpirationSchwab(sheetID, symbol, dte, labelPuts, labelCalls, verbose)
-{
-  // Declare constants and local variables
-  var contracts= {};
-  const response= GetChainForSymbolByExpirationSchwab(sheetID, symbol, dte, dte, verbose);
-  
-  if (response)
-  {
-    // Data fetched -- extract
-    contracts= ExtractEarliestContractsSchwab(response, labelPuts, labelCalls);
-  }
-  else
-  {
-    // Failed to fetch results
-    LogThrottled(sheetID, "Could not fetch option chains!");
-    LogThrottled(sheetID, `Response: ${response}`);
-  }
-
-  return contracts;
-};
-
-
-/**
- * GetChainForSymbolByExpirationSchwab()
- *
- * Obtain option contract expiration dates for a given symbol
- *
- */
-function GetChainForSymbolByExpirationSchwab(sheetID, symbol, dteEarliest, dteSpan, verbose)
-{
-  // Declare constants and local variables
-  var headers= ComposeHeadersSchwab(sheetID, verbose);
-  var url= null;
-  var response= null;
-  
-  if (headers)
-  {
-    // We have viable headers and query parameters, proceed
-    url= ConstructUrlChainByExpirationsSchwab(symbol, dteEarliest, dteSpan);
-
-    if (verbose)
-    {
-      Log(`Query: ${url}`);
-    }
-
-    if (url)
-    {
-      // We have a URL -- get it!
-      try
-      {
-        response= UrlFetchApp.fetch(url, {'headers' : headers});
-      }
-      catch (error)
-      {
-        LogThrottled(sheetID, error.message, verbose);
-      }
-    }
-    else
-    {
-      // No prices to fetch?
-      Log("Could not compile query.");
-    }
-  }
-  else
-  {
-    // Missing parameters
-    LogThrottled(sheetID, `Missing parameters: headers= ${headers}`);
-  }
-
-  return response;
-}
-
-
-/**
- * ExtractEarliestContractsSchwab()
- *
- * Extract contract expiration dates from a list of returned contracts
- */
-function ExtractEarliestContractsSchwab(response, labelPuts, labelCalls)
-{
-  // Declare constants and local variables
-  var contentParsed= ExtractContentSchwab(response);
-  var labelDate= null;
-  var expirations= [];
-  var contractTypes= [labelPuts, labelCalls];
-  var contractType= null;
-  var contracts= {};
-  
-  if (contentParsed)
-  {
-    while (contractType= contractTypes.shift())
-    {
-      // Extract data for each contract type (puts and calls)
-      expirations= Object.keys(contentParsed[contractType]).sort();
-      
-      if (expirations)
-      {
-        // We seem to have contract expiration dates
-        while (expirations.length > 0)
-        {
-          // Find the earliest batch of contracts which satisfy our days-to-expiration constraint
-          labelDate= expirations.shift();
-        
-          contracts[contractType]= {};
-          contracts[contractType]= contentParsed[contractType][labelDate];
-          
-          if (ValidateContracts(contracts[contractType]))
-          {
-            // Confirm we have valid contracts for this date to exit the search
-            break;
-          }
-        }
-      }
-      else
-      {
-        Log("Data query returned no content");
-        Log(contentParsed);
-      }
-    }
-  }
-  else
-  {
-    Log("Query returned no data!");
-  }
-  
-  return contracts;
-};
-
-
-/**
- * ExtractExpirationsSchwab()
- *
- * Extract matching contract expiration dates from an option chain
- */
-function ExtractExpirationsSchwab(response, expirationTargets, verbose)
-{
-  // Declare constants and local variables
-  const labelPuts= "putExpDateMap";
-  const contentParsed= ExtractContentSchwab(response);
-  
-  if (contentParsed)
-  {
-    // Looks like we have a valid data response
-    const dateDelimiter= ":";
-    var expirations= Object.keys(contentParsed[labelPuts]).sort();
-    var expirationsMapped= [];
-    var dte= null;
-
-    if (expirations)
-    {
-      // We have a list of expirations -- now map them to desired DTE targets
-      for (var target in expirationTargets)
-      {
-        // Match an expiration date to each valid target
-        if (typeof expirationTargets[target][0] == "number")
-        {
-          for (var expiration of expirations)
-          {
-            // Find the earliest expiration date which satisfies our days-to-expiration constraint
-            dte= expiration.split(dateDelimiter)[1];
-
-            if( dte >= expirationTargets[target][0])
-            {
-              // We found the earliest expiration date
-              const labelSymbol= "symbol";
-              const symbolDelimiter= " ";
-              const weekly= "W";
-              const strike= Object.keys(contentParsed[labelPuts][expiration])[0];
-              var underlying= "";
-
-              // Determine the udnerlying symbol from a given quote
-              for (var quote in contentParsed[labelPuts][expiration][strike])
-              {
-                underlying= contentParsed[labelPuts][expiration][strike][quote][labelSymbol].split(symbolDelimiter)[0];
-                if (underlying.endsWith(weekly))
-                {
-                  // Prefer weeklies
-                  break;
-                }
-              }
-
-              expirationsMapped[target]= [expiration.split(dateDelimiter)[0], underlying];
-              break;
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      Log(`Data query returned no viable expirations: <${expirations}>`);
-      Log(contentParsed);
-    }
-  }
-  else
-  {
-    Log("Query returned no data!");
-  }
-
-  return expirationsMapped;
-};
-
-
-/**
- * ValidateContracts()
- *
- * Confrim a contract in the list has valid data
- */
-function ValidateContracts(contracts)
-{
-  // Declare constants and local variables
-  var strikes= Object.keys(contracts);
-  var badData= -999;
-  var labelDelta= "delta";
-  
-  for (const strike of strikes)
-  {
-    // Search for at least one valid contract
-    if (contracts[strike][0][labelDelta] != badData)
-    {
-      // Found one!
-      return true;
-    }
-  }
-  
-  return false;
-};
-
-
-/**
  * ConstructUrlQuoteSchwab()
  *
  * Construct a Schwab quote query URL for specified symbols
@@ -636,49 +256,19 @@ function ConstructUrlQuoteSchwab(symbols)
 
 
 /**
- * ConstructUrlChainByExpirationsSchwab()
- *
- * Construct a URL to obtain a list of contracts with expiration dates
- */
-function ConstructUrlChainByExpirationsSchwab(underlying, dteEarliest, dteSpan)
-{
-  // Declare constants and local variables
-  const urlHead= "https://api.schwabapi.com/marketdata/v1/chains?";
-  const urlSymbol= "symbol=" + underlying;
-  const urlCount= "&strikeCount=500";
-  const urlStrategy= "&strategy=SINGLE";
-  var urlFromDate= "&fromDate=";
-  var urlToDate= "&toDate=";
-  
-  // Construct dates in yyyy-mm-dd format by abusing the ISO string output method
-  var dateParameter= new Date();
-  
-  // Aim for requested DTE
-  dateParameter.setDate(dateParameter.getDate() + dteEarliest);
-  urlFromDate+= dateParameter.toISOString().split('T').shift();
-  
-  // Collect expirations during the specified window (plus a buffer)
-  dateParameter.setDate(dateParameter.getDate() + dteSpan);
-  urlToDate+= dateParameter.toISOString().split('T').shift();
-  
-  return urlHead + urlSymbol + urlCount + urlStrategy + urlFromDate + urlToDate;
-};
-
-
-/**
  * ConstructUrlChainByExpirationSchwab()
  *
  * Construct a URL to obtain a list of contracts for a specific expiration date
  */
-function ConstructUrlChainByExpirationSchwab(underlying, expiration, contractType, verbose)
+function ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose)
 {
   // Declare constants and local variables
   const urlHead= "https://api.schwabapi.com/marketdata/v1/chains?";
   const urlSymbol= "symbol=" + underlying;
   const urlCount= "&strikeCount=500";
   const urlStrategy= "&strategy=SINGLE";
-  var urlFromDate= "&fromDate=" + expiration;
-  var urlToDate= "&toDate=" + expiration;
+  var urlFromDate= "&fromDate=" + expirationDate;
+  var urlToDate= "&toDate=" + expirationDate;
   var urlContractType= "&contractType=";
   
   // Validate cotnact type parameter
@@ -713,14 +303,15 @@ function ConstructUrlExpirationsSchwab(underlying)
 
 
 /**
- * ComposeHeadersSchwab()
+ * ComposeGetHeadersSchwab()
  *
  * Compose required headers for our requests
  */
-function ComposeHeadersSchwab(sheetID, verbose)
+function ComposeGetHeadersSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const accessToken= GetAccessTokenSchwab(sheetID, verbose);
+  // const accessToken= GetAccessTokenSchwabLegacy(sheetID, verbose);
   var headers= null;
   
   if (accessToken)
@@ -751,86 +342,52 @@ function ComposeHeadersSchwab(sheetID, verbose)
 function GetAccessTokenSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
-  const currentTime= new Date();
-  var accessTokenExpirationTime= GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
-  var accessToken= GetValueByName(sheetID, "ParameterSchwabTokenAccess", verbose);
+  const currentTime = new Date();
+  var accessTokenExpirationTime = GetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", verbose);
+  var accessToken = GetValueByName(sheetID, "ParameterSchwabTokenAccess", verbose);
   
   if (!accessToken || !accessTokenExpirationTime || (currentTime > accessTokenExpirationTime))
   {
     // Invalidate the expired or unstamped access token
     LogVerbose(`Refreshing invalid access token (expiration stamp ${accessTokenExpirationTime})...`, verbose);
     LogVerbose(`Old access token: ${accessToken}`, verbose);
-    accessToken= null;
+    accessToken = null;
   
     // Attempt to refresh an invalid access token
-    const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
-    const refreshToken= GetRefreshTokenSchwab(sheetID, verbose);
-    var response= null;
+    const refreshToken = GetRefreshTokenSchwab(sheetID, verbose);
 
     // Request a new access token using our valid refreh token
-    if (key && refreshToken)
+    if (refreshToken)
     {
-      // we have necessary parameters, proceed to obtain token
-      const formData= {
+      // Use the refresh token to obrain a new access token
+      const url = "https://api.schwabapi.com/v1/oauth/token";
+      const payload = {
         'grant_type': 'refresh_token',
         'refresh_token': refreshToken
       };
 
-      const headers = {
-        'Authorization': "Basic " + Utilities.base64Encode(key)
-      };
-      
-      const options = {
-        'method' : 'post',
-        'headers' : headers,
-        'payload' : formData
-      };
-      
-      try
-      {
-        response= UrlFetchApp.fetch("https://api.schwabapi.com/v1/oauth/token", options);
-        
-        if (response)
-        {
-          // Looks like we have a valid data response
-          const keyAccessToken= "access_token";
-          const keyAccessTokenTTL= "expires_in";
-          const contentParsed= ExtractContentSchwab(response);
-          
-          if (contentParsed)
-          {
-            const accessTokenTTL= contentParsed[keyAccessTokenTTL];
-            const accessTokenTTLOffset= 60 * 5;
+      const content = PostURLSchwab(sheetID, url, payload, verbose);
 
-            accessToken= contentParsed[keyAccessToken];
-            
-            if (accessToken && accessTokenTTL)
-            {
-              // Preserve the new Access Token and its expiration time
-              accessTokenExpirationTime= new Date();
-              accessTokenExpirationTime.setSeconds(accessTokenExpirationTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
-              
-              SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
-              SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", accessTokenExpirationTime, verbose);
-            }
-            else
-            {
-              Log(`Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
-            }
-          }
-          else
-          {
-            LogThrottled(sheetID, "Received error while trying to refresh access token.");
-          }
+      if (content)
+      {
+        const accessTokenTTL = content["expires_in"];
+        const accessTokenTTLOffset = 60 * 5;
+
+        accessToken = content["access_token"];
+        
+        if (accessToken && accessTokenTTL)
+        {
+          // Preserve the new Access Token and its expiration time
+          accessTokenExpirationTime = new Date();
+          accessTokenExpirationTime.setSeconds(accessTokenExpirationTime.getSeconds() + accessTokenTTL - accessTokenTTLOffset);
+          
+          SetValueByName(sheetID, "ParameterSchwabTokenAccess", accessToken, verbose);
+          SetValueByName(sheetID, "ParameterSchwabTokenAccessExpiration", accessTokenExpirationTime, verbose);
         }
         else
         {
-          LogThrottled(sheetID, "Received no response while trying to refresh access token.");
+          Log(`Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
         }
-      }
-      catch (error)
-      {
-        LogThrottled(sheetID, error.message, verbose);
       }
     }
     else if (verbose)
@@ -900,13 +457,13 @@ function GetRefreshTokenSchwab(sheetID, verbose)
  */
 function GetURLSchwab(sheetID, url, verbose)
 {
-  const headers= ComposeHeadersSchwab(sheetID, verbose);
-  var response= null;
-  var content= null;
+  const headers = ComposeGetHeadersSchwab(sheetID, verbose);
+  var response = null;
+  var content = null;
   
   if (headers)
   {
-    response= FetchURLSchwab(sheetID, url, headers, "get", null, verbose);
+    response = FetchURLSchwab(sheetID, url, headers, "get", null, verbose);
   }
   else
   {
@@ -916,7 +473,7 @@ function GetURLSchwab(sheetID, url, verbose)
 
   if (response)
   {
-    content= ExtractContentSchwab(response);
+    content = ExtractContentSchwab(response);
   }
   else
   {
@@ -933,9 +490,37 @@ function GetURLSchwab(sheetID, url, verbose)
  *
  * Fetch the supplied Schwab API URL via POST
  */
-function PostURLSchwab(url, headers, formData, verbose)
+function PostURLSchwab(sheetID, url, payload, verbose)
 {
+  const key= GetValueByName(sheetID, "ParameterSchwabKey", verbose);
+  var headers = null;
+  var response = null;
+  var content = null;
 
+  if (key)
+  {
+    headers = {
+      'Authorization': "Basic " + Utilities.base64Encode(key)
+    };
+
+    response = FetchURLSchwab(sheetID, url, headers, "post", payload, verbose);
+  }
+  else
+  {
+    LogThrottled(sheetID, `Could not read stored key: ${key}`);
+  }
+
+  if (response)
+  {
+    content = ExtractContentSchwab(response);
+  }
+  else
+  {
+    // Missing response
+    LogThrottled(sheetID, `Received no response for query  <${url}>`);
+  }
+
+  return content;
 };
 
 
@@ -946,31 +531,31 @@ function PostURLSchwab(url, headers, formData, verbose)
  */
 function FetchURLSchwab(sheetID, url, headers, method, payload, verbose)
 {
-  var response= null;
-  var options= {};
+  var response = null;
+  var options = {};
 
   if (headers)
   {
-    options["headers"]= headers;
+    options["headers"] = headers;
   }
 
   if (method)
   {
-    options["method"]= method;
+    options["method"] = method;
   }
   else
   {
-    options["method"]= "get";
+    options["method"] = "get";
   }
 
   if (payload)
   {
-    options["payload"]= payload;
+    options["payload"] = payload;
   }
   
   try
   {
-    response= UrlFetchApp.fetch(url, options);
+    response = UrlFetchApp.fetch(url, options);
   }
   catch (error)
   {

@@ -28,10 +28,10 @@ function LogVerbose(logMessage, verbose)
  *
  * Create a log entry with a label from the calling function if outside the throttled window
  */
-function LogThrottled(id, logMessage, verbose, throttleOffset)
+function LogThrottled(sheetID, logMessage, verbose, throttleOffset)
 {
   const defaultThrottleOffset= 10 * 60;
-  const throttledTime= GetValueByName(id, "ParameterAlertThrottleTime", verbose);
+  const throttledTime= GetValueByName(sheetID, "ParameterAlertThrottleTime", verbose);
   const currentTime= new Date();
   
   if (verbose == undefined)
@@ -47,7 +47,8 @@ function LogThrottled(id, logMessage, verbose, throttleOffset)
   if (currentTime > throttledTime)
   {
     Logger.log(`[${LogThrottled.caller.name}] ${logMessage}`);
-    ThrottleLog(id, throttleOffset, verbose);
+    SetValueByName(sheetID, "ParameterAlertThrottleMessage", logMessage, verbose);
+    ThrottleLog(sheetID, throttleOffset, verbose);
   }
   else if (verbose)
   {
@@ -61,7 +62,7 @@ function LogThrottled(id, logMessage, verbose, throttleOffset)
  *
  * Set a time until which throttled log messages will be suppressed
  */
-function ThrottleLog(id, untilTimeOffset, verbose)
+function ThrottleLog(sheetID, untilTimeOffset, verbose)
 {
   const defaultThrottleOffset= 10 * 60;
   const throttleTime= new Date();
@@ -78,7 +79,7 @@ function ThrottleLog(id, untilTimeOffset, verbose)
 
   throttleTime.setSeconds(throttleTime.getSeconds() + untilTimeOffset);
 
-  SetValueByName(id, "ParameterAlertThrottleTime", throttleTime, verbose);
+  SetValueByName(sheetID, "ParameterAlertThrottleTime", throttleTime, verbose);
   Log(`Throttling further log messages until ${throttleTime}`)
 };
   
@@ -88,7 +89,7 @@ function ThrottleLog(id, untilTimeOffset, verbose)
  *
  * Send the log as an e-mail message to the script invoker
  */
-function LogSend(id)
+function LogSend(sheetID)
 {
   // declare local variables and constants
   var recipient= null;
@@ -100,31 +101,31 @@ function LogSend(id)
   if (body)
   {
     // looks like we have something to send
-    recipient= GetValueByName(id, "ParameterAlertEmailAddress", verbose);
+    recipient= GetValueByName(sheetID, "ParameterAlertEmailAddress", verbose);
     if (!recipient)
     {
       // Unpsecified log recipient, alert the user
-      Logger.log("[LogSend] No log recipient specified for spreadsheet ID <%s>; alerting the active user instead", id);
+      Logger.log("[LogSend] No log recipient specified for spreadsheet ID <%s>; alerting the active user instead", sheetID);
       
       recipient= Session.getActiveUser().getEmail();
     }
     
     
-    if (id)
+    if (sheetID)
     {
-      if (spreadsheet= SpreadsheetApp.openById(id))
+      if (spreadsheet= SpreadsheetApp.openById(sheetID))
       {
         subject= spreadsheet.getName() + " " + subject;
       }
       else
       {
-        Logger.log("[LogSend] Could not open spreadsheet ID <%s>.", id);
-        subject= id + " " + subject;
+        Logger.log("[LogSend] Could not open spreadsheet ID <%s>.", sheetID);
+        subject= sheetID + " " + subject;
       }
     }
     else
     {
-      Logger.log("[LogSend] Did not receive a valid ID <%s>.", id);
+      Logger.log("[LogSend] Did not receive a valid ID <%s>.", sheetID);
     }
     
     

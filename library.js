@@ -159,17 +159,17 @@ function GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIte
  */
 function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
 {
-  var value= null;
-  var firstDataColumn= 0;
-  var storeIterationCount= false;
+  var value = null;
+  var firstDataColumn =  0;
+  var storeIterationCount = false;
   
   if (confirmNumbers == undefined)
   {
-    confirmNumbers= false;
-    limit= 0;
+    confirmNumbers = false;
+    limit = 0;
     if (verbose)
     {
-      Logger.log("[GetValueByName] confirmNumbers set to default <%s> with limit set to <%s>.", confirmNumbers, limit);
+      Log(`Defaulting: Not confirming numbers with limit set to <${limit}>.`);
     }
   }
   else
@@ -179,16 +179,16 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
       // make sure limit is defined if we are to confirm numbers
       if (limit == undefined)
       {
-        limit= 0;
+        limit = 0;
         if (verbose)
         {
-          Logger.log("[GetValueByName] limit set to default <%s>.", limit);
+          Log(`Defaulting: Limit set to <${limit}>.`);
         }
       }
     }
   }
   
-  value= GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
+  value = GetTableByName(id, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
   if (value)
   {
     // We seem to have something!
@@ -197,18 +197,17 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
       // We seem to have at least one dimension!
       if (value[0].length > 0)
       {
-        // We seem to have a proper table!
-        // Return the top-left value
-        return value[0][0];
+        // We seem to have a proper table -- assign the top-left value
+        value = value[0][0];
       }
       else
       {
         // Not a proper table!
         if (verbose)
         {
-          Logger.log("[GetValueByName] Range named <%s> is not a table.", sourceName);
+          Log(`Range named <${sourceName}> is not a table.`);
         }
-        return null;
+        value = null;
       }
     }
     else
@@ -216,9 +215,9 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
       // Not even a proper array!
       if (verbose)
       {
-        Logger.log("[GetValueByName] Range named <%s> is not even an array.", sourceName);
+        Log(`Range named <${sourceName}> is not even an array.`);
       }
-      return null;
+      value = null;
     }
   }
   else
@@ -226,10 +225,12 @@ function GetValueByName(id, sourceName, verbose, confirmNumbers, limit)
     // We got nothing!
     if (verbose)
     {
-      Logger.log("[GetValueByName] Range named <%s> did not result in a viable value.", sourceName);
+      Log(`Range named <${sourceName}> did not result in a viable value.`);
     }
-    return null;
+    value = null;
   }
+
+  return value;
 };
 
 
