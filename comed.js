@@ -88,7 +88,7 @@ function RunComEdFrequently()
     ScrubHistory(parameters, action);
   }
   
-  LogSend(parameters["id"]);
+  LogSend(parameters["sheetID"]);
   return success;
 };
 
@@ -338,7 +338,7 @@ function SendPriceAlert(parameters)
  */
 function GetLatestTimeStamp(parameters)
 {
-  var stamp= GetLastSnapshotStamp(parameters["id"], parameters["comedSheetPrices"], parameters["verbose"]);
+  var stamp= GetLastSnapshotStamp(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]);
   
   if (stamp && (stamp.toString().length > 0))
   {
@@ -366,7 +366,7 @@ function SetLatestTimeStamp(parameters)
   
   if (stamp= new Date())
   {
-    if (UpdateSnapshotCell(parameters["id"], parameters["comedSheetPrices"], parameters["indexTime"] + 1, stamp, onlyIfBlank, parameters["verbose"]))
+    if (UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexTime"] + 1, stamp, onlyIfBlank, parameters["verbose"]))
     {
       Logger.log("[SetLatestTimeStamp] Overwrote latest time stamp with [%s].", stamp);
     }
@@ -400,14 +400,14 @@ function ScrubHistory(parameters, action)
   else
   {
     // Check for a duplicate snashot row and preserve its values for the chain of command
-    if (scrubbedData= RemoveDuplicateSnapshot(parameters["id"], parameters["comedSheetPrices"], parameters["verbose"]))
+    if (scrubbedData= RemoveDuplicateSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]))
     {
       UpdateStatus(parameters, "Removed duplicate history row.");
       Logger.log("[ScrubHistory] Removed duplicate history row\n\n%s", scrubbedData);
     }
     else
     {
-      TrimHistory(parameters["id"], parameters["comedSheetPrices"], maxRows, parameters["verbose"]);
+      TrimHistory(parameters["sheetID"], parameters["comedSheetPrices"], maxRows, parameters["verbose"]);
       UpdateStatus(parameters, action + ".");
     }
   }
@@ -423,7 +423,7 @@ function ScrubHistory(parameters, action)
  */
 function IsSupreme(parameters)
 {
-  var current= GetValueByName(parameters["id"], "statusRunCurrent", parameters["verbose"]);
+  var current= GetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["verbose"]);
   
   return (parameters["scriptTime"] >= current);
 }
@@ -436,7 +436,7 @@ function IsSupreme(parameters)
  */
 function Superseded(parameters, caller, activity)
 {
-  var current= GetValueByName(parameters["id"], "statusRunCurrent", parameters["verbose"]);
+  var current= GetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["verbose"]);
   var statusMessage= "Superseded!";
   var logMessage= "";
   
@@ -469,7 +469,7 @@ function Superseded(parameters, caller, activity)
  */
 function GetSemaphore(parameters)
 {
-  return GetValueByName(parameters["id"], "semaphore", parameters["verbose"]);;
+  return GetValueByName(parameters["sheetID"], "semaphore", parameters["verbose"]);;
 };
 
 
@@ -517,8 +517,8 @@ function SetSemaphore(parameters)
   else
   {
     // Clear to proceed
-    SetValueByName(parameters["id"], "semaphore", parameters["scriptTime"].toFixed(0), parameters["verbose"]);
-    SetValueByName(parameters["id"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
+    SetValueByName(parameters["sheetID"], "semaphore", parameters["scriptTime"].toFixed(0), parameters["verbose"]);
+    SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
     parameters["semaphore"]= parameters["scriptTime"];
     
     return true;
@@ -545,14 +545,14 @@ function ClearSemaphore(parameters, force)
       if (parameters["scriptTime"] == semaphore)
       {
         // Normally only clear own semaphore
-        success= SetValueByName(parameters["id"], "semaphore", "", parameters["verbose"]);
-        SetValueByName(parameters["id"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
+        success= SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
+        SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
       }
       else if (force)
       {
         // Clear another run's semaphore if set to do so
-        success= SetValueByName(parameters["id"], "semaphore", "", parameters["verbose"]);
-        SetValueByName(parameters["id"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
+        success= SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
+        SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
         Logger.log("[ClearSemaphore] Clearing a semaphore from another run (%s)!", semaphore.toFixed(0));
       }
       else
@@ -666,8 +666,8 @@ function SemaphoreConflictDetails(parameters, semaphore)
  */
 function UpdateStatus(parameters, status)
 {
-  SetValueByName(parameters["id"], "status", status, parameters["verbose"]);
-  SetValueByName(parameters["id"], "statusTime", DateToLocaleString(), parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "status", status, parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "statusTime", DateToLocaleString(), parameters["verbose"]);
 };
 
 
@@ -718,9 +718,9 @@ function PreserveStatus(parameters, statusAction)
  */
 function UpdateAlertStatus(parameters, price, alert, time)
 {
-  SetValueByName(parameters["id"], "statusAlert", alert, parameters["verbose"]);
-  SetValueByName(parameters["id"], "statusAlertTime", DateToLocaleString(time), parameters["verbose"]);
-  SetValueByName(parameters["id"], "priceAlertLast", price, parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "statusAlert", alert, parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "statusAlertTime", DateToLocaleString(time), parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "priceAlertLast", price, parameters["verbose"]);
 };
 
 
@@ -733,11 +733,11 @@ function UpdateRunStamps(parameters)
 {
   var success= false;
   
-   if (success= SetValueByName(parameters["id"], "statusRunCurrent", parameters["scriptTime"].toFixed(0), parameters["verbose"]))
+   if (success= SetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["scriptTime"].toFixed(0), parameters["verbose"]))
    {
-     SetValueByName(parameters["id"], "statusRunCurrentTime", DateToLocaleString(parameters["scriptTime"]), parameters["verbose"]);
-     SetValueByName(parameters["id"], "statusRunPrevious", parameters["statusRunCurrent"], parameters["verbose"]);
-     SetValueByName(parameters["id"], "statusRunPreviousTime", DateToLocaleString(parameters["statusRunCurrent"]), parameters["verbose"]);
+     SetValueByName(parameters["sheetID"], "statusRunCurrentTime", DateToLocaleString(parameters["scriptTime"]), parameters["verbose"]);
+     SetValueByName(parameters["sheetID"], "statusRunPrevious", parameters["statusRunCurrent"], parameters["verbose"]);
+     SetValueByName(parameters["sheetID"], "statusRunPreviousTime", DateToLocaleString(parameters["statusRunCurrent"]), parameters["verbose"]);
    }
   
   return success;
@@ -755,9 +755,9 @@ function UpdatePreviousRegressionSlope(parameters)
   
   UpdateStatus(parameters, "Saving previous regression slope...");
   
-  if (success= SetValueByName(parameters["id"], "priceRegressionSlopePrevious", parameters["priceRegressionSlope"], parameters["verbose"]))
+  if (success= SetValueByName(parameters["sheetID"], "priceRegressionSlopePrevious", parameters["priceRegressionSlope"], parameters["verbose"]))
   {
-    SetValueByName(parameters["id"], "priceRegressionSlopePreviousTime", DateToLocaleString(), parameters["verbose"]);
+    SetValueByName(parameters["sheetID"], "priceRegressionSlopePreviousTime", DateToLocaleString(), parameters["verbose"]);
   }
   
   return success;
@@ -773,10 +773,10 @@ function UpdateLastPrice(parameters, price)
 {
   var success= false;
   
-  if (success= SetValueByName(parameters["id"], "priceLast", price, parameters["verbose"]))
+  if (success= SetValueByName(parameters["sheetID"], "priceLast", price, parameters["verbose"]))
   {
     parameters["priceLast"]= price;
-    SetValueByName(parameters["id"], "priceLastTime", DateToLocaleString(), parameters["verbose"]);
+    SetValueByName(parameters["sheetID"], "priceLastTime", DateToLocaleString(), parameters["verbose"]);
   }
   
   return success;
@@ -790,8 +790,8 @@ function UpdateLastPrice(parameters, price)
  */
 function UpdateURL(parameters, url)
 {
-  SetValueByName(parameters["id"], "comedURL", url, parameters["verbose"]);
-  SetValueByName(parameters["id"], "comedURLTime", DateToLocaleString(), parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "comedURL", url, parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "comedURLTime", DateToLocaleString(), parameters["verbose"]);
 };
 
 
@@ -802,8 +802,8 @@ function UpdateURL(parameters, url)
  */
 function UpdateMissingPricesAlertStamp(parameters)
 {
-  SetValueByName(parameters["id"], "noNewPricesAlert", parameters["scriptTime"], parameters["verbose"]);
-  SetValueByName(parameters["id"], "noNewPricesAlertTime", DateToLocaleString(), parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "noNewPricesAlert", parameters["scriptTime"], parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "noNewPricesAlertTime", DateToLocaleString(), parameters["verbose"]);
 };
 
 
@@ -814,8 +814,8 @@ function UpdateMissingPricesAlertStamp(parameters)
  */
 function ClearMissingPricesAlertStamp(parameters)
 {
-  SetValueByName(parameters["id"], "noNewPricesAlert", "", parameters["verbose"]);
-  SetValueByName(parameters["id"], "noNewPricesAlertTime", DateToLocaleString(), parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "noNewPricesAlert", "", parameters["verbose"]);
+  SetValueByName(parameters["sheetID"], "noNewPricesAlertTime", DateToLocaleString(), parameters["verbose"]);
 };
 
 
@@ -872,7 +872,7 @@ function SavePrices(parameters, prices)
     // This is still the latest run: write obtained prices to history table
     prices[prices.length-1][parameters["indexStamp"]]= parameters["scriptTime"].toFixed(0);
     prices[prices.length-1][parameters["indexStampTime"]]= DateToLocaleString();
-    success= SaveSnapshot(parameters["id"], parameters["comedSheetPrices"], prices, updateRun, parameters["verbose"]);
+    success= SaveSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], prices, updateRun, parameters["verbose"]);
   }
   else
   {
@@ -904,11 +904,11 @@ function UpdateComputedValues(parameters)
     // This is still the latest run: update freshly recomputed values
     parameters["activity"]= "updating moving average";
     
-    priceMovingAverage= GetValueByName(parameters["id"], "priceMovingAverage", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
+    priceMovingAverage= GetValueByName(parameters["sheetID"], "priceMovingAverage", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
     if (priceMovingAverage != null)
     {
       parameters["priceMovingAverage"]= priceMovingAverage;
-      success= UpdateSnapshotCell(parameters["id"], parameters["comedSheetPrices"], parameters["indexMovingAverage"] + 1, priceMovingAverage,
+      success= UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexMovingAverage"] + 1, priceMovingAverage,
                                   onlyIfBlank, parameters["verbose"]);
     }
     else
@@ -922,11 +922,11 @@ function UpdateComputedValues(parameters)
       // Success so far: proceed...
       parameters["activity"]= "updating trend";
       
-      priceTrend= GetValueByName(parameters["id"], "priceRegressionSlope", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
+      priceTrend= GetValueByName(parameters["sheetID"], "priceRegressionSlope", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
       if (priceTrend != null)
       {
         parameters["priceRegressionSlope"]= priceTrend;
-        success= UpdateSnapshotCell(parameters["id"], parameters["comedSheetPrices"], parameters["indexTrend"] + 1, priceTrend, onlyIfBlank, parameters["verbose"]);
+        success= UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexTrend"] + 1, priceTrend, onlyIfBlank, parameters["verbose"]);
       }
       else
       {
@@ -966,7 +966,7 @@ function Notify(parameters)
     if (statusMessage.length > 0)
     {
       UpdateStatus(parameters, statusMessage);
-      success= UpdateSnapshotCell(parameters["id"], parameters["comedSheetPrices"], parameters["indexAlert"] + 1, statusMessage, onlyIfBlank, parameters["verbose"]);
+      success= UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexAlert"] + 1, statusMessage, onlyIfBlank, parameters["verbose"]);
     }
     else
     {

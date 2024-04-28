@@ -51,33 +51,50 @@ function RunLendingClubHourly()
  */
 function RunLendingClubDaily(backupRun)
 {
-  // declare constants and local variables
-  var id= GetLendingClubSheetID();
-  var historySheetName= "History";
-  var names= [];
-  var savedNames= [];
-  var limits= [0, 0, 0, 0, 0, -100000, -100000, -1, -1, -1, -1, -1];
-  var now= new Date();
-  var verbose= false;
-  var verboseChanges= true;
-  var updateRun= false;
+  // Declare constants and local variables
+  const sheetID = GetLendingClubSheetID();
+  const historySheetName = "History";
+  const now = new Date();
+  const verbose = false;
+  const verboseChanges = true;
+  const updateRun = false;
   
-  names= ["accountBasis", "accountValue", "accountInterest", "accountLateFees", "accountInvestorFees", "accountLoss", "accountChargedOff",
-              "accountAnnualizedReturn", "accountLCAnnualizedReturn", "accountAdjustedAnnualizedReturn", "accountYields", "accountReturns"];
-  SaveValuesInHistory(id, historySheetName, names, limits, now, backupRun, updateRun, verbose);
+  const historyNames =
+  {
+    "accountBasis" : 0,
+    "accountValue" : 0,
+    "accountInterest" : 0,
+    "accountLateFees" : 0,
+    "accountInvestorFees" : 0,
+    "accountLoss" : -100000,
+    "accountChargedOff" : -100000,
+    "accountAnnualizedReturn" : -1,
+    "accountLCAnnualizedReturn" : -1,
+    "accountAdjustedAnnualizedReturn" : -1,
+    "accountYields" : -1,
+    "accountReturns" : -1
+  };
+  SaveValuesInHistory(sheetID, historySheetName, historyNames, now, backupRun, updateRun, verbose);
   
-  SaveValue(id, "notesProcessingCurrent", "notesProcessingSaved", verbose);
-  SaveValue(id, "notesNonPerformingCurrent", "notesNonPerformingSaved", verbose);
+  SaveValue(sheetID, "notesProcessingCurrent", "notesProcessingSaved", verbose);
+  SaveValue(sheetID, "notesNonPerformingCurrent", "notesNonPerformingSaved", verbose);
   
   // Synchromnise category counts and carp on changes
-  names= ["summaryChargedOff", "summaryPaidOff", "summaryPerforming", "summaryNonPerforming", "accountCash"];
-  savedNames= MapNames(names, "Saved");
-  if (!Synchronize(id, id, names, savedNames, verbose, verboseChanges))
+  const sourceNames =
+  [
+    "summaryChargedOff",
+    "summaryPaidOff",
+    "summaryPerforming",
+    "summaryNonPerforming",
+    "accountCash"
+  ];
+  const savedNames = MapNames(sourceNames, "Saved");
+  if (!Synchronize(sheetID, sheetID, sourceNames, savedNames, verbose, verboseChanges))
   {
-    Logger.log("[RunLendingClubDaily] Failed to preserve: <%s>", savedNames);
+    Log(`Failed to preserve: <${savedNames}>`);
   }
   
-  LogSend(id);
+  LogSend(sheetID);
 };
 
 

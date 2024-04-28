@@ -72,10 +72,4 @@ function RunFrequently()
       RunComEdFrequently();
     }
   }
-
-
-  // Only look for box trades if candidates skipped (try to stay within a narrow execution window)
-    // if (!RunBoxTradeCandidates(afterHours))
-    // {
-    
 };

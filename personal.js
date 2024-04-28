@@ -5,19 +5,17 @@
  */
 function RunPersonal(backupRun)
 {
-  // declare constants and local variables
-  var mainSheetID= GetMainSheetID();
-  var annualSheetIDs= {};
-  var now= new Date();
-  var verbose= false;
-  var verboseChanges= true;
-  var confirmNumbers= true;
-  
+  // Declare constants and local variables
+  const mainSheetID = GetMainSheetID();
+  const now = new Date();
+  const verbose = false;
+  const verboseChanges = true;
+  const confirmNumbers = true;
   
   if (mainSheetID != undefined)
   {
-    // process annual sheets
-    annualSheetIDs= GetAnnualSheetIDs(mainSheetID, verbose);
+    // Process annual sheets
+    const annualSheetIDs = GetAnnualSheetIDs(mainSheetID, verbose);
     if (annualSheetIDs != undefined)
     {
       UpdateCurrentAnnualSheet(annualSheetIDs, now, verbose, backupRun, confirmNumbers);
@@ -27,23 +25,23 @@ function RunPersonal(backupRun)
       {
         if (!MaintainHistoriesAnnual(annualSheetIDs[now.getFullYear()], verbose))
         {
-          Logger.log("[RunPersonal] Failed to maintain annual document histories!");
+          Log("Failed to maintain annual document histories!");
         }
       }
     }
     else
     {
-      Logger.log("[RunPersonal] Failed to obtain annual sheet IDs!");
+      Log("Failed to obtain annual sheet IDs!");
     }
     
     UpdateMainSheet(mainSheetID, now, verbose, backupRun, confirmNumbers);
   }
   else
   {
-    Logger.log("[RunPersonal] Failed to obtain main sheet ID!");
+    Log("Failed to obtain main sheet ID!");
   }
   
-  // we're done! send the accumulated log...
+  // We are done -- send the accumulated log...
   LogSend(mainSheetID);
 };
 
@@ -55,20 +53,18 @@ function RunPersonal(backupRun)
  */
 function RunPersonalHourly()
 {
-  // declare constants and local variables
-  var mainSheetID= GetMainSheetID();
-  var allocationSheetID= GetAllocationSheetID();
-  var annualSheetIDs= {};
-  var now= new Date();
-  var verbose= false;
-  var verboseChanges= true;
-  var confirmNumbers= true;
+  // Declare constants and local variables
+  const mainSheetID = GetMainSheetID();
+  const now = new Date();
+  const verbose = false;
+  const verboseChanges = true;
+  const confirmNumbers = true;
   
   
   if (mainSheetID != undefined)
   {
-    // process annual sheets
-    annualSheetIDs= GetAnnualSheetIDs(mainSheetID, verbose);
+    // Process annual sheets
+    const annualSheetIDs = GetAnnualSheetIDs(mainSheetID, verbose);
     if (annualSheetIDs != undefined)
     {
       SynchronizeMainAndAnnualSheets(mainSheetID, annualSheetIDs, now, verbose);
@@ -76,29 +72,30 @@ function RunPersonalHourly()
     }
     else
     {
-      Logger.log("[RunPersonalHourly] Failed to obtain annual sheet IDs!");
+      Log("Failed to obtain annual sheet IDs!");
     }
     
     // process main sheet
     if (!ReconcilePortfolioHistory(mainSheetID, verbose))
     {
-      Logger.log("[RunPersonalHourly] Failed to reconcile portfolio history!");
+      Log("Failed to reconcile portfolio history!");
     }
 
     if (!MaintainHistoriesMain(mainSheetID, verbose))
     {
-      Logger.log("[RunPersonalHourly] Failed to maintain main document histories!");
+      Log("Failed to maintain main document histories!");
     }
   }
   else
   {
-    Logger.log("[RunPersonalHourly] Failed to obtain main sheet ID!");
+    Log("Failed to obtain main sheet ID!");
   }
   
-  // we're done with the main sheets -- send the accumulated log...
+  // We are done with the main sheets -- send the accumulated log...
   LogSend(mainSheetID);
   
-  
+
+  const allocationSheetID = GetAllocationSheetID();
   if (allocationSheetID != undefined)
   {
     // update the Allocation sheet
@@ -106,41 +103,11 @@ function RunPersonalHourly()
   }
   else
   {
-    Logger.log("[RunPersonalHourly] Failed to obtain Allocation sheet ID!");
+    Log("Failed to obtain Allocation sheet ID!");
   }
   
-  // we're done! send the accumulated log...
+  // We are done -- send the accumulated log...
   LogSend(allocationSheetID);
-};
-
-
-/**
- * RunPersonalTest()
- *
- * Wrapper for testing new routines
- */
-function RunPersonalTest()
-{
-  // declare constants and local variables
-  var mainSheetID= GetMainSheetID();
-  var test= true;
-  var afterHours= false;
-  
-  
-  if (mainSheetID != undefined)
-  {
-    if (!RunQuotes(afterHours, test))
-    {
-      Logger.log("[RunPersonalTest] Failed to obtain quotes!");
-    }
-  }
-  else
-  {
-    Logger.log("[RunPersonalTest] Failed to obtain main sheet ID!");
-  }
-  
-  // we're done! send the accumulated log...
-  LogSend(mainSheetID);
 };
 
 
@@ -151,28 +118,23 @@ function RunPersonalTest()
  */
 function RunAuxiliary()
 {
-  //var auxiliarySheetID= "13hQcXxUOHRbzyhhNnBNn7DFM-KaE9OhvPNyEB7rgKqs";
-  var auxiliarySheetID= "1N3VC1SLZFBkt0jYobldHWmTRH2Zt6uUi6xZkU_yuwYM"
-  var verbose= false;
+  // Declare constants and local variables
+  const auxiliarySheetID = "1N3VC1SLZFBkt0jYobldHWmTRH2Zt6uUi6xZkU_yuwYM";
+  const updateStampName = "UsageUpdateStamp";
+  const now = new Date();
+  const verbose = false;
+
+  const updateStamp = GetValueByName(auxiliarySheetID, updateStampName, verbose);
+  const updateStampDate = new Date(updateStamp);
   
-  var updateStampName= "UsageUpdateStamp";
-  var updateStamp= GetValueByName(auxiliarySheetID, updateStampName, verbose);
-  var updateStampDate= new Date(updateStamp);
-  var nowDate= new Date();
-  
-  
-  if (updateStampDate.getDate() != nowDate.getDate())
+  if (updateStampDate.getDate() != now.getDate())
   {
-    // synchnize today's usage to yesterday in order to start new daily differentials
+    // Synchnize today's usage to yesterday in order to start new daily differentials
     SaveValue(auxiliarySheetID, "UsageToday", "UsageYesterday", verbose);
-    SetValueByName(auxiliarySheetID, updateStampName, DateToLocaleString(), verbose);
-  }
-  else
-  {
-    //SetValueByName(auxiliarySheetID, updateStampName, "Still today!!! [" + DateToLocaleString() + "]", verbose);
+    UpdateTime(auxiliarySheetID, updateStampName, verbose)
   }
   
-  // we're done! send the accumulated log...
+  // We are done -- send the accumulated log...
   LogSend(auxiliarySheetID);
 };
 
@@ -182,41 +144,47 @@ function RunAuxiliary()
  *
  * Update history and save important values in the main sheet
  */
-function UpdateMainSheet(id, now, verbose, backupRun, confirmNumbers)
+function UpdateMainSheet(mainSheetID, now, verbose, backupRun, confirmNumbers)
 {
-  // declare constants and local variables
-  var updateRun= false;
+  // Declare constants and local variables
+  const updateRun = false;
   
-  // preserve current net asset values
-  var navHistorySheetName= "H: NAV";
-  var navNames= ["FreeCashFlowTodayPositive", "FreeCashFlowTodayNegative", "FreeCashFlowWeek", "FreeCashFlowWeekPercent",
-                  "HighWaterMark", "AssetsNAVCurrent"];
-  var navLimits= [null, null, -10000000, -1, 0, 0];
-  SaveValuesInHistory(id, navHistorySheetName, navNames, navLimits, now, backupRun, updateRun, verbose);
+  // Preserve current net asset values
+  const navHistorySheetName = "H: NAV";
+  const navNames =
+  {
+    "FreeCashFlowTodayPositive" : null,
+    "FreeCashFlowTodayNegative" : null,
+    "FreeCashFlowWeek" : -10000000,
+    "FreeCashFlowWeekPercent" : -1,
+    "HighWaterMark" : 0,
+    "AssetsNAVCurrent" : 0
+  };
+  SaveValuesInHistory(mainSheetID, navHistorySheetName, navNames, now, backupRun, updateRun, verbose);
   
-  // preserve some current prices for later comparisons
-  SaveValue(id, "Prices", "PricesSaved", verbose);
+  // Preserve some current prices for later comparisons
+  SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
   
-  // preserve current cash position for later comparisons
-  SaveValue(id, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, -2000000);
-  SaveValue(id, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, -2000000);
-  SaveValue(id, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, -2000000);
+  // Preserve current cash position for later comparisons
+  SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, -2000000);
+  SaveValue(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, -2000000);
+  SaveValue(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, -2000000);
   
-  // preserve current option prices for later comparisons
-  SaveValue(id, "OptionsDerived", "OptionsSaved", verbose);
+  // Preserve current option prices for later comparisons
+  SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
   
-  // preserve current year 401K primary and catch-up contribution amounts and dates
-  SaveValue(id, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
-  SaveValue(id, "Contribution401KAmountCatchUpThisYear", "Contribution401KAmountCatchUpThisYearSaved", verbose);
-  SaveValue(id, "Contribution401KDateNext", "Contribution401KDateNextSaved", verbose);
-  SaveValue(id, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
+  // Preserve current year 401K primary and catch-up contribution amounts and dates
+  SaveValue(mainSheetID, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
+  SaveValue(mainSheetID, "Contribution401KAmountCatchUpThisYear", "Contribution401KAmountCatchUpThisYearSaved", verbose);
+  SaveValue(mainSheetID, "Contribution401KDateNext", "Contribution401KDateNextSaved", verbose);
+  SaveValue(mainSheetID, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
   
-  // preserve quarterly benchmarks
-  var maxLossLimit= -1;
-  if (SaveValue(id, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, false, maxLossLimit))
+  // Preserve quarterly benchmarks
+  var maxLossLimit = -1;
+  if (SaveValue(mainSheetID, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, false, maxLossLimit))
   {
     // Values updated -- update time stamp
-    UpdateTime(id, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
+    UpdateTime(mainSheetID, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
   }
 };
 
@@ -228,52 +196,69 @@ function UpdateMainSheet(id, now, verbose, backupRun, confirmNumbers)
  */
 function UpdateCurrentAnnualSheet(annualSheetIDs, now, verbose, backupRun, confirmNumbers)
 {
-  // declare constants and local variables
-  var currentYear= now.getFullYear();
-  var id= annualSheetIDs[currentYear];
-  var updateRun= false;
+  // Declare constants and local variables
+  const currentYear = now.getFullYear();
+  const sheetID = annualSheetIDs[currentYear];
+  const updateRun = false;
   
-  
-  if (id)
+  if (sheetID)
   {
-    // preserve current managed portfolio value
-    var managedHistorySheetName= "H: mV";
-    var managedNames= ["ValueManaged"];
-    var managedLimits= [0];
-    SaveValuesInHistory(id, managedHistorySheetName, managedNames, managedLimits, now, backupRun, updateRun, verbose);
+    // Preserve current managed portfolio value
+    const managedHistorySheetName = "H: mV";
+    const managedNames = { "ValueManaged" : 0 };
+    SaveValuesInHistory(sheetID, managedHistorySheetName, managedNames, now, backupRun, updateRun, verbose);
     
-    // preserve current nominal performance values
-    var nominalHistorySheetName= "H: $";
-    var nominalNames= ["AccountGains", "Gain", "IncomeFCF", "ArtValue", "LenValue", "GainYearOverYear"];
-    var nominalLimits= [-2000000, -2000000, -2000000, 20000, 20000, -2000000];
-    SaveValuesInHistory(id, nominalHistorySheetName, nominalNames, nominalLimits, now, backupRun, updateRun, verbose);
-    
-    // preserve current performance percentages
-    var percentHistorySheetName= "H: %";
-    var percentNames= ["AccountGainRates", "GainRateLeveraged", "GainRateNominal", "IncomeFCFPercentage", "ArtGainRate", "LenGainRate"];
-    var percentLimits= [-1, -1, -1, -1, -1, -1];
-    SaveValuesInHistory(id, percentHistorySheetName, percentNames, percentLimits, now, backupRun, updateRun, verbose);
-    
-    // preserve current budget values
-    var budgetHistorySheetName= "H: B";
-    var budgetNames= ["Budget", "Spent", "SpentAndObligations", "IncomeFCF"];
-    var budgetLimits= [-1, -1, -1];
-    SaveValuesInHistory(id, budgetHistorySheetName, budgetNames, budgetLimits, now, backupRun, updateRun, verbose);
-    
-    // reset high water marks
-    SaveValue(id, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
-    SaveValue(id, "ExpensesHigh", "ExpensesHighSaved", verbose, confirmNumbers, -1000000);
-    
-    // preserve current managed portfolio values
-    if (SaveValue(id, "ReconcileHeld", "ReconcileHeldSaved", verbose))
+    // Preserve current nominal performance values
+    var nominalHistorySheetName = "H: $";
+    var nominalNames =
     {
-      // update time stamp when changed
-      UpdateTime(id, "ReconcileHeldUpdateTime", verbose)
+      "AccountGains" : -2000000,
+      "Gain" : -2000000,
+      "IncomeFCF" : -2000000,
+      "ArtValue" : 20000,
+      "LenValue" : 20000,
+      "GainYearOverYear" : -2000000
+    };
+    SaveValuesInHistory(sheetID, nominalHistorySheetName, nominalNames, now, backupRun, updateRun, verbose);
+    
+    // Preserve current performance percentages
+    var percentHistorySheetName= "H: %";
+    var percentNames=
+    {
+      "AccountGainRates" : -1,
+      "GainRateLeveraged" : -1,
+      "GainRateNominal" : -1,
+      "IncomeFCFPercentage" : -1,
+      "ArtGainRate" : -1,
+      "LenGainRate" : -1
+    };
+    SaveValuesInHistory(sheetID, percentHistorySheetName, percentNames, now, backupRun, updateRun, verbose);
+    
+    // Preserve current budget values
+    var budgetHistorySheetName= "H: B";
+    var budgetLimits= [-1, -1, -1];
+    var budgetNames=
+    {
+      "Budget" : -1,
+      "Spent" : -1,
+      "SpentAndObligations" : -1,
+      "IncomeFCF" : -1000000
+    };
+    SaveValuesInHistory(sheetID, budgetHistorySheetName, budgetNames, now, backupRun, updateRun, verbose);
+    
+    // Reset high water marks
+    SaveValue(sheetID, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
+    SaveValue(sheetID, "ExpensesHigh", "ExpensesHighSaved", verbose, confirmNumbers, -1000000);
+    
+    // Preserve current managed portfolio values
+    if (SaveValue(sheetID, "ReconcileHeld", "ReconcileHeldSaved", verbose))
+    {
+      UpdateTime(sheetID, "ReconcileHeldUpdateTime", verbose)
     }
   }
   else
   {
-    Logger.log("[UpdateCurrentAnnualSheet] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
+    Log("[UpdateCurrentAnnualSheet] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
   }
 };
 
@@ -302,7 +287,7 @@ function SynchronizeMainAndAnnualSheets(mainSheetID, annualSheetIDs, now, verbos
     destinationNames= sourceNames;
     if (!Synchronize(annualSheetIDs[currentYear], mainSheetID, sourceNames, destinationNames, verbose, verbose, numbersOnly))
     {
-      Logger.log("[SynchronizeMainAndAnnualSheets] Failed to synchronize current annual sheet <%s> to the main sheet for range <%s>.",
+      Log("[SynchronizeMainAndAnnualSheets] Failed to synchronize current annual sheet <%s> to the main sheet for range <%s>.",
                   currentYear, destinationNames);
     }
     
@@ -311,7 +296,7 @@ function SynchronizeMainAndAnnualSheets(mainSheetID, annualSheetIDs, now, verbos
     destinationNames= sourceNames;
     if (!Synchronize(annualSheetIDs[currentYear], mainSheetID, sourceNames, destinationNames, verbose, verbose, numbersOnly))
     {
-      Logger.log("[SynchronizeMainAndAnnualSheets] Failed to synchronize current annual sheet <%s> to the main sheet for range <%s>.",
+      Log("[SynchronizeMainAndAnnualSheets] Failed to synchronize current annual sheet <%s> to the main sheet for range <%s>.",
                   currentYear, destinationNames);
     }
     
@@ -327,12 +312,12 @@ function SynchronizeMainAndAnnualSheets(mainSheetID, annualSheetIDs, now, verbos
     }
     else
     {
-      Logger.log("[SynchronizeMainAndAnnualSheets] Failed to synchronize allocations?");
+      Log("[SynchronizeMainAndAnnualSheets] Failed to synchronize allocations?");
     }
   }
   else
   {
-    Logger.log("[SynchronizeMainAndAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
+    Log("[SynchronizeMainAndAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
   }
 };
 
@@ -373,13 +358,13 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, now, verbose, 
       
       if (!Synchronize(annualSheetIDs[year], mainSheetID, sourceNames, destinationNamesIndexed, verbose, verboseChanges, numbersOnly))
       {
-        Logger.log("[SynchronizeWithAnnualSheets] Failed to synchronize annual sheet for year <%s> to the main sheet for range <%s>.",
+        Log("[SynchronizeWithAnnualSheets] Failed to synchronize annual sheet for year <%s> to the main sheet for range <%s>.",
                     year, destinationNamesIndexed);
       }
     }
     else
     {
-      Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for a previous year <%s>!", year);
+      Log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for a previous year <%s>!", year);
     }
   }
   
@@ -399,7 +384,7 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, now, verbose, 
       if (!Synchronize(annualSheetIDs[priorYear], annualSheetIDs[currentYear], sourceNames, destinationNames, verbose, verboseChanges,
                         numbersOnly))
       {
-        Logger.log("[SynchronizeWithAnnualSheets] Failed to synchronize annual sheet for prior year <%s> " +
+        Log("[SynchronizeWithAnnualSheets] Failed to synchronize annual sheet for prior year <%s> " +
                     "to the main sheet for range <%s>.", priorYear, destinationNames);
       }
     
@@ -416,18 +401,18 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, now, verbose, 
       }
       else
       {
-        Logger.log("[SynchronizeWithAnnualSheets] Failed to synchronize annual sheet for prior year <%s> to the main sheet for range <%s>.",
+        Log("[SynchronizeWithAnnualSheets] Failed to synchronize annual sheet for prior year <%s> to the main sheet for range <%s>.",
           priorYear, destinationNames);
       }
     }
     else
     {
-      Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the prior year <%s>!", priorYear.toFixed(0));
+      Log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the prior year <%s>!", priorYear.toFixed(0));
     }
   }
   else
   {
-    Logger.log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
+    Log("[SynchronizeWithAnnualSheets] Failed to obtain ID of the sheet for the current year <%s>!", currentYear.toFixed(0));
   }
 };
 
@@ -467,12 +452,12 @@ function RectifyAnnualDocument(annualSheetIDs, verbose, verboseChanges)
  *
  * Sort history entries and hide older entries
  */
-function MaintainHistoriesMain(id, verbose)
+function MaintainHistoriesMain(mainSheetID, verbose)
 {
   // declare constants and local variables
-  const sheetNamesList= GetValueByName(id, "ParametersHistorySortNames", verbose);
-  const historySpecificationRange= GetValueByName(id, "ParametersHistorySortRange", verbose);
-  const columnDate= GetValueByName(id, "ParameterPortfolioHistoryColumnDate", verbose);
+  const sheetNamesList= GetValueByName(mainSheetID, "ParametersHistorySortNames", verbose);
+  const historySpecificationRange= GetValueByName(mainSheetID, "ParametersHistorySortRange", verbose);
+  const columnDate= GetValueByName(mainSheetID, "ParameterPortfolioHistoryColumnDate", verbose);
   const isAscending= true;
 
   var spreadsheet= null;
@@ -492,10 +477,10 @@ function MaintainHistoriesMain(id, verbose)
     {
       // Maintain each sheet listed
       sheetName= sheetName.trim();
-      rangeSpecification= GetCellValue(id, sheetName, historySpecificationRange, verbose);
+      rangeSpecification= GetCellValue(mainSheetID, sheetName, historySpecificationRange, verbose);
       rangeSpecification= sheetName.concat("!", rangeSpecification);
 
-      if (spreadsheet= SpreadsheetApp.openById(id))
+      if (spreadsheet= SpreadsheetApp.openById(mainSheetID))
       {
         if (range= spreadsheet.getRange(rangeSpecification))
         {
@@ -503,35 +488,35 @@ function MaintainHistoriesMain(id, verbose)
           if (table= FindHistorySortFault(range, columnDate, isAscending, verbose))
           {
             // faults found -- fix them
-            range= FixHistorySortFault(id, range, table, columnDate, verbose);
+            range= FixHistorySortFault(mainSheetID, range, table, columnDate, verbose);
             if (!range)
             {
               success= false;
-              Logger.log("[MaintainHistoriesMain] Failed to sort history!");
+              Log("[MaintainHistoriesMain] Failed to sort history!");
             }
           }
           else if (verbose)
           {
-            Logger.log("[MaintainHistoriesMain] History appears properly sorted for sheet <%s>.", sheetName);
+            Log("[MaintainHistoriesMain] History appears properly sorted for sheet <%s>.", sheetName);
           }
           
           // fix visibility issues, if any
           if (!FixHistoryVisibilityFault(range, columnDate, verbose))
           {
             success= false;
-            Logger.log("[MaintainHistoriesMain] Failed to adjust history visibility!");
+            Log("[MaintainHistoriesMain] Failed to adjust history visibility!");
           }
         }
         else
         {
           success= false;
-          Logger.log("[MaintainHistoriesMain] Could not get range <%s> of spreadsheet <%s>.", rangeSpecification, spreadsheet.getName());
+          Log("[MaintainHistoriesMain] Could not get range <%s> of spreadsheet <%s>.", rangeSpecification, spreadsheet.getName());
         }
       }
       else
       {
         success= false;
-        Logger.log("[MaintainHistoriesMain] Could not open spreadsheet ID <%s>.", id);
+        Log("[MaintainHistoriesMain] Could not open spreadsheet ID <%s>.", mainSheetID);
       }
     }
   }
@@ -539,7 +524,7 @@ function MaintainHistoriesMain(id, verbose)
   {
     if (verbose)
     {
-      Logger.log("[MaintainHistoriesMain] Nothing listed for maintenance.");
+      Log("[MaintainHistoriesMain] Nothing listed for maintenance.");
     }
   }
 
@@ -552,18 +537,18 @@ function MaintainHistoriesMain(id, verbose)
  *
  * Sort history entries and hide older entries
  */
-function MaintainHistoriesAnnual(id, verbose)
+function MaintainHistoriesAnnual(sheetID, verbose)
 {
   // declare constants and local variables
   const rangeNameIncome= "Income";
-  const columnDate= GetValueByName(id, "ParameterIncomeSortColumn", verbose);
+  const columnDate= GetValueByName(sheetID, "ParameterIncomeSortColumn", verbose);
   const isAscending= false;
   
   var spreadsheet= null;
   var range= null;
   var success= true;
   
-  if (spreadsheet= SpreadsheetApp.openById(id))
+  if (spreadsheet= SpreadsheetApp.openById(sheetID))
   {
     if (range= TrimHistoryRange(spreadsheet.getRangeByName(rangeNameIncome), verbose))
     {
@@ -572,12 +557,12 @@ function MaintainHistoriesAnnual(id, verbose)
       {
         if (verbose)
         {
-          Logger.log("[MaintainHistoriesAnnual] Sort required for range named <%s> of spreadsheet <%s>.",
+          Log("[MaintainHistoriesAnnual] Sort required for range named <%s> of spreadsheet <%s>.",
                       rangeNameIncome, spreadsheet.getName());
 
-          Logger.log("[MaintainHistoriesAnnual] Range: <%s>", range.getA1Notation());
-          Logger.log("[MaintainHistoriesAnnual] Sort column: <%s>", (columnDate + range.getColumn() - 1).toFixed(0));
-          Logger.log("[MaintainHistoriesAnnual] Sort in ascending order: <%s>", isAscending);
+          Log("[MaintainHistoriesAnnual] Range: <%s>", range.getA1Notation());
+          Log("[MaintainHistoriesAnnual] Sort column: <%s>", (columnDate + range.getColumn() - 1).toFixed(0));
+          Log("[MaintainHistoriesAnnual] Sort in ascending order: <%s>", isAscending);
         }
 
         if (range= range.sort({column: (columnDate + range.getColumn() - 1), ascending: isAscending}))
@@ -587,26 +572,26 @@ function MaintainHistoriesAnnual(id, verbose)
           
           if (verbose)
           {
-            Logger.log("[MaintainHistoriesAnnual] Updated and sorted history in range <%s>.", range.getA1Notation());
+            Log("[MaintainHistoriesAnnual] Updated and sorted history in range <%s>.", range.getA1Notation());
           }
         }
         else
         {
-          Logger.log("[MaintainHistoriesAnnual] Failed to sort history in range <%s>.", range.getA1Notation());
+          Log("[MaintainHistoriesAnnual] Failed to sort history in range <%s>.", range.getA1Notation());
         }
       }
     }
     else
     {
       success= false;
-      Logger.log("[MaintainHistoriesAnnual] Could not get range named <%s> of spreadsheet <%s>.",
+      Log("[MaintainHistoriesAnnual] Could not get range named <%s> of spreadsheet <%s>.",
                   rangeNameIncome, spreadsheet.getName());
     }
   }
   else
   {
     success= false;
-    Logger.log("[MaintainHistoriesAnnual] Could not open spreadsheet ID <%s>.", id);
+    Log("[MaintainHistoriesAnnual] Could not open spreadsheet ID <%s>.", sheetID);
   }
 
   return success;
@@ -618,11 +603,11 @@ function MaintainHistoriesAnnual(id, verbose)
  *
  * Find, group, and shift redundant history entries
  */
-function ReconcilePortfolioHistory(id, verbose)
+function ReconcilePortfolioHistory(sheetID, verbose)
 {
   // declare constants and local variables
-  const rangeSpecification= GetValueByName(id, "ParameterPortfolioHistoryRange", verbose);
-  const columnDate= GetValueByName(id, "ParameterPortfolioHistoryColumnDate", verbose);
+  const rangeSpecification= GetValueByName(sheetID, "ParameterPortfolioHistoryRange", verbose);
+  const columnDate= GetValueByName(sheetID, "ParameterPortfolioHistoryColumnDate", verbose);
   const isAscending= true;
   
   var spreadsheet= null;
@@ -631,7 +616,7 @@ function ReconcilePortfolioHistory(id, verbose)
   var success= true;
   
   
-  if (spreadsheet= SpreadsheetApp.openById(id))
+  if (spreadsheet= SpreadsheetApp.openById(sheetID))
   {
     if (range= spreadsheet.getRange(rangeSpecification))
     {
@@ -639,36 +624,36 @@ function ReconcilePortfolioHistory(id, verbose)
       if (table= FindHistorySortFault(range, columnDate, isAscending, verbose))
       {
         // faults found -- fix them
-        range= FixHistorySortFault(id, range, table, columnDate, verbose);
+        range= FixHistorySortFault(sheetID, range, table, columnDate, verbose);
         if (!range)
         {
           success= false;
-          Logger.log("[ReconcilePortfolioHistory] Failed to sort history!");
+          Log("[ReconcilePortfolioHistory] Failed to sort history!");
         }
       }
       else if (verbose)
       {
-        Logger.log("[ReconcilePortfolioHistory] History appears properly sorted.");
+        Log("[ReconcilePortfolioHistory] History appears properly sorted.");
       }
       
       // fix visibility issues, if any
       if (!FixHistoryVisibilityFault(range, columnDate, verbose))
       {
         success= false;
-        Logger.log("[ReconcilePortfolioHistory] Failed to adjust history visibility!");
+        Log("[ReconcilePortfolioHistory] Failed to adjust history visibility!");
       }
     }
     else
     {
       success= false;
-      Logger.log("[ReconcilePortfolioHistory] Could not get range <%s> of spreadsheet <%s>.",
+      Log("[ReconcilePortfolioHistory] Could not get range <%s> of spreadsheet <%s>.",
                   rangeSpecification, spreadsheet.getName());
     }
   }
   else
   {
     success= false;
-    Logger.log("[ReconcilePortfolioHistory] Could not open spreadsheet ID <%s>.", id);
+    Log("[ReconcilePortfolioHistory] Could not open spreadsheet ID <%s>.", sheetID);
   }
 
   return success;
@@ -709,22 +694,22 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
         sortRequired= true;
         if (verbose)
         {
-          Logger.log("[FindHistorySortFault] Found dates out of order at rows <%s> and <%s>:",
+          Log("[FindHistorySortFault] Found dates out of order at rows <%s> and <%s>:",
                       (row + range.getRow()).toFixed(0), (row + range.getRow() + 1).toFixed(0));
-          Logger.log("[FindHistorySortFault] Row <%s>: %s", (row + range.getRow()).toFixed(0), table[row]);
-          Logger.log("[FindHistorySortFault] Row <%s>: %s", (row + range.getRow() + 1).toFixed(0), table[row + 1]);
+          Log("[FindHistorySortFault] Row <%s>: %s", (row + range.getRow()).toFixed(0), table[row]);
+          Log("[FindHistorySortFault] Row <%s>: %s", (row + range.getRow() + 1).toFixed(0), table[row + 1]);
         }
         
         break;
       }
 
       lastDate= table[row][columnDate];
-      // Logger.log("[FindHistorySortFault] New date to compare: %s", lastDate);
+      // Log("[FindHistorySortFault] New date to compare: %s", lastDate);
     }
   }
   else
   {
-    Logger.log("[FindHistorySortFault] Could not get history table!");
+    Log("[FindHistorySortFault] Could not get history table!");
   }
   
   if (sortRequired)
@@ -743,16 +728,16 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
  *
  * Adjust complementary (redundant) entries and sort history
  */
-function FixHistorySortFault(id, range, table, columnDate, verbose)
+function FixHistorySortFault(sheetID, range, table, columnDate, verbose)
 {
   // sorting with hidden rows triggers headaches
   range.getSheet().showRows(range.getRow(), range.getHeight());
 
   // since we found rows out of order, also find and match complementary history entries
-  if (!UpdateComplementaryHistoryEntries(id, range.getSheet().getName(), table, columnDate, range.getRow(), verbose))
+  if (!UpdateComplementaryHistoryEntries(sheetID, range.getSheet().getName(), table, columnDate, range.getRow(), verbose))
   {
     // something went wrong -- report and proceed regardless
-    Logger.log("[FixHistorySortFault] Failed to update complementary history entries -- will proceed regardless...");
+    Log("[FixHistorySortFault] Failed to update complementary history entries -- will proceed regardless...");
   }
   
   if (range= range.sort(columnDate + range.getColumn() - 1))
@@ -762,12 +747,12 @@ function FixHistorySortFault(id, range, table, columnDate, verbose)
     
     if (verbose)
     {
-      Logger.log("[FixHistorySortFault] Updated and sorted history in range <%s>.", range.getA1Notation());
+      Log("[FixHistorySortFault] Updated and sorted history in range <%s>.", range.getA1Notation());
     }
   }
   else
   {
-    Logger.log("[FixHistorySortFault] Failed to sort history in range <%s>.", range.getA1Notation());
+    Log("[FixHistorySortFault] Failed to sort history in range <%s>.", range.getA1Notation());
   }
   
   return range;
@@ -779,11 +764,11 @@ function FixHistorySortFault(id, range, table, columnDate, verbose)
  *
  * Find and update complementary history entries
  */
-function UpdateComplementaryHistoryEntries(id, sheetName, table, columnDateGoogle, historyOffset, verbose)
+function UpdateComplementaryHistoryEntries(sheetID, sheetName, table, columnDateGoogle, historyOffset, verbose)
 {
   // declare constants and local variables
-  const columnAction= GetValueByName(id, "ParameterPortfolioHistoryColumnAction", verbose) - 1;
-  const columnAmount= GetValueByName(id, "ParameterPortfolioHistoryColumnAmount", verbose) - 1;
+  const columnAction= GetValueByName(sheetID, "ParameterPortfolioHistoryColumnAction", verbose) - 1;
+  const columnAmount= GetValueByName(sheetID, "ParameterPortfolioHistoryColumnAmount", verbose) - 1;
   const actionCash= "Cash";
   
   var cell= null;
@@ -822,7 +807,7 @@ function UpdateComplementaryHistoryEntries(id, sheetName, table, columnDateGoogl
           // found a matching complement
           if (verbose)
           {
-            Logger.log("[UpdateComplementaryHistoryEntries] Found matching transactions on <%s> for $<%s> at rows <%s> and <%s>",
+            Log("[UpdateComplementaryHistoryEntries] Found matching transactions on <%s> for $<%s> at rows <%s> and <%s>",
                        table[row][columnDate], table[row][columnAmount],
                        (cashEntries[table[row][columnDate]][-table[row][columnAmount]] + historyOffset).toFixed(0),
                        (row + historyOffset).toFixed(0));
@@ -830,23 +815,23 @@ function UpdateComplementaryHistoryEntries(id, sheetName, table, columnDateGoogl
           
           // update dates to tomorrow prior to sorting (sort will push them to the bottom)
           cellCoordinates= columnDateSpecification + (row + historyOffset);
-          if (cell= SetCellValue(id, sheetName, cellCoordinates, tomorrow, verbose))
+          if (cell= SetCellValue(sheetID, sheetName, cellCoordinates, tomorrow, verbose))
           {
             cellCoordinates= columnDateSpecification + (cashEntries[table[row][columnDate]][-table[row][columnAmount]] + historyOffset);
-            if (cell= SetCellValue(id, sheetName, cellCoordinates, tomorrow, verbose))
+            if (cell= SetCellValue(sheetID, sheetName, cellCoordinates, tomorrow, verbose))
             {
               cashEntries[table[row][columnDate]][-table[row][columnAmount]]= undefined;
             }
             else
             {
-              Logger.log("[UpdateComplementaryHistoryEntries] Could not update date to <%s> for cell <%s> in sheet named <%s>.",
+              Log("[UpdateComplementaryHistoryEntries] Could not update date to <%s> for cell <%s> in sheet named <%s>.",
                           tomorrow, cellCoordinates, sheetName);
               success= false;
             }
           }
           else
           {
-            Logger.log("[UpdateComplementaryHistoryEntries] Could not update date to <%s> for cell <%s> in sheet named <%s>.",
+            Log("[UpdateComplementaryHistoryEntries] Could not update date to <%s> for cell <%s> in sheet named <%s>.",
                         tomorrow, cellCoordinates, sheetName);
             success= false;
           }
@@ -856,7 +841,7 @@ function UpdateComplementaryHistoryEntries(id, sheetName, table, columnDateGoogl
   }
   else
   {
-    Logger.log("[UpdateComplementaryHistoryEntries] No support (yet) for managing history at column <%s>", columnDate);
+    Log("[UpdateComplementaryHistoryEntries] No support (yet) for managing history at column <%s>", columnDate);
     success= false;
   }
   
@@ -897,9 +882,9 @@ function FixHistoryVisibilityFault(range, columnDateGoogle, verbose)
         rowsToLowestOld= row;
         if (verbose)
         {
-          Logger.log("[FixHistoryVisibilityFault] Found newest old row to hide in sheet <%s>: <%s>!",
+          Log("[FixHistoryVisibilityFault] Found newest old row to hide in sheet <%s>: <%s>!",
                       range.getSheet().getName(), (rowsToLowestOld + range.getRow()).toFixed(0));
-          Logger.log("[FixHistoryVisibilityFault] Data: %s", table[row]);
+          Log("[FixHistoryVisibilityFault] Data: %s", table[row]);
         }
         
         break;
@@ -920,7 +905,7 @@ function FixHistoryVisibilityFault(range, columnDateGoogle, verbose)
   }
   else
   {
-    Logger.log("[FixHistoryVisibilityFault] Could not get history table from spreadsheet!");
+    Log("[FixHistoryVisibilityFault] Could not get history table from spreadsheet!");
     success= false;
   }
   
@@ -971,7 +956,7 @@ function TrimHistoryRange(range, verbose)
             topOffset= row;
             if (verbose)
             {
-              Logger.log("[TrimHistoryRange] Found new top row: <%s>", (topOffset + topRowInSheet).toFixed(0));
+              Log("[TrimHistoryRange] Found new top row: <%s>", (topOffset + topRowInSheet).toFixed(0));
             }
         
             break;
@@ -986,7 +971,7 @@ function TrimHistoryRange(range, verbose)
           {
             if (verbose)
             {
-              Logger.log("[TrimHistoryRange] Found new bottom row: <%s>", (row + topRowInSheet).toFixed(0));
+              Log("[TrimHistoryRange] Found new bottom row: <%s>", (row + topRowInSheet).toFixed(0));
             }
             break;
           }
@@ -999,22 +984,22 @@ function TrimHistoryRange(range, verbose)
         range= range.offset(topOffset, 0, rows);
         if (verbose)
         {
-          Logger.log("[TrimHistoryRange] Adjusted range: <%s>", range.getA1Notation());
+          Log("[TrimHistoryRange] Adjusted range: <%s>", range.getA1Notation());
         }
       }
       else
       {
-        Logger.log("[TrimHistoryRange] Failed to obtain values from the specified range!");
+        Log("[TrimHistoryRange] Failed to obtain values from the specified range!");
       }
     }
     else
     {
-       Logger.log("[TrimHistoryRange] Failed to obtain parent sheet for the specified range!");
+       Log("[TrimHistoryRange] Failed to obtain parent sheet for the specified range!");
     }
   }
   else
   {
-    Logger.log("[TrimHistoryRange] Range specification fault!");
+    Log("[TrimHistoryRange] Range specification fault!");
   }
 
   return range;
@@ -1026,32 +1011,32 @@ function TrimHistoryRange(range, verbose)
  *
  * Check and update any stale account sheet names
  */
-function FixSheetNames(id, sheetName, verbose, verboseChanges)
+function FixSheetNames(sheetID, sheetName, verbose, verboseChanges)
 {
   // declare constants and local variables
   var parameterSheetName= "ParameterAccountSheetName";
-  var destinationCell= GetValueByName(id, parameterSheetName, verbose);
-  var sheetNameStored= GetCellValue(id, sheetName, destinationCell, verbose);
+  var destinationCell= GetValueByName(sheetID, parameterSheetName, verbose);
+  var sheetNameStored= GetCellValue(sheetID, sheetName, destinationCell, verbose);
   
   if (sheetNameStored != sheetName)
   {
-    if (SetCellValue(id, sheetName, destinationCell, sheetName, verbose))
+    if (SetCellValue(sheetID, sheetName, destinationCell, sheetName, verbose))
     {
       if (verboseChanges)
       {
-        Logger.log("[FixSheetNames] Updated sheet name <%s> (it was <%s>)", sheetName, sheetNameStored);
+        Log("[FixSheetNames] Updated sheet name <%s> (it was <%s>)", sheetName, sheetNameStored);
       }
     }
     else
     {
-      Logger.log("[FixSheetNames] Failed to update sheet name <%s>", sheetName);
+      Log("[FixSheetNames] Failed to update sheet name <%s>", sheetName);
     }
   }
   else
   {
     if (verbose)
     {
-      Logger.log("[FixSheetNames] Stored sheet name matches sheet name <%s>", sheetName);
+      Log("[FixSheetNames] Stored sheet name matches sheet name <%s>", sheetName);
     }
   }
 };
@@ -1074,7 +1059,7 @@ function UpdateAccountBases(currentYearID, priorYearID, sheetName, verbose, verb
   
   if (isNaN(valuePriorYear))
   {
-    Logger.log("[UpdateAccountBases] Failed to obtain prior year basis <%s> for accont <%s>!", valuePriorYear, sheetName);
+    Log("[UpdateAccountBases] Failed to obtain prior year basis <%s> for accont <%s>!", valuePriorYear, sheetName);
   }
   else
   {
@@ -1084,13 +1069,13 @@ function UpdateAccountBases(currentYearID, priorYearID, sheetName, verbose, verb
       {
         if (verboseChanges)
         {
-          Logger.log("[UpdateAccountBases] Updated prior year basis for account <%s> to <%s> (it was <%s>).",
+          Log("[UpdateAccountBases] Updated prior year basis for account <%s> to <%s> (it was <%s>).",
                       sheetName, valuePriorYear, basisCurrentYear);
         }
       }
       else
       {
-        Logger.log("[UpdateAccountBases] Failed to update prior year basis for account <%s> to <%s> (it is still <%s>).",
+        Log("[UpdateAccountBases] Failed to update prior year basis for account <%s> to <%s> (it is still <%s>).",
                     sheetName, valuePriorYear, basisCurrentYear);
       }
     }
@@ -1098,7 +1083,7 @@ function UpdateAccountBases(currentYearID, priorYearID, sheetName, verbose, verb
     {
       if (verbose)
       {
-        Logger.log("[UpdateAccountBases] Currently stored prior year basis <%s> for account <%s> matches value <%s> from previous year.",
+        Log("[UpdateAccountBases] Currently stored prior year basis <%s> for account <%s> matches value <%s> from previous year.",
                    valuePriorYear, sheetName, basisCurrentYear);
       }
     }
@@ -1111,35 +1096,50 @@ function UpdateAccountBases(currentYearID, priorYearID, sheetName, verbose, verb
  *
  * Update history and save important values in the public allocation sheet
  */
-function UpdateAllocationSheet(id, now, verbose, confirmNumbers)
+function UpdateAllocationSheet(sheetID, now, verbose, confirmNumbers)
 {
-  var updateRun= true;
-  var backupRun= false;
+  const updateRun = true;
+  const backupRun = false;
+  var historySheetName = null;
+  var names = null;
   
-  if (id)
+  if (sheetID)
   {
-    // preserve current performance percentages
-    var historySheetName= "H: %";
-    var names= ["PerformanceThisYear", "IndexThisYear", "NemesisThisYear"];
-    var limits= [-0.99, -0.99, -0.99];
-    SaveValuesInHistory(id, historySheetName, names, limits, now, backupRun, updateRun, verbose);
+    // Preserve current performance percentages
+    historySheetName = "H: %";
+    names =
+    {
+      "PerformanceThisYear" : -0.99,
+      "IndexThisYear" : -0.99,
+      "NemesisThisYear" : -0.99
+    };
+    SaveValuesInHistory(sheetID, historySheetName, names, now, backupRun, updateRun, verbose);
     
+    // Preserve RUT performance statistics
+    historySheetName = "H: RUT";
+    names=
+    {
+      "RUTPrice" : 0,
+      "RUTBufferPuts" : 0,
+      "RUTBufferCalls" : 0,
+      "RUTProfit" : -5
+    };
+    SaveValuesInHistory(sheetID, historySheetName, names, now, backupRun, updateRun, verbose);
     
-    // preserve RUT performance statistics
-    var historySheetName= "H: RUT";
-    var names= ["RUTPrice", "RUTBufferPuts", "RUTBufferCalls", "RUTProfit"];
-    var limits= [0, 0, 0, -5];
-    SaveValuesInHistory(id, historySheetName, names, limits, now, backupRun, updateRun, verbose);
-    
-    // preserve SPX performance statistics
-    var historySheetName= "H: SPX";
-    var names= ["SPXPrice", "SPXBufferPuts", "SPXBufferCalls", "SPXProfit"];
-    var limits= [0, 0, 0, -5];
-    SaveValuesInHistory(id, historySheetName, names, limits, now, backupRun, updateRun, verbose);
+    // Preserve SPX performance statistics
+    historySheetName = "H: SPX";
+    names=
+    {
+      "SPXPrice" : 0,
+      "SPXBufferPuts" : 0,
+      "SPXBufferCalls" : 0,
+      "SPXProfit" : -5
+    };
+    SaveValuesInHistory(sheetID, historySheetName, names, now, backupRun, updateRun, verbose);
   }
   else
   {
-    Logger.log("[UpdateAllocationSheet] Failed to obtain ID of the Allocations (public) sheet!");
+    Log("Failed to obtain ID of the Allocations (public) sheet!");
   }
 };
 
@@ -1194,15 +1194,4 @@ function MapNames(sourceNames, suffix, dropSuffix)
   }
   
   return mappedNames;
-};
-
-
-/**
- * UpdateTime()
- *
- * Record update time
- */
-function UpdateTime(id, timeStampName, verbose)
-{
-  SetValueByName(id, timeStampName, DateToLocaleString(), verbose);
 };
