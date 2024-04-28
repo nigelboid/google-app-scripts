@@ -68,6 +68,229 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
 
 
 /**
+ * GetIndexStrangleContractsSchwab()
+ *
+ * Obtain and select best matching strangles
+ *
+ */
+function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose)
+{
+  // Declare constants and local variables
+  const labelCall = "CALL";
+  const labelPut = "PUT";
+  const labelExpirationDate = "expirationDate";
+  const labelSymbol= "symbol";
+  const labelDelta= "delta";
+  const labelLastPrice= "last";
+  const labelDTE= "daysToExpiration";
+  
+  var index = 0;
+  var contracts = [];
+  
+  for (var index in symbols)
+  {
+    // Find candidates for each requested underlying symbol
+    const underlying= symbols[index][0];
+    
+    if (underlying)
+    {
+      const expirations = GetExpirationsByDTESchwab(sheetID, underlying, dte, verbose);
+      if (expirations)
+      {
+        const dteList = Object.keys(expirations).sort(function(a, b) { return a - b; });
+        var expirationDate = null;
+        var contractCall = null;
+        var contractPut = null;
+
+        for (const index in dteList)
+        {
+          // Looks for candidates while we have expirations
+          expirationDate = expirations[dteList[index]][labelExpirationDate];
+
+          if (!contractCall)
+          {
+            // Still looking for an appropriate call
+            contractCall = GetContractByDeltaSchwab(sheetID, underlying, expirationDate, labelCall, deltaTargetCall, verbose);
+          }
+
+          if (!contractPut)
+          {
+            // Still looking for an appropriate put
+            contractPut = GetContractByDeltaSchwab(sheetID, underlying, expirationDate, labelPut, deltaTargetPut, verbose);
+          }
+
+          if (contractCall && contractPut)
+          {
+            // If we found both contracts, stop searching
+            break;
+          }
+        }
+
+        // Commit viable contracts
+        if (contractCall)
+        {
+          contracts.push([contractCall[labelSymbol], contractCall[labelLastPrice], contractCall[labelDelta], contractCall[labelDTE]]);
+        }
+        if (contractPut)
+        {
+          contracts.push([contractPut[labelSymbol], contractPut[labelLastPrice], contractPut[labelDelta], contractPut[labelDTE]]);
+        }
+      }
+    }
+  }
+  
+  return contracts;
+};
+
+
+/**
+ * GetExpirationsByDTESchwab()
+ *
+ * Obtain a list of expiration dates of contracts for a given underlying instrument
+ *
+ */
+function GetExpirationsByDTESchwab(sheetID, underlying, dte, verbose)
+{
+  // Declare constants and local variables
+  const url = ConstructUrlExpirationsSchwab(underlying);
+  var expirationsByDTE = null;
+
+  if (url)
+  {
+    const expirations= GetURLSchwab(sheetID, url, verbose);
+    
+    if (expirations)
+    {
+      // Data fetched -- extract
+      expirationsByDTE= ExtractExpirationDatesByDTESchwab(expirations, dte, verbose);
+    }
+    else
+    {
+      // Failed to fetch web pages
+      Log("Could not fetch expiration dates!");
+    }
+  }
+  else
+  {
+    // No prices to fetch?
+    Log("Could not compile query!");
+  }
+
+  return expirationsByDTE;
+};
+
+
+/**
+ * GetContractByDeltaSchwab()
+ *
+ * Obtain the best matching contract by delta for a given underlying, expiration, and type
+ *
+ */
+function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractType, deltaTarget, verbose)
+{
+  // Declare constants and local variables
+  const url = ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose);
+  var contract = null;
+
+  const contractTypeMap =
+  {
+    "CALL" : "callExpDateMap",
+    "PUT" : "putExpDateMap"
+  }
+
+  if (url)
+  {
+    const chain= GetURLSchwab(sheetID, url, verbose);
+    
+    if (chain)
+    {
+      // Data fetched -- extract
+      for (const expirationLabel in chain[contractTypeMap[contractType]])
+      {
+        // Check each set of strikes (should only be one set!)
+        contract= GetContractByBestDeltaMatchSchwab(chain[contractTypeMap[contractType]][expirationLabel], deltaTarget, verbose);
+
+        if (contract)
+        {
+          // Just in case we somehow get more than one set of strikes, quit after finding a match
+          break;
+        }
+      }
+      
+    }
+    else
+    {
+      // Failed to fetch web pages
+      Log(`Could not fetch option chain for ${expirationDate}`);
+    }
+  }
+  else
+  {
+    // No prices to fetch?
+    Log("Could not compile query!");
+  }
+
+  return contract;
+};
+
+
+/**
+ * GetContractByBestDeltaMatchSchwab()
+ *
+ * Find the best matching contract by delta within the supplied chain
+ *
+ */
+function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, verbose)
+{
+  // Declare constants and local variables
+  const deltaTargetSensitivity = 0.01;
+  const labelDelta = "delta";
+  var delta = 0;
+  var contract = null;
+
+  deltaTarget/= 100;
+  const deltaTargetMinimum = deltaTarget - deltaTargetSensitivity;
+  const deltaTargetMaximum = deltaTarget + deltaTargetSensitivity;
+
+  // Search through the chain for closest delta match within sensitivity bounds
+  for (const strike in chain)
+  {
+    // Check each strike
+    for (const index in chain[strike])
+    {
+      // Check each contract
+      delta = Math.abs(chain[strike][index][labelDelta]);
+      if (delta >= deltaTargetMinimum && delta <= deltaTargetMaximum)
+      {
+        // Found a potential candidate
+        if (contract)
+        {
+          // Check a potentially better match
+          if (Math.abs(delta - deltaTarget) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
+          {
+            // Found a closer match!
+            LogVerbose(`Found a better match: delta = ${delta}`, verbose);
+            contract = chain[strike][index];
+          }
+          else
+          {
+            LogVerbose(`Ignoring a worse match: delta = ${delta}`, verbose);
+          }
+        }
+        else
+        {
+          // First match!
+          LogVerbose(`Found our first match: delta = ${delta}`, verbose);
+          contract = chain[strike][index];
+        }
+      }
+    }
+  }
+  return contract;
+};
+
+
+/**
  * ExtractPricesSchwab()
  *
  * Extract pricing data from Schwab's JSON result
@@ -172,6 +395,33 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
   }
   
   return prices;
+};
+
+
+/**
+ * ExtractExpirationDatesByDTESchwab()
+ *
+ * Extract a list of dates from Schwab's JSON reply limited to a DTE range
+ *
+ */
+function ExtractExpirationDatesByDTESchwab(expirations, minimumDaysToExpiration, verbose)
+{
+  const expirationsListLabel = "expirationList";
+  const daysToExpirationLabel = "daysToExpiration";
+  var daysToExpiration = null;
+  var expirationDates = {};
+
+  for (var index in expirations[expirationsListLabel])
+  {
+    daysToExpiration = expirations[expirationsListLabel][index][daysToExpirationLabel];
+    if (daysToExpiration >= minimumDaysToExpiration)
+    {
+      // Found a viable expiration -- copy it to our list
+      expirationDates[daysToExpiration] = expirations[expirationsListLabel][index];
+    }
+  }
+
+  return expirationDates;
 };
 
 
@@ -303,11 +553,11 @@ function ConstructUrlExpirationsSchwab(underlying)
 
 
 /**
- * ComposeGetHeadersSchwab()
+ * ComposeHeadersGetSchwab()
  *
  * Compose required headers for our requests
  */
-function ComposeGetHeadersSchwab(sheetID, verbose)
+function ComposeHeadersGetSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
   const accessToken= GetAccessTokenSchwab(sheetID, verbose);
@@ -457,17 +707,17 @@ function GetRefreshTokenSchwab(sheetID, verbose)
  */
 function GetURLSchwab(sheetID, url, verbose)
 {
-  const headers = ComposeGetHeadersSchwab(sheetID, verbose);
+  const headers = ComposeHeadersGetSchwab(sheetID, verbose);
+  const payload = null;
   var response = null;
   var content = null;
   
   if (headers)
   {
-    response = FetchURLSchwab(sheetID, url, headers, "get", null, verbose);
+    response = FetchURLSchwab(sheetID, url, headers, "get", payload, verbose);
   }
   else
   {
-    // Missing parameters
     LogThrottled(sheetID, `Missing parameters: headers= ${headers}`);
   }
 
@@ -477,7 +727,6 @@ function GetURLSchwab(sheetID, url, verbose)
   }
   else
   {
-    // Missing response
     LogThrottled(sheetID, `Received no response for query  <${url}>`);
   }
 
@@ -516,7 +765,6 @@ function PostURLSchwab(sheetID, url, payload, verbose)
   }
   else
   {
-    // Missing response
     LogThrottled(sheetID, `Received no response for query  <${url}>`);
   }
 
@@ -590,77 +838,4 @@ function ExtractContentSchwab(response)
   }
 
   return contentParsed;
-};
-
-
-/**
- * ExtractPriceSchwab()
- *
- * Extract price from a given list of contracts for a specific strike and expiration
- *
- */
-function ExtractPriceSchwab(quotes, amount, preferWeekly)
-{
-  // Declare constants and local variables
-  const labelSymbol= "symbol";
-  const labelLastPrice= "last";
-  const labelClosePrice= "closePrice";
-  const labelBidPrice= "bid";
-  const labelAskPrice= "ask";
-  const labelDelta= "delta";
-  const deltaBad= "-999.0";
-  const symbolDelimiter= " ";
-  const weekly= "W";
-  var price= null;
-
-  if (preferWeekly == undefined)
-  {
-    // Usually, prefer weekly expirations
-    preferWeekly= true;
-  }
-
-  for (quote of quotes)
-  {
-    if (quote[labelDelta] != deltaBad)
-    {
-      const last= parseFloat(quote[labelLastPrice]);
-      const close= parseFloat(quote[labelClosePrice]);
-      const bid= parseFloat(quote[labelBidPrice]);
-      const ask= parseFloat(quote[labelAskPrice]);
-
-      if (bid > 0 && ask > 0)
-      {
-        // Make sure we hve some semblance of liquidity
-        if (last > 0 && last > bid && last < ask)
-        {
-          // Last price seems valid
-          price= {price : last, contract : quote[labelSymbol]};
-        }
-        else if (close > 0 && close > bid && close < ask)
-        {
-          // Close price seems valid
-          price= {price : close, contract : quote[labelSymbol]};
-        }
-        else
-        {
-          // Use the mid point of the spread for price
-          price= {price : bid + (ask - bid) / 2, contract : quote[labelSymbol]};
-        }
-      }
-
-      if (price > amount)
-      {
-        // Avoid extreme strikes
-        price= null;
-      }
-
-      if (preferWeekly == quote[labelSymbol].split(symbolDelimiter)[0].endsWith(weekly))
-      {
-        // Found the preferred type
-        break;
-      }
-    }
-  }
-
-  return price;
 };

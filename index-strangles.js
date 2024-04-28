@@ -7,16 +7,17 @@
 function RunIndexStranglesCandidates(afterHours, test)
 {
   // Declare constants and local variables
-  const sheetID= GetMainSheetID();
-  const forceRefreshNowName= "IndexStranglesForceRefreshNow";
-  const optionPrices= true;
-  var verbose= false;
-  var success= false;
+  const sheetID = GetMainSheetID();
+  const forceRefreshNowName = "IndexStranglesForceRefreshNow";
+  const optionPrices = true;
+  const additionalCandidatesDTEDefault = 60;
+  var verbose = false;
+  var success = false;
   
-  const forceRefreshNow= GetValueByName(sheetID, forceRefreshNowName, verbose);
+  const forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
   
-  const nextUpdateTime= GetValueByName(sheetID, "IndexStranglesCandidatesUpdateNext", verbose);
-  const currentTime= new Date();
+  const nextUpdateTime = GetValueByName(sheetID, "IndexStranglesCandidatesUpdateNext", verbose);
+  const currentTime = new Date();
 
   if (forceRefreshNow)
   {
@@ -29,39 +30,45 @@ function RunIndexStranglesCandidates(afterHours, test)
   
   if (afterHours == undefined)
   {
-    afterHours= true;
+    afterHours = true;
   }
   
   if (test == undefined)
   {
-    test= false;
+    test = false;
   }
   else
   {
-    verbose= test;
+    verbose = test;
   }
   
   if (forceRefreshNow || test || currentTime.getDate() != nextUpdateTime.getDate()
       || ((IsMarketOpen(sheetID, optionPrices, verbose) || afterHours) && (currentTime > nextUpdateTime)))
   {
     // Only check during market hours or after a day change
-    var candidates= [];
-    var candidatesAdditional= [];
-    var dte= GetValueByName(sheetID, "IndexStranglesDTE", verbose);
-    const symbols= GetTableByNameSimple(sheetID, "IndexStranglesSymbols", verbose);
-    const deltaCall= GetValueByName(sheetID, "IndexStranglesDeltaCall", verbose);
-    const deltaPut= GetValueByName(sheetID, "IndexStranglesDeltaPut", verbose);
-    const firstCandidateIndex= 0;
-    const dteIndex= 3;
+    var candidates = null;
+    var candidatesAdditional = null;
+    var dte = GetValueByName(sheetID, "IndexStranglesDTE", verbose);
+    const symbols = GetTableByNameSimple(sheetID, "IndexStranglesSymbols", verbose);
+    const deltaTargetCall = GetValueByName(sheetID, "IndexStranglesDeltaCall", verbose);
+    const deltaTargetPut = GetValueByName(sheetID, "IndexStranglesDeltaPut", verbose);
+    const firstCandidateIndex = 0;
+    const dteIndex = 3;
+
+    if (test)
+    {
+      candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
+      return success;
+    }
     
-    candidates= GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
+    candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
 
     if (candidates.length > 0)
     {
       // we have an initial set of candidates; adjust DTE for additional candidates
-      dte= Math.max(candidates[firstCandidateIndex][dteIndex] + 1, 60);
+      dte = Math.max(candidates[firstCandidateIndex][dteIndex] + 1, additionalCandidatesDTEDefault);
     }
-    candidatesAdditional= GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
+    candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
     
     if (candidatesAdditional.length > 0)
     {
@@ -69,7 +76,7 @@ function RunIndexStranglesCandidates(afterHours, test)
       candidates.push([""]);
     
       // Add near-term candidates to the list of our primary candidates
-      candidates= candidates.concat(candidatesAdditional);
+      candidates = candidates.concat(candidatesAdditional);
     }
     else
     {
@@ -84,7 +91,7 @@ function RunIndexStranglesCandidates(afterHours, test)
         UpdateTime(sheetID, "IndexStranglesCandidatesUpdateTime", verbose);
         SetValueByName(sheetID, "IndexStranglesCandidatesUpdateStatus", "Updated [" + DateToLocaleString(currentTime) + "]", verbose);
 
-        success= true;
+        success = true;
       }
       else
       {
@@ -102,7 +109,7 @@ function RunIndexStranglesCandidates(afterHours, test)
                       "Failed to find new candidates [" + DateToLocaleString(currentTime) + "]", verbose);
 
       LogThrottled(sheetID, `Found no candidates <${candidates}>!`);
-      success= true;
+      success = true;
     }
   }
   
@@ -119,7 +126,7 @@ function RunIndexStranglesCandidates(afterHours, test)
  */
 function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, verbose)
 {
-  var candidates= [];
+  var candidates= null;
   
   if (symbols && dte && deltaCall && deltaPut)
   {

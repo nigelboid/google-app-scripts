@@ -2,11 +2,11 @@
  * Wrapper for the main entry point of the script collection
  * should be invoked as the primary run of the day
  *
- * Saves a bit of data from one spreadsheet in another
+ * Invokes appropriate Run() methods for individual scripts
  */
 function RunPrimary()
 {
-  var backupRun= false;
+  var backupRun = false;
   
   RunDaily(backupRun);
 };
@@ -16,11 +16,11 @@ function RunPrimary()
  * Wrapper for the main entry point of the script collection
  * should be invoked as a backup run
  *
- * Saves a bit of data from one spreadsheet in another
+ * Invokes appropriate Run() methods for individual scripts, backing up previous, possibly failed invocations
  */
 function RunBackup()
 {
-  var backupRun= true;
+  var backupRun = true;
   
   RunDaily(backupRun);
 };
@@ -45,7 +45,7 @@ function RunDaily(backupRun)
  */
 function RunHourly()
 {
-  var afterHours= true;
+  var afterHours = true;
   
   RunQuotes(afterHours);
   RunPersonalHourly();
@@ -61,7 +61,7 @@ function RunHourly()
  */
 function RunFrequently()
 {
-  var afterHours= false;
+  var afterHours = false;
   
   if (!RunIndexStranglesCandidates(afterHours))
   {
@@ -78,17 +78,4 @@ function RunFrequently()
     // if (!RunBoxTradeCandidates(afterHours))
     // {
     
-};
-
-
-/**
- * Main entry point for testing after hours
- *
- * Invokes appropriate Run() methods for individual scripts
- */
-function RunAfterHours()
-{
-  var afterHours= true;
-  
-  RunQuotes(afterHours);
 };
