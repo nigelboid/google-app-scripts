@@ -410,7 +410,7 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
     }
   }
   
-  // read all the source and destination values, compare, and update
+  // Read all the source and destination values, compare, and update
   if (sourceValues= GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose))
   {
     // we have source values, proceed to destination values
@@ -685,7 +685,7 @@ function CompileSnapshot(sheetID, names, now, verbose)
       // Failed to obtain viable data
       good = false;
 
-      Log(`Failed to read data for <${names[counter]}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
+      Log(`Failed to read data for <${names[name]}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
 
       break;
     }
@@ -1121,49 +1121,56 @@ function TrimHistory(sheetID, sheetName, maxRows, verbose)
  */
 function Synchronize(sourceID, destinationID, sourceNames, destinationNames, verbose, verboseChanges, numbersOnly)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var range= null;
-  var value= null;
-  var format= null;
-  var sourceValues= [];
-  var success= true;
+  var spreadsheet = null;
+  var range = null;
+  var value = null;
+  var format = null;
+  var sourceValues = [];
+  var success = true;
+  
+  if (destinationNames == undefined)
+  {
+    // Omitted destination names indicate ientical names in the target sheet
+    destinationNames = sourceNames;
+  }
   
   if (verboseChanges == undefined)
   {
-    // initialize omitted optional verbose flag to match overall verbose flag
-    verboseChanges= verbose;
+    // Initialize omitted optional verbose flag to match overall verbose flag
+    verboseChanges = verbose;
   }
   
   if (numbersOnly == undefined)
   {
-    // initialize omitted optional verbose flag to match overall verbose flag
-    numbersOnly= false;
+    // Omitted numbers only flag implies otherwise
+    numbersOnly = false;
   }
   
-  if (spreadsheet= SpreadsheetApp.openById(sourceID))
+  if (spreadsheet = SpreadsheetApp.openById(sourceID))
   {
-    for (var counter= 0; counter < sourceNames.length; counter++)
+    for (const index in sourceNames)
     {
       // read all the source values
-      if (range= spreadsheet.getRangeByName(sourceNames[counter]))
+      if (range = spreadsheet.getRangeByName(sourceNames[index]))
       {
-        value= range.getValue();
-        format= range.getNumberFormat();
+        value = range.getValue();
+        format = range.getNumberFormat();
         if (Number.isNaN(value) || typeof value != "number")
         {
           if (verbose || numbersOnly)
           {
-            Logger.log("[Synchronize] Failed to obtain numeric value <%s> with format <%s> from range named <%s> in spreadsheet <%s>.",
-                       value, format, sourceNames[counter], spreadsheet.getName());
+            Log
+            (
+              `Failed to obtain numeric value <${value}> with format <${format}> from range named <${sourceNames[index]}> ` +
+              `in spreadsheet <${spreadsheet.getName()}>.`
+            );
           }
           
           if (numbersOnly)
           {
-            // fail gently
-            
+            // Fail gently
             sourceValues.push(null);
-            success= false;
+            success = false;
           }
           else
           {
@@ -1174,7 +1181,7 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
         {
           if (format.indexOf("$") > -1)
           {
-            // round all currency amounts to cents
+            // Round all currency amounts to cents
             sourceValues.push(value.toFixed(2));
           }
           else
@@ -1185,78 +1192,66 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
       }
       else
       {
-        if (verbose)
-        {
-          Logger.log("[Synchronize] Could not get range named <%s> in spreadsheet <%s>.", sourceNames[counter], spreadsheet.getName());
-        }
-        success= false;
+        LogVerbose(`Could not get range named <${sourceNames[index]}> in spreadsheet <${spreadsheet.getName()}>.`, verbose);
+        success = false;
       }
     }
   }
   else
   {
-    if (verbose)
-    {
-      Logger.log("[Synchronize] Could not open spreadsheet ID <%s>.", sourceID);
-    }
-    success= false;
+    LogVerbose(`Could not open spreadsheet ID <${sourceID}>.`, verbose);
+    success = false;
   }
   
   if (sourceValues.length == destinationNames.length)
   {
-    if (spreadsheet= SpreadsheetApp.openById(destinationID))
+    if (spreadsheet = SpreadsheetApp.openById(destinationID))
     {
-      for (var counter= 0; counter < destinationNames.length; counter++)
+      for (const index in destinationNames)
       {
-        // compare and write values
-        if (range= spreadsheet.getRangeByName(destinationNames[counter]))
+        // Compare and write values
+        if (range = spreadsheet.getRangeByName(destinationNames[index]))
         {
-          value= range.getValue();
+          value = range.getValue();
           
-          if ((sourceValues[counter] != null) && (value != sourceValues[counter]))
+          if ((sourceValues[index] != null) && (value != sourceValues[index]))
           {
-            // looks like the value has changed -- update it
-            range.setValue(sourceValues[counter]);
-            if (verboseChanges)
-            {
-              Logger.log("[Synchronize] Value for range <%s> in sheet <%s> updated to <%s>, it was <%s>.",
-                         destinationNames[counter], spreadsheet.getName(), sourceValues[counter], value);
-            }
+            // Looks like the value has changed -- update it
+            range.setValue(sourceValues[index]);
+            LogVerbose
+            (
+              `Value for range <${destinationNames[index]}> in sheet <${spreadsheet.getName()}> updated to <${sourceValues[index]}>, ` +
+              `it was <${value}>.`,
+              verbose
+            );
           }
           else
           {
-            if (verbose)
-            {
-              Logger.log("[Synchronize] Value for range <%s> has not changed <%s>.", destinationNames[counter], sourceValues[counter]);
-            }
+            LogVerbose(`Value for range <${destinationNames[index]}> has not changed <${sourceValues[index]}>.`, verbose);
           }
         }
         else
         {
-          if (verbose)
-          {
-            Logger.log("[Synchronize] Could not get range named <%s> in spreadsheet <%s>.", destinationNames[counter], spreadsheet.getName());
-          }
-          success= false;
+          LogVerbose(`Could not get range named <${destinationNames[index]}> in spreadsheet <${spreadsheet.getName()}>.`, verbose);
+          success = false;
         }
       }
     }
     else
     {
-      if (verbose)
-      {
-        Logger.log("[Synchronize] Could not open spreadsheet ID <%s>.", destinationID);
-      }
-      success= false;
+      LogVerbose(`Could not open spreadsheet ID <${destinationID}>.`, verbose);
+      success = false;
     }
   }
   else
   {
-    if (verbose)
-    {
-      Logger.log("[Synchronize] Source values range <%s> does not match destination range <%s>.", sourceValues.length.toFixed(0), destinationNames.length.toFixed(0));
-    }
-    success= false;
+    LogVerbose
+    (
+      `Source values range <${sourceValues.length.toFixed(0)}> ` +
+      `does not match destination range <${destinationNames.length.toFixed(0)}>.`,
+      verbose
+    );
+    success = false;
   }
   
   return success;
