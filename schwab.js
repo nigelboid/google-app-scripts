@@ -7,17 +7,17 @@
 function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
 {
   // Declare constants and local variables
-  var firstDataRow= 1;
-  var symbolColumn= 0;
-  var url= null;
-  var urls= {};
-  var symbolMap= null;
-  var prices= null;
+  const firstDataRow = 1;
+  const symbolColumn = 0;
+  var url = null;
+  var urls = {};
+  var symbolMap = null;
+  var prices = null;
   
   if (symbols)
   {
     // We have symbols, proceed
-    for (var vIndex= firstDataRow; vIndex < symbols.length; vIndex++)
+    for (var vIndex = firstDataRow; vIndex < symbols.length; vIndex++)
     {
       // Compile a list of unique symbols
       if (symbols[vIndex][symbolColumn].length > 0)
@@ -27,23 +27,23 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
         if (url)
         {
           // Create entries for each URL in two mirroring maps for future reconciliation
-          urls[symbols[vIndex][symbolColumn]]= url;
+          urls[symbols[vIndex][symbolColumn]] = url;
         }
       }
     }
     
     // Option quotes from Schwab require symbol remapping
-    symbolMap= RemapSymbolsSchwab(sheetID, Object.keys(urls), verbose);
-    url= ConstructUrlQuoteSchwab(Object.keys(symbolMap));
+    symbolMap = RemapSymbolsSchwab(sheetID, Object.keys(urls), verbose);
+    url = ConstructUrlQuoteSchwab(Object.keys(symbolMap));
 
     if (url)
     {
-      const quotes= GetURLSchwab(sheetID, url, verbose);
+      const quotes = GetURLSchwab(sheetID, url, verbose);
       
       if (quotes)
       {
         // Data fetched -- extract
-        prices= ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose);
+        prices = ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose);
       }
       else
       {
@@ -83,6 +83,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
   const labelDelta= "delta";
   const labelLastPrice= "last";
   const labelDTE= "daysToExpiration";
+  const preferredExpirationTypes = ["Q", "W"];
   
   var index = 0;
   var contracts = [];
@@ -110,13 +111,31 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
           if (!contractCall)
           {
             // Still looking for an appropriate call
-            contractCall = GetContractByDeltaSchwab(sheetID, underlying, expirationDate, labelCall, deltaTargetCall, verbose);
+            contractCall = GetContractByDeltaSchwab
+            (
+              sheetID,
+              underlying,
+              expirationDate,
+              labelCall,
+              deltaTargetCall,
+              preferredExpirationTypes,
+              verbose
+            );
           }
 
           if (!contractPut)
           {
             // Still looking for an appropriate put
-            contractPut = GetContractByDeltaSchwab(sheetID, underlying, expirationDate, labelPut, deltaTargetPut, verbose);
+            contractPut = GetContractByDeltaSchwab
+            (
+              sheetID,
+              underlying,
+              expirationDate,
+              labelPut,
+              deltaTargetPut,
+              preferredExpirationTypes,
+              verbose
+            );
           }
 
           if (contractCall && contractPut)
@@ -157,12 +176,12 @@ function GetExpirationsByDTESchwab(sheetID, underlying, dte, verbose)
 
   if (url)
   {
-    const expirations= GetURLSchwab(sheetID, url, verbose);
+    const expirations = GetURLSchwab(sheetID, url, verbose);
     
     if (expirations)
     {
       // Data fetched -- extract
-      expirationsByDTE= ExtractExpirationDatesByDTESchwab(expirations, dte, verbose);
+      expirationsByDTE = ExtractExpirationDatesByDTESchwab(expirations, dte, verbose);
     }
     else
     {
@@ -186,7 +205,7 @@ function GetExpirationsByDTESchwab(sheetID, underlying, dte, verbose)
  * Obtain the best matching contract by delta for a given underlying, expiration, and type
  *
  */
-function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractType, deltaTarget, verbose)
+function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractType, deltaTarget, preferredExpirationTypes, verbose)
 {
   // Declare constants and local variables
   const url = ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose);
@@ -208,7 +227,13 @@ function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractT
       for (const expirationLabel in chain[contractTypeMap[contractType]])
       {
         // Check each set of strikes (should only be one set!)
-        contract= GetContractByBestDeltaMatchSchwab(chain[contractTypeMap[contractType]][expirationLabel], deltaTarget, verbose);
+        contract = GetContractByBestDeltaMatchSchwab
+        (
+          chain[contractTypeMap[contractType]][expirationLabel],
+          deltaTarget,
+          preferredExpirationTypes,
+          verbose
+        );
 
         if (contract)
         {
@@ -240,17 +265,29 @@ function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractT
  * Find the best matching contract by delta within the supplied chain
  *
  */
-function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, verbose)
+function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirationTypes, verbose)
 {
   // Declare constants and local variables
   const deltaTargetSensitivity = 0.01;
+  const labelSymbol = "symbol";
   const labelDelta = "delta";
+  const labelExpirationType = "expirationType";
+  const valuePreferredExpirationTypes = ["Q", "W"];
+  const valueUndesiredExpirationTypeDeltaPenalty = 0.002;
   var delta = 0;
+  var deltaPenalty = 0;
+  var expirationType = null;
   var contract = null;
 
   deltaTarget/= 100;
   const deltaTargetMinimum = deltaTarget - deltaTargetSensitivity;
   const deltaTargetMaximum = deltaTarget + deltaTargetSensitivity;
+
+  if (preferredExpirationTypes == undefined)
+  {
+    // No preference -- set to default (weekly)
+    preferredExpirationTypes = valuePreferredExpirationTypes;
+  }
 
   // Search through the chain for closest delta match within sensitivity bounds
   for (const strike in chain)
@@ -260,16 +297,56 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, verbose)
     {
       // Check each contract
       delta = Math.abs(chain[strike][index][labelDelta]);
+      expirationType = chain[strike][index][labelExpirationType];
       if (delta >= deltaTargetMinimum && delta <= deltaTargetMaximum)
       {
-        // Found a potential candidate
         if (contract)
         {
+          // Determine a delta difference penalty for unpreferred expiration types (e.g., AM expiration)
+          if (preferredExpirationTypes.includes(expirationType))
+          {
+            deltaPenalty = 0;
+            LogVerbose
+            (
+              `Found preferred expiration type for contract <${contract[labelSymbol]}>: ` +
+              `old delta = <${contract[labelDelta]}>, new delta = ${delta}` +
+              `type = ${expirationType}, penalty = ${deltaPenalty.toFixed(4)}` +
+              `new contract = ${chain[strike][index][labelSymbol]}`,
+              verbose
+            );
+          }
+          else if (!preferredExpirationTypes.includes(contract[labelExpirationType]))
+          {
+            deltaPenalty = 0;
+            Log
+            (
+              `Current best delta match for contract <${contract[labelSymbol]}> is also unpreferred: ` +
+              `old delta = <${contract[labelDelta]}>, new delta = ${delta}` +
+              `type = ${contract[labelExpirationType]}, penalty = ${deltaPenalty.toFixed(4)}` +
+              `new contract = ${chain[strike][index][labelSymbol]}`
+            );
+          }
+          else
+          {
+            deltaPenalty = valueUndesiredExpirationTypeDeltaPenalty;
+            Log
+            (
+              `Found unpreferred expiration type for contract <${contract[labelSymbol]}>: ` +
+              `old delta = <${contract[labelDelta]}>, new delta = ${delta}` +
+              `type = ${expirationType}, penalty = ${deltaPenalty.toFixed(4)}` +
+              `new contract = ${chain[strike][index][labelSymbol]}`
+            );
+            Log
+            (
+              `Found unpreferred expiration type (better match) for <${chain[strike][index][labelSymbol]}>: type = ${expirationType}`
+            );
+          }
+
           // Check a potentially better match
-          if (Math.abs(delta - deltaTarget) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
+          if ((Math.abs(delta - deltaTarget) + deltaPenalty) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
           {
             // Found a closer match!
-            LogVerbose(`Found a better match: delta = ${delta}`, verbose);
+            LogVerbose(`Found a better match for <${chain[strike][index][labelSymbol]}>: delta = ${delta}`, verbose);
             contract = chain[strike][index];
           }
           else
@@ -298,43 +375,44 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, verbose)
  */
 function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
 {
-  // Declare constants and local variables
-  var prices= {};
-  var quoteSymbol= null;
+  // Define interesting quote parameters
+  const labelQuote = "quote";
+  const labelAssetType = "assetMainType";
+  const labelSymbol = "symbol";
+  const labelChangePrice = "netChange";
+  const labelLastPrice = "lastPrice";
+  const labelClosePrice = "closePrice";
+  const labelBidPrice = "bidPrice";
+  const labelAskPrice = "askPrice";
+  const labelOptionDelta = "delta";
+  const labelNAV = "nAV";
+  const labelURL = "URL";
+  const labelDebug = "Debug";
+  const symbolFuturesCruftLength = 3;
+  const valueNoData = "no data"
   
-  // First, define interesting quote parameters
-  const labelQuote= "quote";
-  const labelAssetType= "assetMainType";
-  const labelSymbol= "symbol";
-  const labelChangePrice= "netChange";
-  const labelLastPrice= "lastPrice";
-  const labelClosePrice= "closePrice";
-  const labelBidPrice= "bidPrice";
-  const labelAskPrice= "askPrice";
-  const labelOptionDelta= "delta";
-  const labelNAV= "nAV";
-  const labelURL= "URL";
-  const labelDebug= "Debug";
-  const symbolFuturesCruftLength= 3;
+  // Define type exceptions
+  const typeMutualFund = "MUTUAL_FUND";
+  const typeFuture = "FUTURE";
+  
+  // Declare local variables
+  var prices = {};
+  var quoteSymbol = null;
 
-  // Second, seed the default table column to quote parameter map
-  const columnBid= "Bid";
-  const columnAsk= "Ask";
-  const columnLast= "Last";
-  const columnClose= "Close";
-  const columnChange= "Change";
-  const columnDelta= "Delta";
-  var labelMap= {};
-  labelMap[columnBid]= labelBidPrice;
-  labelMap[columnAsk]= labelAskPrice;
-  labelMap[columnLast]= labelLastPrice;
-  labelMap[columnClose]= labelClosePrice;
-  labelMap[columnChange]= labelChangePrice;
-  labelMap[columnDelta]= labelOptionDelta;
-  
-  // Lastly, define type exceptions
-  const typeMutualFund= "MUTUAL_FUND";
-  const typeFuture= "FUTURE";
+  // Seed the default table column to quote parameter map
+  const columnBid = "Bid";
+  const columnAsk = "Ask";
+  const columnLast = "Last";
+  const columnClose = "Close";
+  const columnChange = "Change";
+  const columnDelta = "Delta";
+  var labelMap = {};
+  labelMap[columnBid] = labelBidPrice;
+  labelMap[columnAsk] = labelAskPrice;
+  labelMap[columnLast] = labelLastPrice;
+  labelMap[columnClose] = labelClosePrice;
+  labelMap[columnChange] = labelChangePrice;
+  labelMap[columnDelta] = labelOptionDelta;
   
   for (const quote in quotes)
   {
@@ -342,39 +420,39 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
     if (quotes[quote][labelSymbol] != undefined)
     {
       // Symbol exists
-      quoteSymbol= quotes[quote][labelSymbol];
+      quoteSymbol = quotes[quote][labelSymbol];
       if (quotes[quote][labelAssetType] == typeFuture)
       {
         // Adjust futures symbols to remove expiration reference
-        quoteSymbol= quoteSymbol.substring(0, quoteSymbol.length - symbolFuturesCruftLength);
+        quoteSymbol = quoteSymbol.substring(0, quoteSymbol.length - symbolFuturesCruftLength);
         
         // Make a copy under the adjusted symbol for future reference
-        quotes[quoteSymbol]= quotes[quote];
+        quotes[quoteSymbol] = quotes[quote];
       }
 
-      prices[symbolMap[quoteSymbol]]= {};
-      prices[symbolMap[quoteSymbol]][labelURL]= urls[symbolMap[quoteSymbol]];
+      prices[symbolMap[quoteSymbol]] = {};
+      prices[symbolMap[quoteSymbol]][labelURL] = urls[symbolMap[quoteSymbol]];
       
       if (labelDebug != undefined)
       {
         // debug activated -- commit raw data
-        prices[symbolMap[quoteSymbol]][labelDebug]= JSON.stringify(quotes[quoteSymbol], null, 4);
+        prices[symbolMap[quoteSymbol]][labelDebug] = JSON.stringify(quotes[quoteSymbol], null, 4);
       }
       
       // Adjust labelMap based quote specifics
       if (quotes[quote][labelAssetType] == typeMutualFund)
       {
         // Use NAV as last price for mutual funds
-        labelMap[columnLast]= labelNAV;
-        labelMap[columnChange]= labelChangePrice;
-        labelMap[columnClose]= labelClosePrice;
+        labelMap[columnLast] = labelNAV;
+        labelMap[columnChange] = labelChangePrice;
+        labelMap[columnClose] = labelClosePrice;
       }
       else
       {
         // Set to defaults
-        labelMap[columnLast]= labelLastPrice;
-        labelMap[columnChange]= labelChangePrice;
-        labelMap[columnClose]= labelClosePrice;
+        labelMap[columnLast] = labelLastPrice;
+        labelMap[columnChange] = labelChangePrice;
+        labelMap[columnClose] = labelClosePrice;
       }
       
       for (const label in labels)
@@ -383,12 +461,12 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
         if (quotes[quote][labelQuote][labelMap[labels[label]]] == undefined)
         {
           // No data for this quote item
-          prices[symbolMap[quoteSymbol]][labels[label]]= "no data";
+          prices[symbolMap[quoteSymbol]][labels[label]] = valueNoData;
         }
         else
         {
           // Data obtained -- translate and commit to our storage
-          prices[symbolMap[quoteSymbol]][labels[label]]= quotes[quoteSymbol][labelQuote][labelMap[labels[label]]];
+          prices[symbolMap[quoteSymbol]][labels[label]] = quotes[quoteSymbol][labelQuote][labelMap[labels[label]]];
         }
       }
     }
@@ -435,51 +513,51 @@ function ExtractExpirationDatesByDTESchwab(expirations, minimumDaysToExpiration,
 function RemapSymbolsSchwab(sheetID, symbols, verbose)
 {
   // Declare constants and local variables
-  const optionDetailsLength= "YYMMDDT00000000".length;
-  const symbolMapProvided= GetParameters(sheetID, "ParameterMapSymbols", verbose);
-  const symbolOptionUnderlyingPadding= 6;
-  const symbolOptionDateStep= 2;
-  const symbolOptionTypeStep= 1;
+  const optionDetailsLength = "YYMMDDT00000000".length;
+  const symbolMapProvided = GetParameters(sheetID, "ParameterMapSymbols", verbose);
+  const symbolOptionUnderlyingPadding = 6;
+  const symbolOptionDateStep = 2;
+  const symbolOptionTypeStep = 1;
 
-  var symbolMap= {};
-  var symbolSchwab= "";
-  var underlying= "";
-  var date= "";
-  var month= "";
-  var year= "";
-  var type= "";
-  var strike= "";
-  var symbolIndex= 0;
+  var symbolMap = {};
+  var symbolSchwab = "";
+  var underlying = "";
+  var date = "";
+  var month = "";
+  var year = "";
+  var type = "";
+  var strike = "";
+  var symbolIndex = 0;
 
   for (const quoteSymbol of symbols)
   {
     if (symbolMapProvided[quoteSymbol] != undefined)
     {
       // Create our symbol map
-      symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]]= quoteSymbol;
+      symbolMap[symbolMapProvided[quoteSymbol.toUpperCase()]] = quoteSymbol;
     }
     else if (quoteSymbol.length > optionDetailsLength)
     {
       // Re-map each apparent option symbol
     
-      underlying= quoteSymbol.slice(0, -optionDetailsLength);
+      underlying = quoteSymbol.slice(0, -optionDetailsLength);
       
-      symbolIndex= underlying.length;
-      year= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
-      month= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
-      date= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
+      symbolIndex = underlying.length;
+      year = quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
+      month = quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
+      date = quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionDateStep);
       
-      type= quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionTypeStep);
+      type = quoteSymbol.slice(symbolIndex, symbolIndex+= symbolOptionTypeStep);
       
-      strike= quoteSymbol.slice(symbolIndex);
+      strike = quoteSymbol.slice(symbolIndex);
       
-      symbolSchwab= underlying.padEnd(symbolOptionUnderlyingPadding, " ") + year + month + date + type + strike;
-      symbolMap[symbolSchwab]= quoteSymbol;
+      symbolSchwab = underlying.padEnd(symbolOptionUnderlyingPadding, " ") + year + month + date + type + strike;
+      symbolMap[symbolSchwab] = quoteSymbol;
     }
     else
     {
       // Preserve all other symbols
-      symbolMap[quoteSymbol]= quoteSymbol;
+      symbolMap[quoteSymbol] = quoteSymbol;
     }
   }
   
@@ -496,10 +574,10 @@ function RemapSymbolsSchwab(sheetID, symbols, verbose)
 function ConstructUrlQuoteSchwab(symbols)
 {
   // Declare constants and local variables
-  const urlHead= "https://api.schwabapi.com/marketdata/v1/quotes?";
-  const urlFields= "fields=quote";
-  const urlIndicative= "&indicative=false";
-  const urlSymbols= "&symbols=" + symbols.join(",");
+  const urlHead = "https://api.schwabapi.com/marketdata/v1/quotes?";
+  const urlFields = "fields=quote";
+  const urlIndicative = "&indicative=false";
+  const urlSymbols = "&symbols=" + symbols.join(",");
   
   return urlHead + urlFields + urlIndicative + urlSymbols;
 };
@@ -513,24 +591,25 @@ function ConstructUrlQuoteSchwab(symbols)
 function ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose)
 {
   // Declare constants and local variables
-  const urlHead= "https://api.schwabapi.com/marketdata/v1/chains?";
-  const urlSymbol= "symbol=" + underlying;
-  const urlCount= "&strikeCount=500";
-  const urlStrategy= "&strategy=SINGLE";
-  var urlFromDate= "&fromDate=" + expirationDate;
-  var urlToDate= "&toDate=" + expirationDate;
-  var urlContractType= "&contractType=";
+  const urlHead = "https://api.schwabapi.com/marketdata/v1/chains?";
+  const urlSymbol = "symbol=" + underlying;
+  const urlCount = "&strikeCount=500";
+  const urlStrategy = "&strategy=SINGLE";
+  const urlFromDate = "&fromDate=" + expirationDate;
+  const urlToDate = "&toDate=" + expirationDate;
+  var urlContractType = "&contractType=";
   
   // Validate cotnact type parameter
-  if (!["ALL", "PUT", "CALL"].includes(contractType))
+  if (["ALL", "PUT", "CALL"].includes(contractType))
   {
-    // Set to default (puts and calls)
-    urlContractType+= "ALL";
-    LogVerbose("Set contract type to default (ALL).", verbose)
+    // Valid cotnract type -- set
+    urlContractType += contractType;
   }
   else
   {
-    urlContractType+= contractType;
+    // Unrecognized contract type -- set to default (puts and calls)
+    urlContractType += "ALL";
+    LogVerbose("Set contract type to default (all: puts and calls).", verbose)
   }
   
   return urlHead + urlSymbol + urlCount + urlStrategy + urlFromDate + urlToDate + urlContractType;
@@ -545,8 +624,8 @@ function ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contrac
 function ConstructUrlExpirationsSchwab(underlying)
 {
   // Declare constants and local variables
-  const urlHead= "https://api.schwabapi.com/marketdata/v1/expirationchain?";
-  const urlSymbol= "symbol=" + underlying;
+  const urlHead = "https://api.schwabapi.com/marketdata/v1/expirationchain?";
+  const urlSymbol = "symbol=" + underlying;
   
   return urlHead + urlSymbol;
 };
@@ -560,14 +639,14 @@ function ConstructUrlExpirationsSchwab(underlying)
 function ComposeHeadersGetSchwab(sheetID, verbose)
 {
   // Declare constants and local variables
-  const accessToken= GetAccessTokenSchwab(sheetID, verbose);
-  // const accessToken= GetAccessTokenSchwabLegacy(sheetID, verbose);
-  var headers= null;
+  const accessToken = GetAccessTokenSchwab(sheetID, verbose);
+  var headers = null;
   
   if (accessToken)
   {
     // We have an access token, proceed
-    headers= {
+    headers =
+    {
       "Accept" : "application/json",
       "Schwab-Client-CorrelId": "ISLE",
       "Authorization" : "Bearer " + accessToken
@@ -658,12 +737,12 @@ function GetAccessTokenSchwab(sheetID, verbose)
  */
 function GetRefreshTokenSchwab(sheetID, verbose)
 {
-  var refreshTokenExpirationTime= null;
-  const refreshTokenTTLOffsetDays= 7;
-  const refreshTokenStaleLoggingThrottle= 60 * 60 * 24;
-  const currentTime= new Date();
-  const refreshTokenCopy= GetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", verbose);
-  var refreshToken= GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
+  const refreshTokenTTLOffsetDays = 7;
+  const refreshTokenStaleLoggingThrottle = 60 * 60 * 24;
+  const currentTime = new Date();
+  const refreshTokenCopy = GetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", verbose);
+  var refreshTokenExpirationTime = null;
+  var refreshToken = GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
 
   if (!refreshToken)
   {
@@ -675,14 +754,14 @@ function GetRefreshTokenSchwab(sheetID, verbose)
     // Looks like we have a new refresh token -- save a copy and update expiration time
     SetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", refreshToken, verbose);
 
-    refreshTokenExpirationTime= currentTime;
+    refreshTokenExpirationTime = currentTime;
     refreshTokenExpirationTime.setDate(refreshTokenExpirationTime.getDate() + refreshTokenTTLOffsetDays);
     SetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", refreshTokenExpirationTime, verbose);
   }
   else
   {
     // The refresh token has not changed -- get its expiration time stamp
-    refreshTokenExpirationTime= GetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", verbose);
+    refreshTokenExpirationTime = GetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", verbose);
   }
   
   LogVerbose(`Refresh token: ${refreshToken}`, verbose);
@@ -693,7 +772,7 @@ function GetRefreshTokenSchwab(sheetID, verbose)
     // Current refresh token has also expired or has no expiration value -- report and invalidate
     LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose, refreshTokenStaleLoggingThrottle);
 
-    refreshToken= null;
+    refreshToken = null;
   }
 
   return refreshToken;
@@ -748,7 +827,8 @@ function PostURLSchwab(sheetID, url, payload, verbose)
 
   if (key)
   {
-    headers = {
+    headers =
+    {
       'Authorization': "Basic " + Utilities.base64Encode(key)
     };
 

@@ -928,7 +928,7 @@ function FixHistoryVisibilityFault(range, columnDateGoogle, verbose)
   if (table)
   {
     // Check history starting with the newest entries until encountering a date too old to show
-    for (const row = table.length - 1; row > 0; row--)
+    for (var row = table.length - 1; row > 0; row--)
     {
       if (table[row][columnDate] && table[row][columnDate] < oneWeekAgo)
       {
