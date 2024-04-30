@@ -309,21 +309,22 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirati
             LogVerbose
             (
               `Found preferred expiration type for contract <${contract[labelSymbol]}>: ` +
-              `old delta = <${contract[labelDelta]}>, new delta = ${delta}` +
-              `type = ${expirationType}, penalty = ${deltaPenalty.toFixed(4)}` +
-              `new contract = ${chain[strike][index][labelSymbol]}`,
+              `old delta = <${contract[labelDelta]}>, new delta = <${delta}>, ` +
+              `old type = <${contract[labelExpirationType]}>, new type = <${expirationType}>, ` +
+              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
               verbose
             );
           }
           else if (!preferredExpirationTypes.includes(contract[labelExpirationType]))
           {
             deltaPenalty = 0;
-            Log
+            LogVerbose
             (
               `Current best delta match for contract <${contract[labelSymbol]}> is also unpreferred: ` +
-              `old delta = <${contract[labelDelta]}>, new delta = ${delta}` +
-              `type = ${contract[labelExpirationType]}, penalty = ${deltaPenalty.toFixed(4)}` +
-              `new contract = ${chain[strike][index][labelSymbol]}`
+              `old delta = <${contract[labelDelta]}>, new delta = <${delta}>, ` +
+              `old type = <${contract[labelExpirationType]}>, new type = <${expirationType}>, ` +
+              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+              verbose
             );
           }
           else
@@ -332,22 +333,18 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirati
             Log
             (
               `Found unpreferred expiration type for contract <${contract[labelSymbol]}>: ` +
-              `old delta = <${contract[labelDelta]}>, new delta = ${delta}` +
-              `type = ${expirationType}, penalty = ${deltaPenalty.toFixed(4)}` +
-              `new contract = ${chain[strike][index][labelSymbol]}`
-            );
-            Log
-            (
-              `Found unpreferred expiration type (better match) for <${chain[strike][index][labelSymbol]}>: type = ${expirationType}`
+              `old delta = <${contract[labelDelta]}>, new delta = <${delta}>, ` +
+              `old type = <${contract[labelExpirationType]}>, new type = <${expirationType}>, ` +
+              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`
             );
           }
 
-          // Check a potentially better match
+          // Check for a potentially better match
           if ((Math.abs(delta - deltaTarget) + deltaPenalty) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
           {
             // Found a closer match!
-            LogVerbose(`Found a better match for <${chain[strike][index][labelSymbol]}>: delta = ${delta}`, verbose);
             contract = chain[strike][index];
+            LogVerbose(`Found a better match for <${chain[strike][index][labelSymbol]}>: delta = ${delta}`, verbose);
           }
           else
           {
@@ -357,8 +354,8 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirati
         else
         {
           // First match!
-          LogVerbose(`Found our first match: delta = ${delta}`, verbose);
           contract = chain[strike][index];
+          LogVerbose(`Found our first match: delta = ${delta}`, verbose);
         }
       }
     }
