@@ -83,15 +83,14 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
   const labelDelta= "delta";
   const labelLastPrice= "last";
   const labelDTE= "daysToExpiration";
-  const preferredExpirationTypes = ["Q", "W"];
+  const preferredSettlementType = "P";
   
-  var index = 0;
   var contracts = [];
   
-  for (var index in symbols)
+  for (const index in symbols)
   {
     // Find candidates for each requested underlying symbol
-    const underlying= symbols[index][0];
+    const underlying = symbols[index][0];
     
     if (underlying)
     {
@@ -118,7 +117,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
               expirationDate,
               labelCall,
               deltaTargetCall,
-              preferredExpirationTypes,
+              preferredSettlementType,
               verbose
             );
           }
@@ -133,7 +132,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
               expirationDate,
               labelPut,
               deltaTargetPut,
-              preferredExpirationTypes,
+              preferredSettlementType,
               verbose
             );
           }
@@ -148,11 +147,27 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
         // Commit viable contracts
         if (contractCall)
         {
-          contracts.push([contractCall[labelSymbol], contractCall[labelLastPrice], contractCall[labelDelta], contractCall[labelDTE]]);
+          contracts.push
+          (
+            [
+              contractCall[labelSymbol],
+              contractCall[labelLastPrice],
+              contractCall[labelDelta],
+              contractCall[labelDTE]
+            ]
+          );
         }
         if (contractPut)
         {
-          contracts.push([contractPut[labelSymbol], contractPut[labelLastPrice], contractPut[labelDelta], contractPut[labelDTE]]);
+          contracts.push
+          (
+            [
+              contractPut[labelSymbol],
+              contractPut[labelLastPrice],
+              contractPut[labelDelta],
+              contractPut[labelDTE]
+            ]
+          );
         }
       }
     }
@@ -205,7 +220,7 @@ function GetExpirationsByDTESchwab(sheetID, underlying, dte, verbose)
  * Obtain the best matching contract by delta for a given underlying, expiration, and type
  *
  */
-function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractType, deltaTarget, preferredExpirationTypes, verbose)
+function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractType, deltaTarget, preferredSettlementType, verbose)
 {
   // Declare constants and local variables
   const url = ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose);
@@ -231,7 +246,7 @@ function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractT
         (
           chain[contractTypeMap[contractType]][expirationLabel],
           deltaTarget,
-          preferredExpirationTypes,
+          preferredSettlementType,
           verbose
         );
 
@@ -265,28 +280,28 @@ function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractT
  * Find the best matching contract by delta within the supplied chain
  *
  */
-function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirationTypes, verbose)
+function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettlementType, verbose)
 {
   // Declare constants and local variables
   const deltaTargetSensitivity = 0.01;
   const labelSymbol = "symbol";
   const labelDelta = "delta";
-  const labelExpirationType = "expirationType";
-  const valuePreferredExpirationTypes = ["Q", "W"];
-  const valueUndesiredExpirationTypeDeltaPenalty = 0.002;
+  const labelSettlementType = "settlementType";
+  const valuePreferredSettlementType = "P";
+  const valueSettlementTypeDeltaPenalty = 0.002;
   var delta = 0;
   var deltaPenalty = 0;
-  var expirationType = null;
+  var settlementType = null;
   var contract = null;
 
   deltaTarget/= 100;
   const deltaTargetMinimum = deltaTarget - deltaTargetSensitivity;
   const deltaTargetMaximum = deltaTarget + deltaTargetSensitivity;
 
-  if (preferredExpirationTypes == undefined)
+  if (preferredSettlementType == undefined)
   {
-    // No preference -- set to default (weekly)
-    preferredExpirationTypes = valuePreferredExpirationTypes;
+    // No preference -- set to default (PM)
+    preferredSettlementType = valuePreferredSettlementType;
   }
 
   // Search through the chain for closest delta match within sensitivity bounds
@@ -297,45 +312,46 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirati
     {
       // Check each contract
       delta = Math.abs(chain[strike][index][labelDelta]);
-      expirationType = chain[strike][index][labelExpirationType];
+      settlementType = chain[strike][index][labelSettlementType];
       if (delta >= deltaTargetMinimum && delta <= deltaTargetMaximum)
       {
         if (contract)
         {
           // Determine a delta difference penalty for unpreferred expiration types (e.g., AM expiration)
-          if (preferredExpirationTypes.includes(expirationType))
+          if (settlementType == preferredSettlementType)
           {
             deltaPenalty = 0;
             LogVerbose
             (
-              `Found preferred expiration type for contract <${contract[labelSymbol]}>: ` +
-              `old delta = <${contract[labelDelta]}>, new delta = <${delta}>, ` +
-              `old type = <${contract[labelExpirationType]}>, new type = <${expirationType}>, ` +
+              `Found PM settlement type for contract <${contract[labelSymbol]}>: ` +
+              `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
+              `old type = <${contract[labelSettlementType]}>, new type = <${settlementType}>, ` +
               `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
               verbose
             );
           }
-          else if (!preferredExpirationTypes.includes(contract[labelExpirationType]))
+          else if (contract[labelSettlementType] != preferredSettlementType)
           {
             deltaPenalty = 0;
             LogVerbose
             (
               `Current best delta match for contract <${contract[labelSymbol]}> is also unpreferred: ` +
-              `old delta = <${contract[labelDelta]}>, new delta = <${delta}>, ` +
-              `old type = <${contract[labelExpirationType]}>, new type = <${expirationType}>, ` +
+              `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
+              `old type = <${contract[labelSettlementType]}>, new type = <${settlementType}>, ` +
               `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
               verbose
             );
           }
           else
           {
-            deltaPenalty = valueUndesiredExpirationTypeDeltaPenalty;
-            Log
+            deltaPenalty = valueSettlementTypeDeltaPenalty;
+            LogVerbose
             (
-              `Found unpreferred expiration type for contract <${contract[labelSymbol]}>: ` +
-              `old delta = <${contract[labelDelta]}>, new delta = <${delta}>, ` +
-              `old type = <${contract[labelExpirationType]}>, new type = <${expirationType}>, ` +
-              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`
+              `Found AM settlement type for contract <${contract[labelSymbol]}>: ` +
+              `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
+              `old type = <${contract[labelSettlementType]}>, new type = <${settlementType}>, ` +
+              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+              verbose
             );
           }
 
@@ -343,6 +359,17 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredExpirati
           if ((Math.abs(delta - deltaTarget) + deltaPenalty) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
           {
             // Found a closer match!
+            if (penalty == valueSettlementTypeDeltaPenalty)
+            {
+              Log
+              (
+                `Found AM settlement type as a better delta match for contract <${contract[labelSymbol]}>: ` +
+                `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
+                `old type = <${contract[labelSettlementType]}>, new type = <${settlementType}>, ` +
+                `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+              );
+            }
+            
             contract = chain[strike][index];
             LogVerbose(`Found a better match for <${chain[strike][index][labelSymbol]}>: delta = ${delta}`, verbose);
           }
