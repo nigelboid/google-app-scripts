@@ -359,7 +359,7 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
           if ((Math.abs(delta - deltaTarget) + deltaPenalty) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
           {
             // Found a closer match!
-            if (penalty == valueSettlementTypeDeltaPenalty)
+            if (deltaPenalty == valueSettlementTypeDeltaPenalty)
             {
               Log
               (
