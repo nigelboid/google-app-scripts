@@ -38,26 +38,24 @@ function GetTableByRangeSimple(range, verbose)
  */
 function GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose)
 {
-  var spreadsheet= null;
-  var range= null;
-  var table= [];
+  var spreadsheet = null;
+  var range = null;
+  var table = null;
   
-  if (spreadsheet= SpreadsheetApp.openById(sheetID))
+  if (spreadsheet = SpreadsheetApp.openById(sheetID))
   {
-    if (range= spreadsheet.getRangeByName(sourceName))
+    if (range = spreadsheet.getRangeByName(sourceName))
     {
-      table= GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
+      table = GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
     }
     else
     {
       LogVerbose(`Could not get range named <${sourceName}> in spreadsheet <${spreadsheet.getName()}>.`, verbose);
-      table= null;
     }
   }
   else
   {
     LogVerbose(`Could not open spreadsheet ID <${sheetID}>.`, verbose);
-    table= null;
   }
   
   return table;
@@ -71,65 +69,69 @@ function GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, li
  */
 function GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose)
 {
-  var data= null;
-  var table= [];
-  var good= true;
-  var maxIterations= 10;
-  var sleepInterval= 5000;
-  var iterationErrors= [];
+  var data = null;
+  var table = [];
+  var good = true;
+  var maxIterations = 10;
+  var sleepInterval = 5000;
+  var iterationErrors = null;
   
-  for (var iteration= 0; iteration < maxIterations; iteration++)
+  for (var iteration = 1; iteration <= maxIterations; iteration++)
   {
-    iterationErrors= [];
-    if (data= range.getValues())
+    iterationErrors = [];
+    data = range.getValues();
+    if (data)
     {
-      for (var vIndex= 0; vIndex < data.length; vIndex++)
+      for (var vIndex = 0; vIndex < data.length; vIndex++)
       {
         if (confirmNumbers)
         {
-          for (var hIndex= firstDataColumn; hIndex < data[vIndex].length; hIndex++)
+          for (var hIndex = firstDataColumn; hIndex < data[vIndex].length; hIndex++)
           {
             // check each value obtained to make sure it is a number and above the sanity check limit
             if ((data[vIndex][hIndex] == null) || isNaN(data[vIndex][hIndex]) || (data[vIndex][hIndex] < limit))
             {
-              iterationErrors.push("Could not get a viable value (<".concat(data[vIndex][hIndex], "> v. limit of <", limit,
-                ">) from location <", hIndex.toFixed(0), ",",  vIndex.toFixed(0), ">."));
+              iterationErrors.push
+              (
+                `Could not get a viable value (<${data[vIndex][hIndex]}> v. limit of <${limit}>) from location ` +
+                `<${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}>.`
+              );
               
-              data[vIndex][hIndex]= iteration.toFixed(0);
-              good= false;
+              data[vIndex][hIndex] = iteration.toFixed(0);
+              good = false;
             }
           }
         }
         
         if (good)
         {
-          // all values checked out against the limit -- save current data row and append current iteration count (if asked)
-          table[vIndex]= data[vIndex];
+          // All values checked out against the limit -- save current data row and append current iteration count (if asked)
+          table[vIndex] = data[vIndex];
           if (storeIterationCount)
           {
-            table[vIndex].push(iteration.toFixed(0)+1);
+            table[vIndex].push(iteration.toFixed(0));
           }
         }
       }
       
       if (good)
       {
-        // all values checked out against the limit -- we're done here
+        // All values checked out against the limit -- we're done here
         break;
       }
       else
       {
-        // reset the flag -- we'll try again
-        good= true;
+        // Reset the flag -- we'll try again
+        good = true;
       }
     }
     else
     {
       if (verbose)
       {
-        Logger.log("[GetTableByRange] Could not read data from range.");
+        Log("Could not read data from range.");
       }
-      data= iteration;
+      data = iteration;
     }
     
     Utilities.sleep(sleepInterval);
@@ -137,15 +139,15 @@ function GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIte
   
   if (iterationErrors.length > 0)
   {
-    // encountered errors while reading data -- report them
+    // Encountered errors while reading data -- report them
     while(iterationErrors.length > 0)
     {
-      // report all the accumulated errors
-      Logger.log("[GetTableByName] " + iterationErrors.shift());
+      // Report all the accumulated errors
+      Log(iterationErrors.shift());
     }
-    Logger.log("[GetTableByName] Reached <%s> iterations but still could not get all data from range.", iteration.toFixed(0));
+    Log(`Reached <${iteration.toFixed(0)}> iterations but still could not get all data from range.`);
 
-    table= null;
+    table = null;
   }
   
   return table;
@@ -642,14 +644,14 @@ function CheckSnapshot(sheetID, sheetName, newDataDate, verbose)
  *
  * Compile our snapshot from various cells
  */
-function CompileSnapshot(sheetID, names, now, verbose)
+function CompileSnapshot(sheetID, names, dateTimeNow, verbose)
 {
   const firstDataColumn = 0;
   const storeIterationCount = true;
   var confirmNumbers = false;
   var good = true;
   var iterations = 0;
-  var snapshot = [now];
+  var snapshot = [dateTimeNow];
   var table = null;
   
   for (const name in names)
@@ -685,7 +687,7 @@ function CompileSnapshot(sheetID, names, now, verbose)
       // Failed to obtain viable data
       good = false;
 
-      Log(`Failed to read data for <${names[name]}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
+      Log(`Failed to read data for <${name}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
 
       break;
     }

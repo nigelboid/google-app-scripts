@@ -48,7 +48,7 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
       else
       {
         // Failed to fetch web pages
-        Log("Could not fetch quotes!");
+        LogThrottled("Could not fetch quotes!");
       }
     }
     else
@@ -288,9 +288,9 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
   const labelDelta = "delta";
   const labelSettlement = "settlementType";
   const valuePreferredSettlementType = "P";
-  const valueSettlementTypeDeltaPenalty = 0.002;
+  const valueSettlementdeltaPreferenceOffset = 0.002;
   var delta = 0;
-  var deltaPenalty = 0;
+  var deltaPreferenceOffset = 0;
   var newSettlement = null;
   var currentSettlement = newSettlement;
   var contract = null;
@@ -317,71 +317,73 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
       {
         if (contract)
         {
-          // Determine a delta difference penalty for unpreferred expiration types (e.g., AM expiration)
+          // Determine a delta difference offset for unpreferred expiration types (e.g., AM expiration)
           newSettlement = chain[strike][index][labelSettlement];
           currentSettlement = contract[labelSettlement];
 
           if (newSettlement == preferredSettlement && currentSettlement != preferredSettlement)
           {
-            // Negative penalty tilts toward replacing unpreferred settlement type
-            deltaPenalty = -valueSettlementTypeDeltaPenalty;
+            // Negative offset tilts toward replacing unpreferred settlement type
+            deltaPreferenceOffset = -valueSettlementdeltaPreferenceOffset;
             LogVerbose
             (
               `Prefer replacing contract <${contract[labelSymbol]}>: ` +
               `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
               `old type = <${currentSettlement}>, new type = <${newSettlement}>, ` +
-              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+              `offset = <${deltaPreferenceOffset.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
               verbose
             );
           }
           else if (newSettlement != preferredSettlement && currentSettlement == preferredSettlement)
           {
-            // Positive penalty tilts toward keeping preferred settlement type
-            deltaPenalty = valueSettlementTypeDeltaPenalty;
+            // Positive offset tilts toward keeping preferred settlement type
+            deltaPreferenceOffset = valueSettlementdeltaPreferenceOffset;
             LogVerbose
             (
               `Prefer keeping <${contract[labelSymbol]}>: ` +
               `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
               `old type = <${currentSettlement}>, new type = <${newSettlement}>, ` +
-              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+              `offset = <${deltaPreferenceOffset.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
               verbose
             );
           }
           else
           {
-            deltaPenalty = 0;
+            deltaPreferenceOffset = 0;
             LogVerbose
             (
               `No preference for <${contract[labelSymbol]}>: ` +
               `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
               `old type = <${currentSettlement}>, new type = <${newSettlement}>, ` +
-              `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+              `offset = <${deltaPreferenceOffset.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
               verbose
             );
           }
 
           // Check for a potentially better match
-          if ((Math.abs(delta - deltaTarget) + deltaPenalty) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
+          if ((Math.abs(delta - deltaTarget) + deltaPreferenceOffset) < Math.abs(Math.abs(contract[labelDelta]) - deltaTarget))
           {
             // Found a closer match!
             if (currentSettlement == preferredSettlement && newSettlement != preferredSettlement)
             {
-              Log
+              LogVerbose
               (
                 `Found AM settlement type as a better delta match for contract <${contract[labelSymbol]}>: ` +
                 `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
                 `old type = <${currentSettlement}>, new type = <${newSettlement}>, ` +
-                `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+                `offset = <${deltaPreferenceOffset.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+                verbose
               );
             }
             else if (currentSettlement != preferredSettlement && newSettlement == preferredSettlement)
             {
-              Log
+              LogVerbose
               (
                 `Found PM settlement type as a better delta match for contract <${contract[labelSymbol]}>: ` +
                 `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
                 `old type = <${currentSettlement}>, new type = <${newSettlement}>, ` +
-                `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+                `offset = <${deltaPreferenceOffset.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+                verbose
               );
             }
             else
@@ -391,7 +393,7 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
                 `Found a better delta match with the same settlement type for contract <${contract[labelSymbol]}>: ` +
                 `old delta = <${Math.abs(contract[labelDelta])}>, new delta = <${delta}>, ` +
                 `old type = <${currentSettlement}>, new type = <${newSettlement}>, ` +
-                `penalty = <${deltaPenalty.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
+                `offset = <${deltaPreferenceOffset.toFixed(4)}>, new contract = <${chain[strike][index][labelSymbol]}>`,
                 verbose
               );
             }
