@@ -78,10 +78,10 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
   // Declare constants and local variables
   const labelCall = "CALL";
   const labelPut = "PUT";
-  const labelExpirationDate = "expirationDate";
+  const labelDateExpiration = "expirationDate";
   const labelSymbol= "symbol";
   const labelDelta= "delta";
-  const labelLastPrice= "last";
+  const labelPriceLast= "last";
   const labelDTE= "daysToExpiration";
   const preferredSettlement = "P";
   
@@ -105,7 +105,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
         for (const index in dteList)
         {
           // Looks for candidates while we have expirations
-          expirationDate = expirations[dteList[index]][labelExpirationDate];
+          expirationDate = expirations[dteList[index]][labelDateExpiration];
 
           if (!contractCall)
           {
@@ -151,7 +151,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
           (
             [
               contractCall[labelSymbol],
-              contractCall[labelLastPrice],
+              contractCall[labelPriceLast],
               contractCall[labelDelta],
               contractCall[labelDTE]
             ]
@@ -163,7 +163,7 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
           (
             [
               contractPut[labelSymbol],
-              contractPut[labelLastPrice],
+              contractPut[labelPriceLast],
               contractPut[labelDelta],
               contractPut[labelDTE]
             ]
@@ -431,8 +431,10 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
   const labelQuote = "quote";
   const labelAssetType = "assetMainType";
   const labelSymbol = "symbol";
-  const labelChangePrice = "netChange";
-  const labelLastPrice = "lastPrice";
+  const labelPriceChange = "netChange";
+  const labelPriceLast = "lastPrice";
+  const labelMark = "mark";
+  const labelMarkChange = "markChange";
   const labelClosePrice = "closePrice";
   const labelBidPrice = "bidPrice";
   const labelAskPrice = "askPrice";
@@ -444,8 +446,9 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
   const valueNoData = "no data"
   
   // Define type exceptions
-  const typeMutualFund = "MUTUAL_FUND";
-  const typeFuture = "FUTURE";
+  const labelFuture = "FUTURE";
+  const labelMutualFund = "MUTUAL_FUND";
+  const labelOption = "OPTION";
   
   // Declare local variables
   var prices = {};
@@ -458,13 +461,17 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
   const columnClose = "Close";
   const columnChange = "Change";
   const columnDelta = "Delta";
+  const columnMark = "Mark";
   var labelMap = {};
+
+  // Default column label to quote label map
   labelMap[columnBid] = labelBidPrice;
   labelMap[columnAsk] = labelAskPrice;
-  labelMap[columnLast] = labelLastPrice;
+  labelMap[columnLast] = labelPriceLast;
   labelMap[columnClose] = labelClosePrice;
-  labelMap[columnChange] = labelChangePrice;
+  labelMap[columnChange] = labelPriceChange;
   labelMap[columnDelta] = labelOptionDelta;
+  labelMap[columnMark] = labelMark;
   
   for (const quote in quotes)
   {
@@ -473,7 +480,7 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
     {
       // Symbol exists
       quoteSymbol = quotes[quote][labelSymbol];
-      if (quotes[quote][labelAssetType] == typeFuture)
+      if (quotes[quote][labelAssetType] == labelFuture)
       {
         // Adjust futures symbols to remove expiration reference
         quoteSymbol = quoteSymbol.substring(0, quoteSymbol.length - symbolFuturesCruftLength);
@@ -492,19 +499,21 @@ function ExtractPricesSchwab(quotes, symbolMap, urls, labels, verbose)
       }
       
       // Adjust labelMap based quote specifics
-      if (quotes[quote][labelAssetType] == typeMutualFund)
+      if (quotes[quote][labelAssetType] == labelMutualFund)
       {
         // Use NAV as last price for mutual funds
         labelMap[columnLast] = labelNAV;
-        labelMap[columnChange] = labelChangePrice;
-        labelMap[columnClose] = labelClosePrice;
+      }
+      else if (quotes[quote][labelAssetType] == labelOption)
+      {
+        // Use mark change as price change
+        labelMap[columnChange] = labelMarkChange;
       }
       else
       {
-        // Set to defaults
-        labelMap[columnLast] = labelLastPrice;
-        labelMap[columnChange] = labelChangePrice;
-        labelMap[columnClose] = labelClosePrice;
+        // Reset to defaults
+        labelMap[columnLast] = labelPriceLast;
+        labelMap[columnChange] = labelPriceChange;
       }
       
       for (const label in labels)
@@ -735,7 +744,8 @@ function GetAccessTokenSchwab(sheetID, verbose)
     accessToken = null;
   
     // Attempt to refresh an invalid access token
-    const refreshToken = GetRefreshTokenSchwab(sheetID, verbose);
+    // const refreshToken = GetRefreshTokenSchwab(sheetID, verbose);
+    const refreshToken = GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
 
     // Request a new access token using our valid refreh token
     if (refreshToken)
@@ -771,63 +781,15 @@ function GetAccessTokenSchwab(sheetID, verbose)
         }
       }
     }
-    else if (verbose)
+    else
     {
-      Log(`Could not obtain parameters (key= <${key}>, token= <${refreshToken}>)!`);
+      const refreshTokenStaleLoggingThrottle = 60 * 60 * 24;
+
+      LogThrottled(sheetID, `Invalid refresh token <${refreshToken}>!`, verbose, refreshTokenStaleLoggingThrottle);
     }
   }
   
   return accessToken;
-};
-
-
-/**
- * GetRefreshTokenSchwab()
- *
- * Obtain a valid refresh token for Schwab API queries
- *
- */
-function GetRefreshTokenSchwab(sheetID, verbose)
-{
-  const refreshTokenTTLOffsetDays = 7;
-  const refreshTokenStaleLoggingThrottle = 60 * 60 * 24;
-  const currentTime = new Date();
-  const refreshTokenCopy = GetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", verbose);
-  var refreshTokenExpirationTime = null;
-  var refreshToken = GetValueByName(sheetID, "ParameterSchwabTokenRefresh", verbose);
-
-  if (!refreshToken)
-  {
-    // Missing refresh token
-    LogThrottled(sheetID, `Refresh token missing <${refreshToken}>-- obtain a new one!!!`, verbose, refreshTokenStaleLoggingThrottle);
-  }
-  else if (refreshToken != refreshTokenCopy)
-  {
-    // Looks like we have a new refresh token -- save a copy and update expiration time
-    SetValueByName(sheetID, "ParameterSchwabTokenRefreshSaved", refreshToken, verbose);
-
-    refreshTokenExpirationTime = currentTime;
-    refreshTokenExpirationTime.setDate(refreshTokenExpirationTime.getDate() + refreshTokenTTLOffsetDays);
-    SetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", refreshTokenExpirationTime, verbose);
-  }
-  else
-  {
-    // The refresh token has not changed -- get its expiration time stamp
-    refreshTokenExpirationTime = GetValueByName(sheetID, "ParameterSchwabTokenRefreshTimeStamp", verbose);
-  }
-  
-  LogVerbose(`Refresh token: ${refreshToken}`, verbose);
-  LogVerbose(`Refresh token expiration: ${refreshTokenExpirationTime}`, verbose);
-    
-  if (currentTime > refreshTokenExpirationTime)
-  {
-    // Current refresh token has also expired or has no expiration value -- report and invalidate
-    LogThrottled(sheetID, "Refresh token has gone stale -- obtain a new one!!!", verbose, refreshTokenStaleLoggingThrottle);
-
-    refreshToken = null;
-  }
-
-  return refreshToken;
 };
 
 

@@ -840,7 +840,7 @@ function UpdateComplementaryHistoryEntries(sheetID, sheetName, table, columnDate
   if (columnDateSpecification)
   {
     // Found a viable sort column, proceed
-    for (const row in table)
+    for (var row = 0; row < table.length; row++)
     {
       // Check for complementary cash entries
       if (table[row][columnAction] == actionCash)
@@ -862,8 +862,8 @@ function UpdateComplementaryHistoryEntries(sheetID, sheetName, table, columnDate
           LogVerbose
           (
             `Found matching transactions on <${table[row][columnDate]}> for $<${table[row][columnAmount]}> ` +
-            `at rows <${(cashEntries[table[row][columnDate]][-table[row][columnAmount]] + historyOffset).toFixed(0)}> ` +
-            `and <${(row + historyOffset).toFixed(0)}>`,
+            `at rows <${(cashEntries[table[row][columnDate]][-table[row][columnAmount]] + historyOffset)}> ` +
+            `and <${(row + historyOffset)}>`,
             verbose
           );
           

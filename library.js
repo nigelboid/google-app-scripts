@@ -942,7 +942,7 @@ function SaveValuesInHistory(sheetID, sheetName, sourceNames, now, backupRun, up
     }
     else if (!backupRun)
     {
-      Log(`Redundant primary run at <${now}> for sheet <${sheetName}> in spreadhseet ID ${sheetID}>.`);
+      Log(`Redundant primary run at <${now}> for sheet <${sheetName}> in spreadsheet ID ${sheetID}>.`);
     }
   }
   else
@@ -950,7 +950,7 @@ function SaveValuesInHistory(sheetID, sheetName, sourceNames, now, backupRun, up
     // History does not exist for today
     if (backupRun)
     {
-      Log(`Primary run seems to have failed for sheet <${sheetName}> in spreadhseet ID <${sheetID}>...`);
+      Log(`Primary run seems to have failed for sheet <${sheetName}> in spreadsheet ID <${sheetID}>...`);
     }
     
     SaveSnapshot(sheetID, sheetName, CompileSnapshot(sheetID, sourceNames, now, verbose), false, verbose);
