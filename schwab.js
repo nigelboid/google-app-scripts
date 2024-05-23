@@ -48,7 +48,7 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
       else
       {
         // Failed to fetch web pages
-        LogThrottled("Could not fetch quotes!");
+        LogThrottled(sheetID, "Could not fetch quotes!", verbose);
       }
     }
     else
@@ -60,7 +60,7 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
   else
   {
     // Missing parameters
-    LogThrottled(sheetID, `Missing parameters: symbols= ${symbols}, headers= ${headers}`);
+    LogThrottled(sheetID, `Missing parameters: symbols= ${symbols}, headers= ${headers}`, verbose);
   }
   
   return prices;
@@ -811,7 +811,7 @@ function GetURLSchwab(sheetID, url, verbose)
   }
   else
   {
-    LogThrottled(sheetID, `Missing parameters: headers= ${headers}`);
+    LogThrottled(sheetID, `Missing parameters: headers= ${headers}`, verbose);
   }
 
   if (response)
@@ -820,7 +820,7 @@ function GetURLSchwab(sheetID, url, verbose)
   }
   else
   {
-    LogThrottled(sheetID, `Received no response for query  <${url}>`);
+    LogThrottled(sheetID, `Received no response for query  <${url}>`, verbose);
   }
 
   return content;
@@ -850,7 +850,7 @@ function PostURLSchwab(sheetID, url, payload, verbose)
   }
   else
   {
-    LogThrottled(sheetID, `Could not read stored key: ${key}`);
+    LogThrottled(sheetID, `Could not read stored key: ${key}`, verbose);
   }
 
   if (response)
@@ -859,7 +859,7 @@ function PostURLSchwab(sheetID, url, payload, verbose)
   }
   else
   {
-    LogThrottled(sheetID, `Received no response for query  <${url}>`);
+    LogThrottled(sheetID, `Received no response for query  <${url}>`, verbose);
   }
 
   return content;

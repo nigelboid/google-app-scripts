@@ -30,9 +30,9 @@ function LogVerbose(logMessage, verbose)
  */
 function LogThrottled(sheetID, logMessage, verbose, throttleOffset)
 {
-  const defaultThrottleOffset= 10 * 60;
-  const throttledTime= GetValueByName(sheetID, "ParameterAlertThrottleTime", verbose);
-  const currentTime= new Date();
+  const defaultThrottleOffset = 10 * 60;
+  const throttledTime = GetValueByName(sheetID, "ParameterAlertThrottleTime", verbose);
+  const currentTime = new Date();
   
   if (verbose == undefined)
   {
@@ -41,7 +41,7 @@ function LogThrottled(sheetID, logMessage, verbose, throttleOffset)
 
   if (throttleOffset == undefined)
   {
-    throttleOffset= defaultThrottleOffset;
+    throttleOffset = defaultThrottleOffset;
   }
   
   if (currentTime > throttledTime)
@@ -64,12 +64,12 @@ function LogThrottled(sheetID, logMessage, verbose, throttleOffset)
  */
 function ThrottleLog(sheetID, untilTimeOffset, verbose)
 {
-  const defaultThrottleOffset= 10 * 60;
-  const throttleTime= new Date();
+  const defaultThrottleOffset = 10 * 60;
+  const throttleTime = new Date();
 
   if (untilTimeOffset == undefined)
   {
-    untilTimeOffset= defaultThrottleOffset;
+    untilTimeOffset = defaultThrottleOffset;
   }
 
   if (verbose == undefined)
@@ -92,28 +92,28 @@ function ThrottleLog(sheetID, untilTimeOffset, verbose)
 function LogSend(sheetID)
 {
   // declare local variables and constants
-  var recipient= null;
-  var subject= 'Log';
-  var body= Logger.getLog();
-  var spreadsheet= null;
-  var verbose= false;
+  var recipient = null;
+  var subject = 'Log';
+  var body = Logger.getLog();
+  var spreadsheet = null;
+  var verbose = false;
  
   if (body)
   {
     // looks like we have something to send
-    recipient= GetValueByName(sheetID, "ParameterAlertEmailAddress", verbose);
+    recipient = GetValueByName(sheetID, "ParameterAlertEmailAddress", verbose);
     if (!recipient)
     {
       // Unpsecified log recipient, alert the user
       Logger.log("[LogSend] No log recipient specified for spreadsheet ID <%s>; alerting the active user instead", sheetID);
       
-      recipient= Session.getActiveUser().getEmail();
+      recipient = Session.getActiveUser().getEmail();
     }
     
     
     if (sheetID)
     {
-      if (spreadsheet= SpreadsheetApp.openById(sheetID))
+      if (spreadsheet = SpreadsheetApp.openById(sheetID))
       {
         subject= spreadsheet.getName() + " " + subject;
       }
