@@ -22,8 +22,8 @@ function RunIndexStranglesCandidates(afterHours, test)
   if (forceRefreshNow)
   {
     // User set a manual forced refresh flag for index strangles...
-    LogVerbose("Forcing a manual refresh of index strangles...");
-    LogVerbose("Clearing the flag for manual refresh of index strangles...");
+    LogVerbose("Forcing a manual refresh of index strangles...", verbose);
+    LogVerbose("Clearing the flag for manual refresh of index strangles...", verbose);
     
     SetValueByName(sheetID, forceRefreshNowName, "", verbose);
   }
@@ -80,7 +80,7 @@ function RunIndexStranglesCandidates(afterHours, test)
     }
     else
     {
-      LogThrottled(sheetID, `Found no additional candidates <${candidatesAdditional}>!`);
+      Log(`Found no additional candidates <${candidatesAdditional}>!`);
     }
 
     if (candidates.length > 0)
@@ -108,7 +108,7 @@ function RunIndexStranglesCandidates(afterHours, test)
       SetValueByName(sheetID, "IndexStranglesCandidatesUpdateStatus",
                       "Failed to find new candidates [" + DateToLocaleString(currentTime) + "]", verbose);
 
-      LogThrottled(sheetID, `Found no candidates <${candidates}>!`);
+      Log(`Found no candidates <${candidates}>!`);
       success = true;
     }
   }
