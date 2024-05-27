@@ -39,11 +39,23 @@ function RunIndexStranglesCandidates(afterHours, test)
   }
   else
   {
+    // Adjust other flags to trigger properly for testing
     verbose = test;
+    forceRefreshNow = (forceRefreshNow || test);
+  }
+
+  if (currentTime.getDate() > nextUpdateTime.getDate())
+  {
+    // Force refresh on day changes
+    forceRefreshNow = true;
+  }
+  else if (currentTime.getMonth() != nextUpdateTime.getMonth() && currentTime.getDate() == 1)
+  {
+    // Force refresh on day changes (special case for first day of the month)
+    forceRefreshNow = true;
   }
   
-  if (forceRefreshNow || test || currentTime.getDate() != nextUpdateTime.getDate()
-      || ((IsMarketOpen(sheetID, optionPrices, verbose) || afterHours) && (currentTime > nextUpdateTime)))
+  if (forceRefreshNow || ((IsMarketOpen(sheetID, optionPrices, verbose) || afterHours) && (currentTime > nextUpdateTime)))
   {
     // Only check during market hours or after a day change
     var candidates = null;
