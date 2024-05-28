@@ -14,7 +14,7 @@ function RunIndexStranglesCandidates(afterHours, test)
   var verbose = false;
   var success = false;
   
-  const forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
+  var forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
   
   const nextUpdateTime = GetValueByName(sheetID, "IndexStranglesCandidatesUpdateNext", verbose);
   const currentTime = new Date();
