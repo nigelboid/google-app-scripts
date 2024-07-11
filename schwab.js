@@ -918,19 +918,23 @@ function FetchURLSchwab(sheetID, url, headers, method, payload, verbose)
 function ExtractContentSchwab(sheetID, response)
 {
   // Declare constants and local variables
-  const responseOK= 200;
-  var contentParsed= null;
+  const responseOK = 200;
+  const contentParsed = JSON.parse(response.getContentText());
   
-  if (response.getResponseCode() == responseOK)
+  if (response.getResponseCode() != responseOK)
   {
-    // Looks like we have a valid data response
-    const content= response.getContentText();
-    contentParsed= JSON.parse(content);
-  }
-  else
-  {
-    LogThrottled(sheetID, `Data query returned error code <${response.getResponseCode()}>.`);
-    // LogThrottled(sheetID, response.getAllHeaders());
+    var errorMessage = `Data query returned error code <${response.getResponseCode()}>`;
+    
+    if (contentParsed)
+    {
+      errorMessage = errorMessage + ":\n\n" + JSON.stringify(contentParsed, null, 4);
+    }
+    else
+    {
+      errorMessage += "!";
+    }
+
+    LogThrottled(sheetID, errorMessage);
   }
 
   return contentParsed;
