@@ -777,7 +777,7 @@ function GetAccessTokenSchwab(sheetID, verbose)
         }
         else
         {
-          Log(`Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
+          LogThrottled(sheetID, `Failed to obtain refreshed access token [${accessToken}] and its time-to-live [${accessTokenTTL}]!`);
         }
       }
     }
