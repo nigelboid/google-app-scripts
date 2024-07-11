@@ -816,7 +816,7 @@ function GetURLSchwab(sheetID, url, verbose)
 
   if (response)
   {
-    content = ExtractContentSchwab(response);
+    content = ExtractContentSchwab(sheetID, response);
   }
   else
   {
@@ -855,7 +855,7 @@ function PostURLSchwab(sheetID, url, payload, verbose)
 
   if (response)
   {
-    content = ExtractContentSchwab(response);
+    content = ExtractContentSchwab(sheetID, response);
   }
   else
   {
@@ -894,6 +894,8 @@ function FetchURLSchwab(sheetID, url, headers, method, payload, verbose)
   {
     options["payload"] = payload;
   }
+
+  options["muteHttpExceptions"] = true;
   
   try
   {
@@ -913,7 +915,7 @@ function FetchURLSchwab(sheetID, url, headers, method, payload, verbose)
  *
  * Extract parsed JSON payload from a Schwab response
  */
-function ExtractContentSchwab(response)
+function ExtractContentSchwab(sheetID, response)
 {
   // Declare constants and local variables
   const responseOK= 200;
@@ -927,8 +929,8 @@ function ExtractContentSchwab(response)
   }
   else
   {
-    Log(`Data query returned error code <${response.getResponseCode()}>.`);
-    Log(response.getAllHeaders());
+    LogThrottled(sheetID, `Data query returned error code <${response.getResponseCode()}>.`);
+    // LogThrottled(sheetID, response.getAllHeaders());
   }
 
   return contentParsed;
