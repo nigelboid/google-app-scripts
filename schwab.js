@@ -68,21 +68,21 @@ function GetQuotesSchwab(sheetID, symbols, labels, urlHead, verbose)
 
 
 /**
- * GetIndexStrangleContractsSchwab()
+ * GetIndexStrangleContractsSchwabByDelta()
  *
- * Obtain and select best matching strangles
+ * Obtain and select best matching strangles by delta
  *
  */
-function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose)
+function GetIndexStrangleContractsSchwabByDelta(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose)
 {
   // Declare constants and local variables
   const labelCall = "CALL";
   const labelPut = "PUT";
   const labelDateExpiration = "expirationDate";
-  const labelSymbol= "symbol";
-  const labelDelta= "delta";
-  const labelPriceLast= "last";
-  const labelDTE= "daysToExpiration";
+  const labelSymbol = "symbol";
+  const labelDelta = "delta";
+  const labelPriceLast = "last";
+  const labelDTE = "daysToExpiration";
   const preferredSettlement = "P";
   
   var contracts = [];
@@ -132,6 +132,116 @@ function GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaTargetCall,
               expirationDate,
               labelPut,
               deltaTargetPut,
+              preferredSettlement,
+              verbose
+            );
+          }
+
+          if (contractCall && contractPut)
+          {
+            // If we found both contracts, stop searching
+            break;
+          }
+        }
+
+        // Commit viable contracts
+        if (contractCall)
+        {
+          contracts.push
+          (
+            [
+              contractCall[labelSymbol],
+              contractCall[labelPriceLast],
+              contractCall[labelDelta],
+              contractCall[labelDTE]
+            ]
+          );
+        }
+        if (contractPut)
+        {
+          contracts.push
+          (
+            [
+              contractPut[labelSymbol],
+              contractPut[labelPriceLast],
+              contractPut[labelDelta],
+              contractPut[labelDTE]
+            ]
+          );
+        }
+      }
+    }
+  }
+  
+  return contracts;
+};
+
+
+/**
+ * GetIndexStrangleContractsSchwabByStrike()
+ *
+ * Obtain and select best matching strangles by strike
+ *
+ */
+function GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, dte, strikeOffset, verbose)
+{
+  // Declare constants and local variables
+  const labelCall = "CALL";
+  const labelPut = "PUT";
+  const labelDateExpiration = "expirationDate";
+  const labelSymbol = "symbol";
+  const labelDelta = "delta";
+  const labelPriceLast = "last";
+  const labelDTE = "daysToExpiration";
+  const preferredSettlement = "P";
+  
+  var contracts = [];
+  
+  for (const index in symbols)
+  {
+    // Find candidates for each requested underlying symbol
+    const underlying = symbols[index][0];
+    
+    if (underlying)
+    {
+      const expirations = GetExpirationsByDTESchwab(sheetID, underlying, dte, verbose);
+      if (expirations)
+      {
+        const dteList = Object.keys(expirations).sort(function(a, b) { return a - b; });
+        var expirationDate = null;
+        var contractCall = null;
+        var contractPut = null;
+
+        for (const index in dteList)
+        {
+          // Looks for candidates while we have expirations
+          expirationDate = expirations[dteList[index]][labelDateExpiration];
+
+          if (!contractCall)
+          {
+            // Still looking for an appropriate call
+            contractCall = GetContractByStrikeSchwab
+            (
+              sheetID,
+              underlying,
+              expirationDate,
+              labelCall,
+              (1 + strikeOffset),
+              preferredSettlement,
+              verbose
+            );
+          }
+
+          if (!contractPut)
+          {
+            // Still looking for an appropriate put
+            contractPut = GetContractByStrikeSchwab
+            (
+              sheetID,
+              underlying,
+              expirationDate,
+              labelPut,
+              (1 - strikeOffset),
               preferredSettlement,
               verbose
             );
@@ -275,6 +385,71 @@ function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractT
 
 
 /**
+ * GetContractByStrikeSchwab()
+ *
+ * Obtain the best matching contract by strike for a given underlying, expiration, and type
+ *
+ */
+function GetContractByStrikeSchwab(sheetID, underlying, expirationDate, contractType, strikeOffset, preferredSettlement, verbose)
+{
+  // Declare constants and local variables
+  const url = ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose);
+  const labelUnderlyingPrice = "underlyingPrice";
+  var targetStrike = null;
+  var contract = null;
+
+  const contractTypeMap =
+  {
+    "CALL" : "callExpDateMap",
+    "PUT" : "putExpDateMap"
+  }
+
+  if (url)
+  {
+    const chain= GetURLSchwab(sheetID, url, verbose);
+    
+    if (chain)
+    {
+      // Data fetched -- compute target price
+      targetStrike = chain[labelUnderlyingPrice] * strikeOffset;
+      
+      // Data fetched -- extract
+      for (const expirationLabel in chain[contractTypeMap[contractType]])
+      {
+        // Check each set of strikes (should only be one set!)
+        contract = GetContractByBestStrikeMatchSchwab
+        (
+          chain[contractTypeMap[contractType]][expirationLabel],
+          targetStrike,
+          preferredSettlement,
+          verbose
+        );
+
+        if (contract)
+        {
+          // Just in case we somehow get more than one set of strikes, quit after finding a match
+          break;
+        }
+      }
+      
+    }
+    else
+    {
+      // Failed to fetch web pages
+      Log(`Could not fetch option chain for ${expirationDate}`);
+    }
+  }
+  else
+  {
+    // No prices to fetch?
+    Log("Could not compile query!");
+  }
+
+  return contract;
+};
+
+
+/**
  * GetContractByBestDeltaMatchSchwab()
  *
  * Find the best matching contract by delta within the supplied chain
@@ -288,7 +463,6 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
   const labelDelta = "delta";
   const labelSettlement = "settlementType";
   const valuePreferredSettlementType = "P";
-  const valueSettlementdeltaPreferenceOffset = 0.002;
   var delta = 0;
   var deltaPreferenceOffset = 0;
   var newSettlement = null;
@@ -415,6 +589,65 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
       }
     }
   }
+
+  return contract;
+};
+
+
+/**
+ * GetContractByBestStrikeMatchSchwab()
+ *
+ * Find the best matching contract by delta within the supplied chain
+ *
+ */
+function GetContractByBestStrikeMatchSchwab(chain, strikeTarget, preferredSettlement, verbose)
+{
+  // Declare constants and local variables
+  const labelSettlement = "settlementType";
+  const valuePreferredSettlementType = "P";
+  var newSettlement = null;
+  var contract = null;
+  var strikeNearest = "";
+
+  if (preferredSettlement == undefined)
+  {
+    // No preference -- set to default (PM)
+    preferredSettlement = valuePreferredSettlementType;
+  }
+
+
+  // Search through the chain for closest delta match within sensitivity bounds
+  for (const strike in chain)
+  {
+    // Check each strike
+    if (Math.abs(strikeTarget - strikeNearest) > Math.abs(strikeTarget - strike))
+    {
+      // Found a closer target strike
+      strikeNearest = strike;
+    }
+  }
+
+
+  // Extract best contract for this strike price
+  for (const index in chain[strikeNearest])
+  {
+    if (contract)
+    {
+      // Check for a better match
+      if (chain[strikeNearest][index][labelSettlement] == preferredSettlement)
+      {
+        contract = chain[strikeNearest][index];
+        LogVerbose(`Found our first match: strike = ${strikeNearest}`, verbose);
+      }
+    }
+    else
+    {
+      // First match!
+      contract = chain[strikeNearest][index];
+      LogVerbose(`Found our first match: strike = ${strikeNearest}`, verbose);
+    }
+  }
+
   return contract;
 };
 

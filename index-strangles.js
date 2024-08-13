@@ -67,23 +67,25 @@ function RunIndexStranglesCandidates(afterHours, test)
     const symbols = GetTableByNameSimple(sheetID, "IndexStranglesSymbols", verbose);
     const deltaTargetCall = GetValueByName(sheetID, "IndexStranglesDeltaCall", verbose);
     const deltaTargetPut = GetValueByName(sheetID, "IndexStranglesDeltaPut", verbose);
-    const firstCandidateIndex = 0;
-    const dteIndex = 3;
 
-    if (test)
-    {
-      candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
-      return success;
-    }
-    
     candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
 
-    if (candidates.length > 0)
-    {
-      // we have an initial set of candidates; adjust DTE for additional candidates
-      dte = Math.max(candidates[firstCandidateIndex][dteIndex] + 1, additionalCandidatesDTEDefault);
-    }
-    candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
+    // if (test)
+    // {
+    //   return success;
+    // }
+    
+    // if (candidates.length > 0)
+    // {
+    //   const firstCandidateIndex = 0;
+    //   const dteIndex = 3;
+
+    //   // we have an initial set of candidates; adjust DTE for additional candidates
+    //   dte = Math.max(candidates[firstCandidateIndex][dteIndex] + 1, additionalCandidatesDTEDefault);
+    // }
+    // candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
+
+    candidatesAdditional = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
     
     if (candidatesAdditional.length > 0)
     {
@@ -145,12 +147,40 @@ function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, v
   
   if (symbols && dte && deltaCall && deltaPut)
   {
-    candidates= GetIndexStrangleContractsSchwab(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
+    candidates= GetIndexStrangleContractsSchwabByDelta(sheetID, symbols, dte, deltaCall, deltaPut, verbose);
   }
   else
   {
     // Missing parameters
+    candidates= [];
     Log(`Missing parameters: symbols= ${symbols}, DTE= ${dte}, calls delta= ${deltaCall}, puts delta= ${deltaPut}`);
+  }
+
+  return candidates;
+};
+
+
+/**
+ * GetIndexStrangleContractsHedge()
+ *
+ * Obtain and select best matching strangles
+ *
+ */
+function GetIndexStrangleContractsHedge(sheetID, symbols, verbose)
+{
+  const hedgeStrikeOffset = GetValueByName(sheetID, "IndexStranglesHedgeOffset", verbose);
+  const hedgeDTE = GetValueByName(sheetID, "IndexStranglesHedgeDTE", verbose);
+  var candidates= null;
+
+  if (symbols && hedgeStrikeOffset && hedgeDTE)
+  {
+    candidates= GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, hedgeDTE, hedgeStrikeOffset, verbose);
+  }
+  else
+  {
+    // Missing parameters
+    candidates= [];
+    Log(`Missing parameters: symbols= ${symbols}, DTE= ${hedgeDTE}, offset= ${hedgeStrikeOffset}`);
   }
 
   return candidates;
