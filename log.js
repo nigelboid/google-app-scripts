@@ -30,7 +30,7 @@ function LogVerbose(logMessage, verbose)
  */
 function LogThrottled(sheetID, logMessage, verbose, throttleOffset)
 {
-  const defaultThrottleOffset = 10 * 60;
+  const defaultThrottleOffset = 60 * 60;
   const throttledTime = GetValueByName(sheetID, "ParameterAlertThrottleTime", verbose);
   const currentTime = new Date();
   

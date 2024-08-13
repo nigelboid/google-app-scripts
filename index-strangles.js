@@ -18,15 +18,6 @@ function RunIndexStranglesCandidates(afterHours, test)
   
   const nextUpdateTime = GetValueByName(sheetID, "IndexStranglesCandidatesUpdateNext", verbose);
   const currentTime = new Date();
-
-  if (forceRefreshNow)
-  {
-    // User set a manual forced refresh flag for index strangles...
-    LogVerbose("Forcing a manual refresh of index strangles...", verbose);
-    LogVerbose("Clearing the flag for manual refresh of index strangles...", verbose);
-    
-    SetValueByName(sheetID, forceRefreshNowName, "", verbose);
-  }
   
   if (afterHours == undefined)
   {
@@ -44,15 +35,27 @@ function RunIndexStranglesCandidates(afterHours, test)
     forceRefreshNow = (forceRefreshNow || test);
   }
 
-  if (currentTime.getDate() > nextUpdateTime.getDate())
+  if (forceRefreshNow)
   {
-    // Force refresh on day changes
-    forceRefreshNow = true;
+    // User set a manual forced refresh flag for index strangles...
+    LogVerbose("Forcing a manual refresh of index strangles...", verbose);
+    LogVerbose("Clearing the flag for manual refresh of index strangles...", verbose);
+    
+    SetValueByName(sheetID, forceRefreshNowName, "", verbose);
   }
-  else if (currentTime.getMonth() != nextUpdateTime.getMonth() && currentTime.getDate() == 1)
+  else
   {
-    // Force refresh on day changes (special case for first day of the month)
-    forceRefreshNow = true;
+    // Check for day changes
+    if (currentTime.getDate() > nextUpdateTime.getDate())
+    {
+      // Force refresh on day changes
+      forceRefreshNow = true;
+    }
+    else if (currentTime.getMonth() != nextUpdateTime.getMonth() && currentTime.getDate() == 1)
+    {
+      // Force refresh on day changes (special case for first day of the month)
+      forceRefreshNow = true;
+    }
   }
   
   if (forceRefreshNow || ((IsMarketOpen(sheetID, optionPrices, verbose) || afterHours) && (currentTime > nextUpdateTime)))

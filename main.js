@@ -34,7 +34,7 @@ function RunBackup()
 function RunDaily(backupRun)
 {
   RunPersonal(backupRun);
-  RunLendingClubDaily(backupRun);
+  // RunLendingClubDaily(backupRun);
 };
 
 
@@ -49,8 +49,8 @@ function RunHourly()
   
   RunQuotes(afterHours);
   RunPersonalHourly();
-  RunLendingClubHourly();
   RunAuxiliary();
+  // RunLendingClubHourly();
 };
 
 
