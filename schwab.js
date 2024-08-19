@@ -463,6 +463,7 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
   const labelDelta = "delta";
   const labelSettlement = "settlementType";
   const valuePreferredSettlementType = "P";
+  const valueSettlementDeltaPreferenceOffset = 0.002;
   var delta = 0;
   var deltaPreferenceOffset = 0;
   var newSettlement = null;
@@ -498,7 +499,7 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
           if (newSettlement == preferredSettlement && currentSettlement != preferredSettlement)
           {
             // Negative offset tilts toward replacing unpreferred settlement type
-            deltaPreferenceOffset = -valueSettlementdeltaPreferenceOffset;
+            deltaPreferenceOffset = -valueSettlementDeltaPreferenceOffset;
             LogVerbose
             (
               `Prefer replacing contract <${contract[labelSymbol]}>: ` +
@@ -511,7 +512,7 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
           else if (newSettlement != preferredSettlement && currentSettlement == preferredSettlement)
           {
             // Positive offset tilts toward keeping preferred settlement type
-            deltaPreferenceOffset = valueSettlementdeltaPreferenceOffset;
+            deltaPreferenceOffset = valueSettlementDeltaPreferenceOffset;
             LogVerbose
             (
               `Prefer keeping <${contract[labelSymbol]}>: ` +
