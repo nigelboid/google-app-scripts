@@ -165,6 +165,9 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   // Preserve some current prices for later comparisons
   SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
   
+  // Preserve long option position data for conflict-free automation
+  SaveValue(mainSheetID, "PortfolioHeldOptionsLong", "PortfolioHeldOptionsLongSaved", verbose);
+  
   // Preserve current cash position for later comparisons
   const maxDebt = -2000000;
   SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
