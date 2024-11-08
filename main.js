@@ -50,7 +50,7 @@ function RunHourly()
   RunPersonalHourly();
   RunAuxiliary();
 
-  // RunComEdFrequently();
+  RunComEdFrequently();
 };
 
 
@@ -69,7 +69,7 @@ function RunFrequently()
     if (!RunQuotes(afterHours))
     {
       // Only check electricity prices if the rest skipped (try to stay within a narrow execution window)
-      RunComEdFrequently();
+      // RunComEdFrequently();
     }
   }
 };

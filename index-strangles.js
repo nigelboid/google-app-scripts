@@ -70,22 +70,8 @@ function RunIndexStranglesCandidates(afterHours, test)
 
     candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
 
-    // if (test)
-    // {
-    //   return success;
-    // }
-    
-    // if (candidates.length > 0)
-    // {
-    //   const firstCandidateIndex = 0;
-    //   const dteIndex = 3;
-
-    //   // we have an initial set of candidates; adjust DTE for additional candidates
-    //   dte = Math.max(candidates[firstCandidateIndex][dteIndex] + 1, additionalCandidatesDTEDefault);
-    // }
-    // candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
-
-    candidatesAdditional = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
+    //candidatesAdditional = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
+    candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall / 2, deltaTargetPut / 3, verbose);
     
     if (candidatesAdditional.length > 0)
     {
