@@ -162,6 +162,14 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   };
   SaveValuesInHistory(mainSheetID, navHistorySheetName, navNames, scriptTime, backupRun, updateRun, verbose);
   
+  // Preserve latest $SGOV price
+  const sgovHistorySheetName = "H: SGOV";
+  const sgovNames =
+  {
+    "PriceSGOV" : 0
+  };
+  SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
+  
   // Preserve some current prices for later comparisons
   SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
   
