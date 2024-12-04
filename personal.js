@@ -164,11 +164,21 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   
   // Preserve latest $SGOV price
   const sgovHistorySheetName = "H: SGOV";
+  const sgovDividendName = "SGOVDividend";
+  const sgovDividend = GetValueByName(mainSheetID, sgovDividendName, verbose);
   const sgovNames =
   {
-    "PriceSGOV" : 0
+    "SGOVPrice" : 0,
+    sgovDividendName : -1
   };
   SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
+
+  if (sgovDividend)
+  {
+    // Clear preserved value
+    Log(`Clearing <${sgovDividendName}> [value = ${sgovDividend}]...`);
+    SetValueByName(sheetID, sgovDividendName, "", verbose);
+  }
   
   // Preserve some current prices for later comparisons
   SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
