@@ -169,7 +169,7 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   const sgovNames =
   {
     "SGOVPrice" : 0,
-    sgovDividendName : -1
+    "SGOVDividend" : -1
   };
   SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
 
