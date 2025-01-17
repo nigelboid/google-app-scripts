@@ -169,15 +169,16 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   const sgovNames =
   {
     "SGOVPrice" : 0,
-    "SGOVDividend" : -1
+    "SGOVDividend" : -1,
+    "SGOVSevenDayYield" : 0
   };
   SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
 
   if (sgovDividend)
   {
     // Clear preserved value
-    Log(`Clearing <${sgovDividendName}> [value = ${sgovDividend}]...`);
-    SetValueByName(sheetID, sgovDividendName, "", verbose);
+    LogVerbose(`Clearing <${sgovDividendName}> [value = ${sgovDividend}]...`, verbose);
+    SetValueByName(mainSheetID, sgovDividendName, "", verbose);
   }
   
   // Preserve some current prices for later comparisons
@@ -208,6 +209,13 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   {
     // Values updated -- update time stamp
     UpdateTime(mainSheetID, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
+  }
+
+  // Update earliest active date
+  if (!backupRun)
+  {
+    // Only attempt once a day
+    SaveValue(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers, 0);
   }
 };
 
