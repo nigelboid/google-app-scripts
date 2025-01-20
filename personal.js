@@ -457,7 +457,9 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, ve
         "TaxesStateDeductions",
         "TaxesFederalOverpayment",
         "TaxesStateOverpayment",
-        "Gains1256Unrealized"
+        "Gains1256Unrealized",
+        "GainsLongLossesCarryForward",
+        "GainsShortLossesCarryForward"
       ];
       destinationNames = MapNames(sourceNames, "Prior", "Running");
       
