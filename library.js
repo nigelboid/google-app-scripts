@@ -295,12 +295,24 @@ function SetTableByName(sheetID, destinationName, table, verbose)
           }
           
           // write out the values
-          range= range.setValues(table);
-          if (!range)
+          range = range.clearContent();
+          if (range)
+          {
+            range= range.setValues(table);
+            if (!range)
+            {
+              if (verbose)
+              {
+                Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s>.", destinationName, spreadsheet.getName());
+              }
+              success= false;
+            }
+          }
+          else
           {
             if (verbose)
             {
-              Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s>.", destinationName, spreadsheet.getName());
+              Log(`Could not clear contents of range named <${destinationName}> in spreadsheet <${spreadsheet.getName()}>.`);
             }
             success= false;
           }
