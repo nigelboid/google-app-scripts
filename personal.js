@@ -184,6 +184,9 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   // Preserve some current prices for later comparisons
   SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
   
+  // Preserve all current portfolio symbols for conflict-free automation
+  SaveValue(mainSheetID, "PortfolioSymbols", "PortfolioSymbolsSaved", verbose);
+  
   // Preserve long option position data for conflict-free automation
   SaveValue(mainSheetID, "PortfolioHeldOptionsLong", "PortfolioHeldOptionsLongSaved", verbose);
   
