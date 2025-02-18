@@ -184,6 +184,9 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   // Preserve some current prices for later comparisons
   SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
   
+  // Preserve all current portfolio symbols for conflict-free automation
+  SaveValue(mainSheetID, "PortfolioSymbols", "PortfolioSymbolsSaved", verbose);
+  
   // Preserve long option position data for conflict-free automation
   SaveValue(mainSheetID, "PortfolioHeldOptionsLong", "PortfolioHeldOptionsLongSaved", verbose);
   
@@ -553,16 +556,17 @@ function RectifyAnnualDocument(annualSheetIDs, verbose, verboseChanges)
 function MaintainHistoriesMain(mainSheetID, verbose)
 {
   // declare constants and local variables
-  const sheetNamesList= GetValueByName(mainSheetID, "ParametersHistorySortNames", verbose);
-  const historySpecificationRange= GetValueByName(mainSheetID, "ParametersHistorySortRange", verbose);
-  const columnDate= GetValueByName(mainSheetID, "ParameterPortfolioHistoryColumnDate", verbose);
-  const isAscending= true;
+  const sheetNamesList = GetValueByName(mainSheetID, "ParametersHistorySortNames", verbose);
+  const historySpecificationRange = GetValueByName(mainSheetID, "ParametersHistorySortRange", verbose);
+  const columnDate = GetValueByName(mainSheetID, "ParameterPortfolioHistoryColumnDate", verbose);
+  const isAscending = true;
+  const daysVisible = 30;
 
-  var spreadsheet= null;
-  var rangeSpecification= null;
-  var range= null;
-  var table= null;
-  var success= true;
+  var spreadsheet = null;
+  var rangeSpecification = null;
+  var range = null;
+  var table = null;
+  var success = true;
 
   
   if (sheetNamesList.length > 0)
@@ -601,7 +605,7 @@ function MaintainHistoriesMain(mainSheetID, verbose)
           }
           
           // Fix visibility issues, if any
-          if (!FixHistoryVisibilityFault(range, columnDate, verbose))
+          if (!FixHistoryVisibilityFault(range, columnDate, daysVisible, verbose))
           {
             success = false;
             Log("Failed to adjust history visibility!");
@@ -698,6 +702,7 @@ function ReconcilePortfolioHistory(sheetID, verbose)
   const rangeSpecification = GetValueByName(sheetID, "ParameterPortfolioHistoryRange", verbose);
   const columnDate = GetValueByName(sheetID, "ParameterPortfolioHistoryColumnDate", verbose);
   const isAscending = true;
+  const daysVisible = 7;
   const spreadsheet = SpreadsheetApp.openById(sheetID);
   var range = null;
   var table = null;
@@ -727,7 +732,7 @@ function ReconcilePortfolioHistory(sheetID, verbose)
       }
       
       // Fix visibility issues, if any
-      if (!FixHistoryVisibilityFault(range, columnDate, verbose))
+      if (!FixHistoryVisibilityFault(range, columnDate, daysVisible, verbose))
       {
         success = false;
         Log("Failed to adjust history visibility!");
@@ -760,13 +765,7 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
   const table = GetTableByRangeSimple(range, verbose);;
   var row = null;
   var sortRequired = false;
-  
-  // Create interesting dates
   var lastDate = null;
-  var oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-  // Adjust column index to accommodate zero-first instead of one-first
   const columnDate = columnDateGoogle - 1;
   
   if (table)
@@ -942,7 +941,7 @@ function UpdateComplementaryHistoryEntries(sheetID, sheetName, table, columnDate
  *
  * Fix improperly shown or hidden rows (expects ascending sorted history)
  */
-function FixHistoryVisibilityFault(range, columnDateGoogle, verbose)
+function FixHistoryVisibilityFault(range, columnDateGoogle, daysVisible, verbose)
 {
   // Declare constants and local variables
   const table = GetTableByRangeSimple(range, verbose);
@@ -953,15 +952,15 @@ function FixHistoryVisibilityFault(range, columnDateGoogle, verbose)
   // Adjust column index to accommodate zero-first instead of one-first
   const columnDate= columnDateGoogle - 1;
   
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const earliestVisibleDate = new Date();
+  earliestVisibleDate.setDate(earliestVisibleDate.getDate() - daysVisible);
   
   if (table)
   {
     // Check history starting with the newest entries until encountering a date too old to show
     for (var row = table.length - 1; row > 0; row--)
     {
-      if (table[row][columnDate] && table[row][columnDate] < oneWeekAgo)
+      if (table[row][columnDate] && table[row][columnDate] < earliestVisibleDate)
       {
         // found the first row too old to show or consider -- that is all we want
         rowsToLowestOld = row;
