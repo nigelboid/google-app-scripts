@@ -814,6 +814,9 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
  */
 function FixHistorySortFault(sheetID, range, table, columnDate, verbose)
 {
+  // Declare constants and local variables
+  const columnAmount = GetValueByName(sheetID, "ParameterPortfolioHistoryColumnAmount", verbose);
+
   // Sorting with hidden rows triggers headaches
   range.getSheet().showRows(range.getRow(), range.getHeight());
 
@@ -824,7 +827,12 @@ function FixHistorySortFault(sheetID, range, table, columnDate, verbose)
     Log("Failed to update complementary history entries -- will proceed regardless...");
   }
   
-  range = range.sort(columnDate + range.getColumn() - 1);
+  range = range.sort(
+    [
+      {column: (columnDate + range.getColumn() - 1), ascending: true},
+      {column: (columnAmount + range.getColumn() - 1), ascending: false}
+    ]);
+
   if (range)
   {
     // Flush any changes applied
