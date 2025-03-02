@@ -158,7 +158,8 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
     "FreeCashFlowWeek" : -10000000,
     "FreeCashFlowWeekPercent" : -1,
     "HighWaterMark" : 0,
-    "AssetsNAVCurrent" : 0
+    "AssetsNAVCurrent" : 0,
+    "ManagedValue" : -1
   };
   SaveValuesInHistory(mainSheetID, navHistorySheetName, navNames, scriptTime, backupRun, updateRun, verbose);
   
