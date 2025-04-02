@@ -19,7 +19,7 @@ function RunPersonal(backupRun)
     if (annualSheetIDs != undefined)
     {
       UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun, confirmNumbers);
-      SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, verbose, verboseChanges);
+      // SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, verbose, verboseChanges);
 
       if (backupRun)
       {
@@ -68,7 +68,9 @@ function RunPersonalHourly()
     if (annualSheetIDs != undefined)
     {
       SynchronizeMainAndAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, verbose);
+      SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, verbose, verboseChanges);
       RectifyAnnualDocument(annualSheetIDs, verbose, verboseChanges);
+      
     }
     else
     {
