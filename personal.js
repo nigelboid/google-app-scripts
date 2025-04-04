@@ -191,7 +191,7 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   SaveValue(mainSheetID, "PortfolioSymbols", "PortfolioSymbolsSaved", verbose);
   
   // Preserve long option position data for conflict-free automation
-  SaveValue(mainSheetID, "PortfolioHeldOptionsLong", "PortfolioHeldOptionsLongSaved", verbose);
+  SaveValue(mainSheetID, "PortfolioHeldOptionsLongAndEuro", "PortfolioHeldOptionsLongAndEuroSaved", verbose);
   
   // Preserve current cash position for later comparisons
   const maxDebt = -2000000;
@@ -479,7 +479,7 @@ function SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, ve
         Log(`Failed to synchronize annual sheet for prior year <${priorYear}> to the main sheet for range <${destinationNames}>.`);
       }
     
-      // Allocations Prior
+      // Allocations and Taxes (prior year)
       sourceNames =
       [
         "ReturnManaged",
