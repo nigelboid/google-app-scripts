@@ -687,7 +687,26 @@ function CompileSnapshot(sheetID, names, dateTimeNow, verbose)
       // Failed to obtain viable data
       good = false;
 
-      Log(`Failed to read data for <${name}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
+      const spreadsheet = SpreadsheetApp.openById(sheetID);
+      if (spreadsheet)
+      {
+        const sheetName = spreadsheet.getName();
+
+        if (sheetName)
+        {
+          Log(`Failed to read data for <${name}> from sheet <${sheetName}>, skipping the entire snapshot...`);
+        }
+        else
+        {
+          Log(`Failed to read data for <${name}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
+          Log(`Also, failed to obtain the name of the sheet.`);
+        }
+      }
+      else
+      {
+        Log(`Failed to read data for <${name}> from sheet ID <${sheetID}>, skipping the entire snapshot...`);
+        Log(`Also, failed to open the sheet by ID.`);
+      }
 
       break;
     }
