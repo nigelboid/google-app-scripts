@@ -173,7 +173,7 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   {
     "SGOVPrice" : 0,
     "SGOVDividend" : -1,
-    "SGOVSevenDayYield" : 0
+    "SGOVSevenDayYield" : -1
   };
   SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
 
