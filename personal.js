@@ -561,7 +561,7 @@ function MaintainHistoriesMain(mainSheetID, verbose)
   // declare constants and local variables
   const sheetNamesList = GetValueByName(mainSheetID, "ParametersHistorySortNames", verbose);
   const historySpecificationRange = GetValueByName(mainSheetID, "ParametersHistorySortRange", verbose);
-  const columnDate = GetValueByName(mainSheetID, "ParameterPortfolioHistoryColumnDate", verbose);
+  const columnDate = GetValueByName(mainSheetID, "ParameterHistoryColumnDate", verbose);
   const isAscending = true;
   const daysVisible = 30;
 
@@ -702,10 +702,10 @@ function MaintainHistoriesAnnual(sheetID, verbose)
 function ReconcilePortfolioHistory(sheetID, verbose)
 {
   // declare constants and local variables
-  const rangeSpecification = GetValueByName(sheetID, "ParameterPortfolioHistoryRange", verbose);
-  const columnDate = GetValueByName(sheetID, "ParameterPortfolioHistoryColumnDate", verbose);
+  const rangeSpecification = GetValueByName(sheetID, "HistoryRange", verbose);
+  const columnDate = GetValueByName(sheetID, "ParameterHistoryColumnDate", verbose);
   const isAscending = true;
-  const daysVisible = 7;
+  const daysVisible = GetValueByName(sheetID, "HistoryDaysVisible", verbose);;
   const spreadsheet = SpreadsheetApp.openById(sheetID);
   var range = null;
   var table = null;
@@ -818,7 +818,7 @@ function FindHistorySortFault(range, columnDateGoogle, isAscending, verbose)
 function FixHistorySortFault(sheetID, range, table, columnDate, verbose)
 {
   // Declare constants and local variables
-  const columnAmount = GetValueByName(sheetID, "ParameterPortfolioHistoryColumnAmount", verbose);
+  const columnAmount = GetValueByName(sheetID, "ParameterHistoryColumnAmount", verbose);
 
   // Sorting with hidden rows triggers headaches
   range.getSheet().showRows(range.getRow(), range.getHeight());
@@ -860,8 +860,8 @@ function FixHistorySortFault(sheetID, range, table, columnDate, verbose)
 function UpdateComplementaryHistoryEntries(sheetID, sheetName, table, columnDateGoogle, historyOffset, verbose)
 {
   // declare constants and local variables
-  const columnAction = GetValueByName(sheetID, "ParameterPortfolioHistoryColumnAction", verbose) - 1;
-  const columnAmount = GetValueByName(sheetID, "ParameterPortfolioHistoryColumnAmount", verbose) - 1;
+  const columnAction = GetValueByName(sheetID, "ParameterHistoryColumnAction", verbose) - 1;
+  const columnAmount = GetValueByName(sheetID, "ParameterHistoryColumnAmount", verbose) - 1;
   const actionCash = "Cash";
   
   var cell = null;
