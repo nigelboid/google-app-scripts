@@ -31,8 +31,8 @@ function RunComEdFrequently()
         {
           if (parameters["noNewPricesAlert"])
           {
-            Logger.log("[RunComEdFrequently] New prices updated after a delay (%s minutes)",
-                        ConvertMillisecondsToMinutes(parameters["scriptTime"] - lastStamp));
+            Logger.log("[RunComEdFrequently] New prices updated after a delay (%s minutes, %s¢)",
+                        ConvertMillisecondsToMinutes(parameters["scriptTime"] - lastStamp), parameters["priceLast"]);
             ClearMissingPricesAlertStamp(parameters);
           }
             

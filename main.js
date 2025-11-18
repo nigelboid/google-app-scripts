@@ -46,11 +46,12 @@ function RunHourly()
 {
   var afterHours = true;
   
-  RunQuotes(afterHours);
+  RunComEdFrequently();
+  
   RunPersonalHourly();
   RunAuxiliary();
 
-  RunComEdFrequently();
+  RunQuotes(afterHours);
 };
 
 
@@ -69,7 +70,7 @@ function RunFrequently()
     if (!RunQuotes(afterHours))
     {
       // Only check electricity prices if the rest skipped (try to stay within a narrow execution window)
-      // RunComEdFrequently();
+      RunComEdFrequently();
     }
   }
 };

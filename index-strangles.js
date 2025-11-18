@@ -10,7 +10,6 @@ function RunIndexStranglesCandidates(afterHours, test)
   const sheetID = GetMainSheetID();
   const forceRefreshNowName = "IndexStranglesForceRefreshNow";
   const optionPrices = true;
-  const additionalCandidatesDTEDefault = 60;
   var verbose = false;
   var success = false;
   
@@ -70,21 +69,22 @@ function RunIndexStranglesCandidates(afterHours, test)
 
     candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
 
-    //candidatesAdditional = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
-    candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall / 2, deltaTargetPut / 3, verbose);
+    // candidatesAdditional = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
+
+    // candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall / 2, deltaTargetPut / 3, verbose);
     
-    if (candidatesAdditional.length > 0)
-    {
-      // Add a blank line
-      candidates.push([""]);
+    // if (candidatesAdditional.length > 0)
+    // {
+    //   // Add a blank line
+    //   candidates.push([""]);
     
-      // Add near-term candidates to the list of our primary candidates
-      candidates = candidates.concat(candidatesAdditional);
-    }
-    else
-    {
-      Log(`Found no additional candidates <${candidatesAdditional}>!`);
-    }
+    //   // Add near-term candidates to the list of our primary candidates
+    //   candidates = candidates.concat(candidatesAdditional);
+    // }
+    // else
+    // {
+    //   Log(`Found no additional candidates <${candidatesAdditional}>!`);
+    // }
 
     if (candidates.length > 0)
     {
