@@ -67,9 +67,9 @@ function RunIndexStranglesCandidates(afterHours, test)
     const deltaTargetCall = GetValueByName(sheetID, "IndexStranglesDeltaCall", verbose);
     const deltaTargetPut = GetValueByName(sheetID, "IndexStranglesDeltaPut", verbose);
 
-    candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
+    // candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
 
-    // candidatesAdditional = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
+    candidates = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
 
     // candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall / 2, deltaTargetPut / 3, verbose);
     

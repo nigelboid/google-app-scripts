@@ -183,7 +183,7 @@ function GetIndexStrangleContractsSchwabByDelta(sheetID, symbols, dte, deltaTarg
  * Obtain and select best matching strangles by strike
  *
  */
-function GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, dte, strikeOffset, verbose)
+function GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, dte, strikeOffset, strikeFactor, verbose)
 {
   // Declare constants and local variables
   const labelCall = "CALL";
@@ -227,6 +227,7 @@ function GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, dte, strikeOf
               expirationDate,
               labelCall,
               (1 + strikeOffset),
+              strikeFactor,
               preferredSettlement,
               verbose
             );
@@ -242,6 +243,7 @@ function GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, dte, strikeOf
               expirationDate,
               labelPut,
               (1 - strikeOffset),
+              strikeFactor,
               preferredSettlement,
               verbose
             );
@@ -390,7 +392,7 @@ function GetContractByDeltaSchwab(sheetID, underlying, expirationDate, contractT
  * Obtain the best matching contract by strike for a given underlying, expiration, and type
  *
  */
-function GetContractByStrikeSchwab(sheetID, underlying, expirationDate, contractType, strikeOffset, preferredSettlement, verbose)
+function GetContractByStrikeSchwab(sheetID, underlying, expirationDate, contractType, offset, factor, preferredSettlement, verbose)
 {
   // Declare constants and local variables
   const url = ConstructUrlChainByExpirationSchwab(underlying, expirationDate, contractType, verbose);
@@ -411,7 +413,16 @@ function GetContractByStrikeSchwab(sheetID, underlying, expirationDate, contract
     if (chain)
     {
       // Data fetched -- compute target price
-      targetStrike = chain[labelUnderlyingPrice] * strikeOffset;
+      targetStrike = chain[labelUnderlyingPrice] * offset;
+      if (contractType == "PUT")
+      {
+        targetStrike = Math.floor(targetStrike / factor) * factor;
+      }
+      else
+      {
+        targetStrike = Math.ceil(targetStrike / factor) * factor;
+      }
+      
       
       // Data fetched -- extract
       for (const expirationLabel in chain[contractTypeMap[contractType]])
