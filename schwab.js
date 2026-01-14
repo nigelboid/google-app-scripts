@@ -606,7 +606,6 @@ function GetContractByBestStrikeMatchSchwab(chain, strikeTarget, preferredSettle
   // Declare constants and local variables
   const labelSettlement = "settlementType";
   const valuePreferredSettlementType = "P";
-  var newSettlement = null;
   var contract = null;
   var strikeNearest = "";
 

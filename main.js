@@ -64,7 +64,10 @@ function RunFrequently()
 {
   var afterHours = false;
   
-  if (!RunIndexStranglesCandidates(afterHours))
+  // if (!RunIndexStranglesCandidates(afterHours))
+  //
+  // Gather index strangle candites within the spreadsheet, for now
+  if (true)
   {
     // Only update quotes if candidates and boxes skipped (new candidates and boxes will force quotes)
     if (!RunQuotes(afterHours))
