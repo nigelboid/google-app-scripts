@@ -11,6 +11,11 @@ function RunPersonal(backupRun)
   const verbose = false;
   const verboseChanges = true;
   const confirmNumbers = true;
+
+  // // End of year special
+  // Log("Skipping daily runs at the end of the year...");
+  // LogSend(mainSheetID);
+  // return false;
   
   if (mainSheetID != undefined)
   {

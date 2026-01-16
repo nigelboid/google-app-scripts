@@ -69,7 +69,7 @@ function RunIndexStranglesCandidates(afterHours, test)
 
     // candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
 
-    candidates = GetIndexStrangleContractsHedge(sheetID, symbols, verbose);
+    candidates = GetIndexStrangleContractsIncome(sheetID, symbols, verbose);
 
     // candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall / 2, deltaTargetPut / 3, verbose);
     
@@ -149,18 +149,50 @@ function GetIndexStrangleContracts(sheetID, symbols, dte, deltaCall, deltaPut, v
 /**
  * GetIndexStrangleContractsHedge()
  *
- * Obtain and select best matching strangles
+ * Obtain and select best matching strangles (hedge strategy)
  *
  */
 function GetIndexStrangleContractsHedge(sheetID, symbols, verbose)
 {
   const hedgeStrikeOffset = GetValueByName(sheetID, "IndexStranglesHedgeOffset", verbose);
   const hedgeDTE = GetValueByName(sheetID, "IndexStranglesHedgeDTE", verbose);
+  const hedgeStrikeFactor = 100;
   var candidates= null;
 
   if (symbols && hedgeStrikeOffset && hedgeDTE)
   {
-    candidates= GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, hedgeDTE, hedgeStrikeOffset, verbose);
+    candidates= GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, hedgeDTE, hedgeStrikeOffset, hedgeStrikeFactor, verbose);
+  }
+  else
+  {
+    // Missing parameters
+    candidates= [];
+    Log(`Missing parameters: symbols= ${symbols}, DTE= ${hedgeDTE}, offset= ${hedgeStrikeOffset}`);
+  }
+
+  return candidates;
+};
+
+
+/**
+ * GetIndexStrangleContractsIncome()
+ *
+ * Obtain and select best matching strangles (income strategy)
+ *
+ */
+function GetIndexStrangleContractsIncome(sheetID, symbols, verbose)
+{
+  const hedgeStrikeOffset = GetValueByName(sheetID, "IndexStranglesHedgeOffset", verbose);
+  const hedgeDTE = GetValueByName(sheetID, "IndexStranglesHedgeDTE", verbose);
+  const hedgeStrikeFactor = 100;
+  var candidates= null;
+
+  // Override symbol list -- look for SPX contracts only
+  symbols = [["$SPX"]];
+
+  if (symbols && hedgeStrikeOffset && hedgeDTE)
+  {
+    candidates= GetIndexStrangleContractsSchwabByStrike(sheetID, symbols, hedgeDTE, hedgeStrikeOffset, hedgeStrikeFactor, verbose);
   }
   else
   {
