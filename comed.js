@@ -6,39 +6,38 @@
 function RunComEdFrequently()
 {
   // Declare constants and local variables
-  var verbose= false;
-  var parameters= GetParametersComed(verbose);
-  var lastStamp= GetLatestTimeStamp(parameters);
-  var success= false;
+  const verbose = false;
+  var parameters = GetParametersComed(verbose);
+  const lastStamp = GetLatestTimeStamp(parameters);
+  const minutesElapsed = ConvertMillisecondsToMinutes(parameters["scriptTime"] - lastStamp);
+  var success = false;
 
   // Since ComEd provides 5-minutes prices and provides them about 8 minutes late,
   //   only run if more than 8 minutes have elapsed since the last entry and if not already running
   if (lastStamp && parameters["scriptTime"] > (lastStamp + parameters["checkThreshold"]))
   {
     UpdateStatus(parameters, "Getting prices...");
-    var prices= GetPricesComed(parameters, lastStamp);
-    
-    //Logger.log("[RunComEdFrequently] Stale prices stamp (%s)", parameters["noNewPricesAlert"].toFixed(0));
+    const prices = GetPricesComed(parameters, lastStamp);
     
     if (prices.length > 0)
     {
       // Looks like we have data, proceed
       UpdateStatus(parameters, "Getting prices: Latest prices obtained!");
       
-      if (success= PrepareToCommit(parameters))
+      if (success = PrepareToCommit(parameters))
       {
-        if (success= SavePrices(parameters, prices))
+        if (success = SavePrices(parameters, prices))
         {
           if (parameters["noNewPricesAlert"])
           {
-            Logger.log("[RunComEdFrequently] New prices updated after a delay (%s minutes, %s¢)",
-                        ConvertMillisecondsToMinutes(parameters["scriptTime"] - lastStamp), parameters["priceLast"]);
+            Log(`New prices updated after a delay (${minutesElapsed} minutes, ${parameters["priceLast"]}¢)`);
+            // LogVerbose(`New prices updated after a delay (${minutesElapsed} minutes, ${parameters["priceLast"]}¢)`, verbose);
             ClearMissingPricesAlertStamp(parameters);
           }
             
-          if (success= UpdateComputedValues(parameters))
+          if (success = UpdateComputedValues(parameters))
           {
-            success= Notify(parameters);
+            success = Notify(parameters);
           }
         }
       }
@@ -47,27 +46,29 @@ function RunComEdFrequently()
       if (success)
       {
         // Complete and successful new price commitment: attempt to clear semaphore
-        success= ClearSemaphore(parameters);
+        success = ClearSemaphore(parameters);
         if(!success)
         {
-          Logger.log("[RunComEdFrequently] Failed to clear current semaphore (%s) upon completion!", parameters["scriptTime"].toFixed(0));
+          Log(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)}) upon completion!`);
+          // LogVerbose(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)}) upon completion!`, verbose);
         }
       }
       else
       {
         // Report early and abnormal termination
-        success= Scuttle(parameters, "RunComEdFrequently");
+        success = Scuttle(parameters, "RunComEdFrequently");
       }
     }
     else
     {
-      var action= "No new prices obtained";
+      const action = "No new prices obtained";
       
       if (parameters["scriptTime"] > (lastStamp + parameters["checkThreshold"] * 2))
       {
         if (parameters["noNewPricesAlert"].length == 0)
         {
-          Logger.log("[RunComEdFrequently] No new prices available (%s minutes)", ConvertMillisecondsToMinutes(parameters["scriptTime"] - lastStamp));
+          Log(`No new prices available (${minutesElapsed}`);
+          // LogVerbose(`No new prices available (${minutesElapsed}`, verbose);
           UpdateMissingPricesAlertStamp(parameters);
         }
         
@@ -82,7 +83,7 @@ function RunComEdFrequently()
   }
   else
   {
-    var action= "Invoked too soon";
+    var action = "Invoked too soon";
     
     UpdateStatus(parameters, action + ": Scrubbing history instead of checking prices...");
     ScrubHistory(parameters, action);
@@ -100,27 +101,24 @@ function RunComEdFrequently()
  */
 function GetParametersComed(verbose)
 {
-  var id= "1ZodNejQNITpXlsj4ccN7h_ttHKxP4MviYD-kywFKbOY";
-  var parameters= GetParameters(id, "comedParameters", verbose);
+  const id = "1ZodNejQNITpXlsj4ccN7h_ttHKxP4MviYD-kywFKbOY";
+  var parameters = GetParameters(id, "comedParameters", verbose);
 
-  parameters["scriptTime"]= new Date().getTime();
+  parameters["scriptTime"] = new Date().getTime();
   
-  parameters["confirmNumbers"]= true;
-  parameters["confirmNumbersLimit"]= -1000000;
+  parameters["confirmNumbers"] = true;
+  parameters["confirmNumbersLimit"] = -1000000;
   
-  parameters["indexTime"]= 0;
-  parameters["indexPrice"]= parameters["indexTime"] + 1;
-  parameters["indexMovingAverage"]= parameters["indexPrice"] + 1;
-  parameters["indexTrend"]= parameters["indexMovingAverage"] + 1;
-  parameters["indexStamp"]= parameters["indexTrend"] + 1;
-  parameters["indexStampTime"]= parameters["indexStamp"] + 1;
-  parameters["indexAlert"]= parameters["indexStampTime"] + 1;
-  parameters["priceTableWidth"]= parameters["indexAlert"] + 1;
+  parameters["indexTime"] = 0;
+  parameters["indexPrice"] = parameters["indexTime"] + 1;
+  parameters["indexMovingAverage"] = parameters["indexPrice"] + 1;
+  parameters["indexTrend"] = parameters["indexMovingAverage"] + 1;
+  parameters["indexStamp"] = parameters["indexTrend"] + 1;
+  parameters["indexStampTime"] = parameters["indexStamp"] + 1;
+  parameters["indexAlert"] = parameters["indexStampTime"] + 1;
+  parameters["priceTableWidth"] = parameters["indexAlert"] + 1;
   
-  if (verbose)
-  {
-    Logger.log("[GetParametersComed] Parameters:\n\n%s", parameters);
-  }
+  LogVerbose(`Parameters:\n\n${parameters}`, verbose);
   
   return parameters;
 };
@@ -134,51 +132,57 @@ function GetParametersComed(verbose)
  */
 function GetPricesComed(parameters, intervalStart)
 {
-  var timeKey= parameters["comedKeyTime"];
-  var priceKey= parameters["comedKeyPrice"];
-  var urlHead= parameters["comedURLHead"];
-  var urlDateStart= parameters["comedURLDateRangeStart"];
-  var urlDateEnd= parameters["comedURLDateRangeEnd"];
-  var intervalEnd= new Date(parameters["scriptTime"]);
+  const timeKey = parameters["comedKeyTime"];
+  const priceKey = parameters["comedKeyPrice"];
+  const urlHead = parameters["comedURLHead"];
+  var urlDateStart = parameters["comedURLDateRangeStart"];
+  var urlDateEnd = parameters["comedURLDateRangeEnd"];
+  const intervalEnd = new Date(parameters["scriptTime"]);
   
   // Formulate starting and ending date stamps, offset latest stamp by one minute
-  intervalStart= new Date(intervalStart + 60000);
+  intervalStart = new Date(intervalStart + 60000);
   
-  urlDateStart+= NumberToString(intervalStart.getFullYear(), 4, "0") + NumberToString(intervalStart.getMonth()+1, 2, "0")
-  + NumberToString(intervalStart.getDate(), 2, "0") + NumberToString(intervalStart.getHours(), 2, "0") + NumberToString(intervalStart.getMinutes(), 2, "0");
+  urlDateStart += NumberToString(intervalStart.getFullYear(), 4, "0")
+                + NumberToString(intervalStart.getMonth()+1, 2, "0")
+                + NumberToString(intervalStart.getDate(), 2, "0")
+                + NumberToString(intervalStart.getHours(), 2, "0")
+                + NumberToString(intervalStart.getMinutes(), 2, "0");
   
-  urlDateEnd+= NumberToString(intervalEnd.getFullYear(), 4, "0") + NumberToString(intervalEnd.getMonth()+1, 2, "0")
-  + NumberToString(intervalEnd.getDate(), 2, "0") + NumberToString(intervalEnd.getHours(), 2, "0") + NumberToString(intervalEnd.getMinutes(), 2, "0");
+  urlDateEnd += NumberToString(intervalEnd.getFullYear(), 4, "0")
+              + NumberToString(intervalEnd.getMonth() + 1, 2, "0")
+              + NumberToString(intervalEnd.getDate(), 2, "0")
+              + NumberToString(intervalEnd.getHours(), 2, "0")
+              + NumberToString(intervalEnd.getMinutes(), 2, "0");
   
   
   // Obtain and parse missing pricing data
-  var options= {'muteHttpExceptions' : true };
-  var responseOk= 200;
-  var url= urlHead + urlDateStart + urlDateEnd;
+  const options = {'muteHttpExceptions' : true };
+  const responseOk = 200;
+  const url = urlHead + urlDateStart + urlDateEnd;
   
   UpdateURL(parameters, url);
   
-  var response= UrlFetchApp.fetch(url, options);
-  var responseCode= response.getResponseCode();
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
   var priceTable= [];
   
   if (responseCode == responseOk)
   {
     // looks like we received a benign response
-    var prices= JSON.parse(response.getContentText());
-    var row= null;
-    var timeStamp= null;
+    var prices = JSON.parse(response.getContentText());
+    var row = null;
+    var timeStamp = null;
     
     prices.sort(function(a, b){return a[timeKey] - b[timeKey]});
-    for (var price of prices)
+    for (const price of prices)
     {
       // convert each data line into a padded table row
-      row= FillArray(parameters["priceTableWidth"], "");
-      timeStamp= new Date();
+      row = FillArray(parameters["priceTableWidth"], "");
+      timeStamp = new Date();
       timeStamp.setTime(price[timeKey]);
-      row[parameters["indexTime"]]= timeStamp;
-      row[parameters["indexPrice"]]= price[priceKey];
-      row= priceTable.push(row);
+      row[parameters["indexTime"]] = timeStamp;
+      row[parameters["indexPrice"]] = price[priceKey];
+      row = priceTable.push(row);
     }
     
     if (row > 0)
@@ -190,10 +194,10 @@ function GetPricesComed(parameters, intervalStart)
   else
   {
     // looks like we did not obtain our prices
-    if (parameters["verbose"])
-    {
-      Logger.log("[GetPricesComed] Asked for latest prices, but received an unexpected response code instead: <%s>", responseCode.toFixed(0));
-    }
+    LogVerbose(`Asked for latest prices, but received an unexpected response code instead: <${responseCode.toFixed(0)}`,
+                true
+                // parameters["verbose"]
+              );
   }
   
   return priceTable;
@@ -207,21 +211,21 @@ function GetPricesComed(parameters, intervalStart)
  */
 function SendPriceAlert(parameters)
 {
-  var priceCurrent= parameters["priceLast"];
-  var priceMovingAverage= parameters["priceMovingAverage"];
-  var priceTrend= parameters["priceRegressionSlope"];;
+  const priceCurrent = parameters["priceLast"];
+  const priceMovingAverage = parameters["priceMovingAverage"];
+  const priceTrend = parameters["priceRegressionSlope"];;
   
-  var priceExpensive= parameters["priceLimitExpensive"];
-  var priceNormalUpper= parameters["priceLimitNormalUpper"];
-  var priceNormalLower= parameters["priceLimitNormalLower"];
-  var priceCheap= parameters["priceLimitCheap"];
-  var priceThresholdMovingAverage= parameters["priceThresholdMovingAverage"];
-  var priceThresholdStable= parameters["priceThresholdStable"];
-  var priceAlertLast= parameters["priceAlertLast"];
-  var priceThresholdAlert= parameters["priceThresholdAlert"];
-  var priceAlertDNDStart= parameters["priceAlertDNDStart"];
-  var priceAlertDNDEnd= parameters["priceAlertDNDEnd"];
-  var priceAlertDNDTemp= parameters["priceAlertDNDTemp"];
+  const priceExpensive = parameters["priceLimitExpensive"];
+  const priceNormalUpper = parameters["priceLimitNormalUpper"];
+  const priceNormalLower = parameters["priceLimitNormalLower"];
+  const priceCheap = parameters["priceLimitCheap"];
+  const priceThresholdMovingAverage = parameters["priceThresholdMovingAverage"];
+  const priceThresholdStable = parameters["priceThresholdStable"];
+  const priceAlertLast = parameters["priceAlertLast"];
+  const priceThresholdAlert = parameters["priceThresholdAlert"];
+  const priceAlertDNDStart = parameters["priceAlertDNDStart"];
+  const priceAlertDNDEnd = parameters["priceAlertDNDEnd"];
+  const priceAlertDNDTemp = parameters["priceAlertDNDTemp"];
  
   var alert= priceCurrent + "¢ (Δ= " + (priceCurrent-priceAlertLast).toFixed(1) + "¢ [±" + priceThresholdAlert + "¢]) and ";
   var status= "No one should ever see this!";
@@ -240,8 +244,8 @@ function SendPriceAlert(parameters)
   {
     alert+= "steady";
   }
-  alert+= " (inflection= " + (priceTrend * parameters["priceRegressionSlope"]).toFixed(0);
-  alert+= ", MA deviation= " + (priceCurrent - priceMovingAverage).toFixed(2) + "¢ [±" + priceThresholdMovingAverage + "¢]" + ")";
+  alert += " (inflection= " + (priceTrend * parameters["priceRegressionSlope"]).toFixed(0);
+  alert += ", MA deviation= " + (priceCurrent - priceMovingAverage).toFixed(2) + "¢ [±" + priceThresholdMovingAverage + "¢]" + ")";
   
   if ((Math.abs(priceCurrent-priceAlertLast) > priceThresholdAlert)
       && ((priceTrend * parameters["priceRegressionSlope"] <= 0) || (Math.abs(priceCurrent - priceMovingAverage) > priceThresholdMovingAverage)))
@@ -253,12 +257,12 @@ function SendPriceAlert(parameters)
     if (priceCurrent > priceExpensive)
     {
       // High price range
-      alert= "Expensive electricity: " + alert;
+      alert = "Expensive electricity: " + alert;
     }
     else if (priceCurrent < priceCheap)
     {
       // Low price range
-      alert= "Cheap electricity: " + alert;
+      alert = "Cheap electricity: " + alert;
     }
     else
     {
@@ -266,17 +270,17 @@ function SendPriceAlert(parameters)
       if (priceCurrent < priceNormalLower)
       {
         // Just below normal
-        alert= "Now just below normal: " + alert;
+        alert = "Now just below normal: " + alert;
       }
       else if (priceCurrent > priceNormalUpper)
       {
         // Just above normal
-        alert= "Now just above normal: " + alert;
+        alert = "Now just above normal: " + alert;
       }
       else
       {
         // Normal
-        alert= "Now normal: " + alert;
+        alert = "Now normal: " + alert;
       }
     }
   }
@@ -286,44 +290,45 @@ function SendPriceAlert(parameters)
     alert= "No alert triggered (parameters stable): " + alert;
     if (!parameters["verbose"])
     {
-      status= alert;
-      alert= null;
+      status = alert;
+      alert = null;
     }
   }
   
   if (alert)
   {
     // Alert condition reached -- apply cosmetics and check suppressed alert window
-    var alertTime= new Date();
-    var hour= alertTime.getHours();
+    const alertTime = new Date();
+    const hour = alertTime.getHours();
     
     UpdateStatus(parameters, "Alert composed.");
     UpdateAlertStatus(parameters, priceCurrent, alert, alertTime);
-    status= alert;
+    status = alert;
     
     if (priceAlertDNDStart > priceAlertDNDEnd)
     {
       // Adjust for crossing the day boundary
-      priceAlertDNDEnd+= 24;
+      priceAlertDNDEnd += 24;
       if (hour < priceAlertDNDStart)
       {
-        hour+= 24;
+        hour += 24;
       }
     }
     
     if (((hour >= priceAlertDNDStart) && (hour < priceAlertDNDEnd)) || (priceAlertDNDTemp > alertTime))
     {
       // Suppress an actual alert during the Do Not Disturb Window, but annotate the status
-      status+= " [suppressed]";
+      status += " [suppressed]";
     }
     else
     {
       // Trigger an actual alert since we are outside the Do Not Disturb window
-      Logger.log("[SendPriceAlert] %s.", alert);
-      if (parameters["verbose"])
-      {
-        Logger.log("[SendPriceAlert] Current hour [%s] is outside the do not disturb window [%s - %s].", hour, priceAlertDNDStart, priceAlertDNDEnd);
-      }
+      Log(`${alert}`);
+      LogVerbose(
+                  `Current hour [${hour}] is outside the do not disturb window [${priceAlertDNDStart} - ${priceAlertDNDEnd}].`,
+                  true
+                  // parameters["verbose"]
+                );
     }
   }
   
@@ -338,7 +343,7 @@ function SendPriceAlert(parameters)
  */
 function GetLatestTimeStamp(parameters)
 {
-  var stamp= GetLastSnapshotStamp(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]);
+  const stamp = GetLastSnapshotStamp(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]);
   
   if (stamp && (stamp.toString().length > 0))
   {
@@ -346,7 +351,8 @@ function GetLatestTimeStamp(parameters)
   }
   else
   {
-    Logger.log("[GetLatestTimeStamp] Retrieved an invalid stamp [%s].", stamp);
+    Log(`Retrieved an invalid stamp [${stamp}].`);
+    // LogVerbose(`Retrieved an invalid stamp [${stamp}].`, parameters["verbose"]);
     SetLatestTimeStamp(parameters);
   }
   
@@ -361,19 +367,27 @@ function GetLatestTimeStamp(parameters)
  */
 function SetLatestTimeStamp(parameters)
 {
-  var stamp= null;
-  var onlyIfBlank= false;
+  var stamp = null;
+  const onlyIfBlank = false;
   
-  if (stamp= new Date())
+  if (stamp = new Date())
   {
-    if (UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexTime"] + 1, stamp, onlyIfBlank, parameters["verbose"]))
+    const success = UpdateSnapshotCell(
+                                        parameters["sheetID"],
+                                        parameters["comedSheetPrices"],
+                                        parameters["indexTime"] + 1,
+                                        stamp,
+                                        onlyIfBlank,
+                                        parameters["verbose"]
+                                      );
+    if (success)
     {
-      Logger.log("[SetLatestTimeStamp] Overwrote latest time stamp with [%s].", stamp);
+      Log(`Overwrote latest time stamp with [${stamp}].`);
     }
   }
   else
   {
-    Logger.log("[SetLatestTimeStamp] Could not overwrite latest time stamp.");
+    Log(`Could not overwrite latest time stamp.`);
   }
 };
 
@@ -385,25 +399,28 @@ function SetLatestTimeStamp(parameters)
  */
 function ScrubHistory(parameters, action)
 {
-  var scrubbedData= null;
-  var semaphore= null;
-  var maxRows= 3000;
+  var scrubbedData = null;
+  var semaphore = null;
+  const maxRows = 3000;
   
-  if (semaphore= GetSemaphore(parameters))
+  if (semaphore = GetSemaphore(parameters))
   {
     // Semaphore precludes scrubbing -- preserve its value for the chain of command and restore prior status
-    var statusAction= "Deferred";
+    const statusAction = "Deferred";
+    const statusDetails = SemaphoreConflictDetails(parameters, semaphore);
       
     PreserveStatus(parameters, statusAction);
-    Logger.log("[ScrubHistory] Deferring scrubbing history (%s)...", SemaphoreConflictDetails(parameters, semaphore));
+    Log(`Deferring scrubbing history (${statusDetails})...`);
+    // LogVerbose(`Deferring scrubbing history (${statusDetails})...`, parameters["verbose"]);
   }
   else
   {
     // Check for a duplicate snashot row and preserve its values for the chain of command
-    if (scrubbedData= RemoveDuplicateSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]))
+    if (scrubbedData = RemoveDuplicateSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]))
     {
       UpdateStatus(parameters, "Removed duplicate history row.");
-      Logger.log("[ScrubHistory] Removed duplicate history row\n\n%s", scrubbedData);
+      Log(`Removed duplicate history row\n\n${scrubbedData}`);
+      // LogVerbose(`Removed duplicate history row\n\n${scrubbedData}`, parameters["verbose"]);
     }
     else
     {
@@ -423,7 +440,7 @@ function ScrubHistory(parameters, action)
  */
 function IsSupreme(parameters)
 {
-  var current= GetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["verbose"]);
+  const current = GetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["verbose"]);
   
   return (parameters["scriptTime"] >= current);
 }
@@ -436,29 +453,35 @@ function IsSupreme(parameters)
  */
 function Superseded(parameters, caller, activity)
 {
-  var current= GetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["verbose"]);
-  var statusMessage= "Superseded!";
-  var logMessage= "";
+  const current = GetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["verbose"]);
+  var statusMessage = "Superseded!";
+  var logMessage = "";
   
   // Report a stale run
-  logMessage= "Superseded by a later run (" + current.toFixed(0) + " started " + ConvertMillisecondsToMinutes(current - parameters["scriptTime"])
-  + " minutes later; current= " + parameters["scriptTime"].toFixed(0) + ")";
+  logMessage = "Superseded by a later run ("
+              + current.toFixed(0)
+              + " started "
+              + ConvertMillisecondsToMinutes(current - parameters["scriptTime"])
+              + " minutes later; current= "
+              + parameters["scriptTime"].toFixed(0)
+              + ")";
   
   if (activity)
   {
     // Insert status information into status and log missives
-    statusMessage= activity + ": " + statusMessage;
-    logMessage+= " while " + activity.toLowerCase() + ".";
+    statusMessage = activity + ": " + statusMessage;
+    logMessage += " while " + activity.toLowerCase() + ".";
   }
   
   if (caller)
   {
     // Prepend caller indentifier to log missive
-    logMessage= "[" + caller + "] " + logMessage;
+    logMessage = "[" + caller + "] " + logMessage;
   }
   
   UpdateStatus(parameters, statusMessage);
-  Logger.log(logMessage);
+  Log(`${logMessage}`);
+  // LogVerbose(`${logMessage}`, parameters["verbose"]);
 };
 
 
@@ -469,7 +492,7 @@ function Superseded(parameters, caller, activity)
  */
 function GetSemaphore(parameters)
 {
-  return GetValueByName(parameters["sheetID"], "semaphore", parameters["verbose"]);;
+  return GetValueByName(parameters["sheetID"], "semaphore", parameters["verbose"]);
 };
 
 
@@ -480,27 +503,32 @@ function GetSemaphore(parameters)
  */
 function SetSemaphore(parameters)
 {
-  var semaphore= null;
+  var semaphore = null;
   
-  semaphore= GetSemaphore(parameters);
+  semaphore = GetSemaphore(parameters);
   if (semaphore)
   {
     // Blocked by another run
-    Logger.log("[SetSemaphore] Could not set semaphore (%s)!", SemaphoreConflictDetails(parameters, semaphore));
-    Logger.log("[SetSemaphore] Prior status: %s", parameters["status"]);
+    const semaphoreDetails = SemaphoreConflictDetails(parameters, semaphore);
+
+    Log(`Could not set semaphore (${semaphoreDetails})!`);
+    // LogVerbose(`Could not set semaphore (${semaphoreDetails})!`, parameters["verbose"]);
+    Log(`Prior status: ${parameters["status"]}`);
+    // LogVerbose(`Prior status: ${parameters["status"]}`, parameters["verbose"]);
     
     if (parameters["forceThreshold"] && (parameters["scriptTime"] - semaphore) > parameters["forceThreshold"])
     {
       // Enough time has elapsed for us to forcefully clear a prior semaphore
-      var force= true;
+      var force = true;
       
       UpdateStatus(parameters, "Forcefully clearing prior semaphore...");
-      Logger.log("[SetSemaphore] Attempting to forcefully clear prior semaphore (%s)...", semaphore.toFixed(0));
+      Log(`Attempting to forcefully clear prior semaphore (${semaphore.toFixed(0)})...`);
+      // LogVerbose(`Attempting to forcefully clear prior semaphore (${semaphore.toFixed(0)})...`, parameters["verbose"]);
       
-      force= ClearSemaphore(parameters, force);
+      force = ClearSemaphore(parameters, force);
       if (force)
       {
-        var action= "Forcefully cleared prior semaphore";
+        const action = "Forcefully cleared prior semaphore";
         
         UpdateStatus(parameters, action + ": Scrubbing history...");
         // Stale semaphore cleared -- check for cobbled data
@@ -508,7 +536,8 @@ function SetSemaphore(parameters)
       }
       else
       {
-        Logger.log("[SetSemaphore] Failed to forcefully clear prior semaphore!");
+        Log(`Failed to forcefully clear prior semaphore!`);
+        // LogVerbose(`Failed to forcefully clear prior semaphore!`, parameters["verbose"]);
       }
     }
     
@@ -519,7 +548,7 @@ function SetSemaphore(parameters)
     // Clear to proceed
     SetValueByName(parameters["sheetID"], "semaphore", parameters["scriptTime"].toFixed(0), parameters["verbose"]);
     SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
-    parameters["semaphore"]= parameters["scriptTime"];
+    parameters["semaphore"] = parameters["scriptTime"];
     
     return true;
   }
@@ -533,8 +562,8 @@ function SetSemaphore(parameters)
  */
 function ClearSemaphore(parameters, force)
 {
-  var semaphore= GetSemaphore(parameters);
-  var success= false;
+  const semaphore = GetSemaphore(parameters);
+  var success = false;
   
   if (semaphore)
   {
@@ -545,34 +574,43 @@ function ClearSemaphore(parameters, force)
       if (parameters["scriptTime"] == semaphore)
       {
         // Normally only clear own semaphore
-        success= SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
+        success = SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
         SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
       }
       else if (force)
       {
         // Clear another run's semaphore if set to do so
-        success= SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
+        success = SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
         SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
-        Logger.log("[ClearSemaphore] Clearing a semaphore from another run (%s)!", semaphore.toFixed(0));
+        Log(`Clearing a semaphore from another run (${semaphore.toFixed(0)})!`);
+        // LogVerbose(`Clearing a semaphore from another run (${semaphore.toFixed(0)})!`, parameters["verbose"]);
       }
       else
       {
-        success= false;
-        Logger.log("[ClearSemaphore] Cannot clear a semaphore from another run (%s)!", SemaphoreConflictDetails(parameters, semaphore));
+        const semaphoreDetails = SemaphoreConflictDetails(parameters, semaphore);
+        success = false;
+        Log(`Cannot clear a semaphore from another run (${semaphoreDetails})!`);
+        // LogVerbose(`Cannot clear a semaphore from another run (${semaphoreDetails})!`, parameters["verbose"]);
       }
     }
     else
     {
       // Technically, should never enter this clause due to semaphore and precedence (superseded) checks -- or so I had thought!
-      success= false;
-      Logger.log("[ClearSemaphore] Cannot clear a semaphore since another run superseded this one (%s)!", SemaphoreConflictDetails(parameters, semaphore));
+      const semaphoreDetails = SemaphoreConflictDetails(parameters, semaphore);
+      success = false;
+      Log(`Cannot clear a semaphore since another run superseded this one (${semaphoreDetails})!`);
+      // LogVerbose(`Cannot clear a semaphore since another run superseded this one (${semaphoreDetails})!`, parameters["verbose"]);
     }
   }
   else
   {
     // No semaphore set?!
-    success= false;
-    Logger.log("[ClearSemaphore] Something or someone else has already cleared the semaphore (%s)!", parameters["scriptTime"].toFixed(0));
+    success = false;
+    LogVerbose(
+                `Something or someone else has already cleared the semaphore (${parameters["scriptTime"].toFixed(0)})!`,
+                true
+                // parameters["verbose"]
+              );
   }
   
   return success;
@@ -586,9 +624,9 @@ function ClearSemaphore(parameters, force)
  */
 function Scuttle(parameters, caller)
 {
-  var success= false;
-  var logMessage= "Scuttling";
-  var statusAction= "Scuttled";
+  var success = false;
+  var logMessage = "Scuttling";
+  const statusAction = "Scuttled";
   
   UpdateStatus(parameters, "Scuttling...");
   
@@ -607,7 +645,8 @@ function Scuttle(parameters, caller)
     logMessage+= ".";
   }
   
-  Logger.log(logMessage);
+  Log(logMessage);
+  // LogVerbose(logMessage, parameters["verbose"]);
   
   // Clean up
   if (parameters["semaphore"] == parameters["scriptTime"])
@@ -615,12 +654,13 @@ function Scuttle(parameters, caller)
     success= ClearSemaphore(parameters);
     if (!success)
     {
-      Logger.log("[Scuttle] Failed to clear current semaphore (%s)!", parameters["scriptTime"].toFixed(0));
+      Log(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)})!`);
+      // LogVerbose(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)})!`, parameters["verbose"]);
     }
     else
     {
       // Scuttling is a failure regardless of intermediate successes!
-      success= false;
+      success = false;
     }
   }
   
@@ -637,23 +677,23 @@ function Scuttle(parameters, caller)
  */
 function SemaphoreConflictDetails(parameters, semaphore)
 {
-  var deltaValue= ConvertMillisecondsToMinutes(parameters["scriptTime"] - semaphore);
-  var details= "blocked by semaphore ";
+  const deltaValue = ConvertMillisecondsToMinutes(parameters["scriptTime"] - semaphore);
+  var details = "blocked by semaphore ";
   
-  details= details.concat(semaphore.toFixed(0), " set ");
+  details = details.concat(semaphore.toFixed(0), " set ");
   
   if (deltaValue < 0)
   {
     // Conflicting semaphore set later
-    details= details.concat(-deltaValue, " minutes later");
+    details = details.concat(-deltaValue, " minutes later");
   }
   else
   {
     // Conflicting semaphore set earlier or concurrently
-    details= details.concat(deltaValue, " minutes earlier");
+    details = details.concat(deltaValue, " minutes earlier");
   }
   
-  details= details.concat("; current: ", parameters["scriptTime"].toFixed(0));
+  details = details.concat("; current: ", parameters["scriptTime"].toFixed(0));
   
   return details;
 };
@@ -678,15 +718,15 @@ function UpdateStatus(parameters, status)
  */
 function PreserveStatus(parameters, statusAction)
 {
-  var statusPrior= parameters["status"];
-  var statusKeys= ["Deferred", "Scuttled"];
-  var statusPreambleFiller= " due to: ";
-  var statusPreamble= statusAction + statusPreambleFiller;
+  var statusPrior = parameters["status"];
+  const statusKeys = ["Deferred", "Scuttled"];
+  const statusPreambleFiller = " due to: ";
+  const statusPreamble = statusAction + statusPreambleFiller;
   
   if (!statusPrior.includes(statusPreamble))
   {
     // Add preamble since it is not included yet
-    statusPrior= statusPreamble + statusPrior;
+    statusPrior = statusPreamble + statusPrior;
   }
   else
   {
@@ -731,13 +771,33 @@ function UpdateAlertStatus(parameters, price, alert, time)
  */
 function UpdateRunStamps(parameters)
 {
-  var success= false;
+  const success = SetValueByName(
+                                  parameters["sheetID"],
+                                  "statusRunCurrent",
+                                  parameters["scriptTime"].toFixed(0),
+                                  parameters["verbose"]
+                                );
   
-   if (success= SetValueByName(parameters["sheetID"], "statusRunCurrent", parameters["scriptTime"].toFixed(0), parameters["verbose"]))
+   if (success)
    {
-     SetValueByName(parameters["sheetID"], "statusRunCurrentTime", DateToLocaleString(parameters["scriptTime"]), parameters["verbose"]);
-     SetValueByName(parameters["sheetID"], "statusRunPrevious", parameters["statusRunCurrent"], parameters["verbose"]);
-     SetValueByName(parameters["sheetID"], "statusRunPreviousTime", DateToLocaleString(parameters["statusRunCurrent"]), parameters["verbose"]);
+     SetValueByName(
+                    parameters["sheetID"],
+                    "statusRunCurrentTime",
+                    DateToLocaleString(parameters["scriptTime"]),
+                    parameters["verbose"]
+                  );
+     SetValueByName(
+                    parameters["sheetID"],
+                    "statusRunPrevious",
+                    parameters["statusRunCurrent"],
+                    parameters["verbose"]
+                  );
+     SetValueByName(
+                    parameters["sheetID"],
+                    "statusRunPreviousTime",
+                    DateToLocaleString(parameters["statusRunCurrent"]),
+                    parameters["verbose"]
+                  );
    }
   
   return success;
@@ -751,11 +811,16 @@ function UpdateRunStamps(parameters)
  */
 function UpdatePreviousRegressionSlope(parameters)
 {
-  var success= false;
-  
   UpdateStatus(parameters, "Saving previous regression slope...");
   
-  if (success= SetValueByName(parameters["sheetID"], "priceRegressionSlopePrevious", parameters["priceRegressionSlope"], parameters["verbose"]))
+  const success = SetValueByName(
+                                  parameters["sheetID"],
+                                  "priceRegressionSlopePrevious",
+                                  parameters["priceRegressionSlope"],
+                                  parameters["verbose"]
+                                );
+  
+  if (success)
   {
     SetValueByName(parameters["sheetID"], "priceRegressionSlopePreviousTime", DateToLocaleString(), parameters["verbose"]);
   }
@@ -771,11 +836,11 @@ function UpdatePreviousRegressionSlope(parameters)
  */
 function UpdateLastPrice(parameters, price)
 {
-  var success= false;
+  const success = SetValueByName(parameters["sheetID"], "priceLast", price, parameters["verbose"]);
   
-  if (success= SetValueByName(parameters["sheetID"], "priceLast", price, parameters["verbose"]))
+  if (success)
   {
-    parameters["priceLast"]= price;
+    parameters["priceLast"] = price;
     SetValueByName(parameters["sheetID"], "priceLastTime", DateToLocaleString(), parameters["verbose"]);
   }
   
@@ -826,21 +891,21 @@ function ClearMissingPricesAlertStamp(parameters)
  */
 function PrepareToCommit(parameters)
 {
-  var success= false;
-  var activity= "Preparing to commit";
+  var success = false;
+  var activity = "Preparing to commit";
   
   UpdateStatus(parameters, activity + "...");
-  parameters["activity"]= activity.toLowerCase();
+  parameters["activity"] = activity.toLowerCase();
   
-  if (success= IsSupreme(parameters))
+  if (success = IsSupreme(parameters))
   {
     // This is still the latest run: grab and preserve latest regression slope and moving average values
-    if (success= SetSemaphore(parameters))
+    if (success = SetSemaphore(parameters))
     {
       // No conflicting runs -- proceed
-      if (success= UpdateRunStamps(parameters))
+      if (success = UpdateRunStamps(parameters))
       {
-        success= UpdatePreviousRegressionSlope(parameters);
+        success = UpdatePreviousRegressionSlope(parameters);
       }
     }
   }
@@ -860,19 +925,19 @@ function PrepareToCommit(parameters)
  */
 function SavePrices(parameters, prices)
 {
-  var success= false;
-  var updateRun= false;
-  var activity= "Saving prices";
+  var success = false;
+  const updateRun = false;
+  const activity = "Saving prices";
   
   UpdateStatus(parameters, activity + "...");
-  parameters["activity"]= activity.toLowerCase();
+  parameters["activity"] = activity.toLowerCase();
   
-  if (success= IsSupreme(parameters))
+  if (success = IsSupreme(parameters))
   {
     // This is still the latest run: write obtained prices to history table
-    prices[prices.length-1][parameters["indexStamp"]]= parameters["scriptTime"].toFixed(0);
-    prices[prices.length-1][parameters["indexStampTime"]]= DateToLocaleString();
-    success= SaveSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], prices, updateRun, parameters["verbose"]);
+    prices[prices.length-1][parameters["indexStamp"]] = parameters["scriptTime"].toFixed(0);
+    prices[prices.length-1][parameters["indexStampTime"]] = DateToLocaleString();
+    success = SaveSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], prices, updateRun, parameters["verbose"]);
   }
   else
   {
@@ -890,48 +955,70 @@ function SavePrices(parameters, prices)
  */
 function UpdateComputedValues(parameters)
 {
-  var success= false;
-  var onlyIfBlank= true;
-  var priceMovingAverage= null;
-  var priceTrend= null;
-  var activity= "Updating computed values";
+  var success = false;
+  var priceMovingAverage = null;
+  var priceTrend = null;
+  const onlyIfBlank = true;
+  const activity = "Updating computed values";
   
   UpdateStatus(parameters, activity + "...");
-  parameters["activity"]= activity.toLowerCase();
+  parameters["activity"] = activity.toLowerCase();
   
-  if (success= IsSupreme(parameters))
+  if (success = IsSupreme(parameters))
   {
     // This is still the latest run: update freshly recomputed values
-    parameters["activity"]= "updating moving average";
+    parameters["activity"] = "updating moving average";
     
-    priceMovingAverage= GetValueByName(parameters["sheetID"], "priceMovingAverage", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
+    priceMovingAverage = GetValueByName(parameters["sheetID"], "priceMovingAverage", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
     if (priceMovingAverage != null)
     {
-      parameters["priceMovingAverage"]= priceMovingAverage;
-      success= UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexMovingAverage"] + 1, priceMovingAverage,
-                                  onlyIfBlank, parameters["verbose"]);
+      parameters["priceMovingAverage"] = priceMovingAverage;
+      success = UpdateSnapshotCell(
+                                    parameters["sheetID"],
+                                    parameters["comedSheetPrices"],
+                                    parameters["indexMovingAverage"] + 1,
+                                    priceMovingAverage,
+                                    onlyIfBlank,
+                                    parameters["verbose"]
+                                  );
     }
     else
     {
-      success= false;
-      Logger.log("[UpdateComputedValues] Could not obtain updated Moving Average!");
+      success = false;
+      Log(`Could not obtain updated Moving Average!"`);
+      // LogVerbose(`Could not obtain updated Moving Average!"`, parameters["verbose"]);
     }
     
     if (success)
     {
       // Success so far: proceed...
-      parameters["activity"]= "updating trend";
+      parameters["activity"] = "updating trend";
       
-      priceTrend= GetValueByName(parameters["sheetID"], "priceRegressionSlope", parameters["verbose"], parameters["confirmNumbers"], parameters["confirmNumbersLimit"]);
+      priceTrend = GetValueByName(
+                                  parameters["sheetID"],
+                                  "priceRegressionSlope",
+                                  parameters["verbose"],
+                                  parameters["confirmNumbers"],
+                                  parameters["confirmNumbersLimit"]
+                                );
+
       if (priceTrend != null)
       {
-        parameters["priceRegressionSlope"]= priceTrend;
-        success= UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexTrend"] + 1, priceTrend, onlyIfBlank, parameters["verbose"]);
+        parameters["priceRegressionSlope"] = priceTrend;
+        success = UpdateSnapshotCell(
+                                      parameters["sheetID"],
+                                      parameters["comedSheetPrices"],
+                                      parameters["indexTrend"] + 1,
+                                      priceTrend,
+                                      onlyIfBlank,
+                                      parameters["verbose"]
+                                    );
       }
       else
       {
-        success= false;
-        Logger.log("[UpdateComputedValues] Could not obtain updated Regression Coefficient.");
+        success = false;
+        Log(`Could not obtain updated Regression Coefficient!"`);
+        // LogVerbose(`Could not obtain updated Regression Coefficient!"`, parameters["verbose"]);
       }
     }
   }
@@ -951,26 +1038,34 @@ function UpdateComputedValues(parameters)
  */
 function Notify(parameters)
 {
-  var success= false;
-  var onlyIfBlank= true;
-  var statusMessage= null;
-  var activity= "Preparing to notify";
+  var success = false;
+  const onlyIfBlank = true;
+  var statusMessage = null;
+  var activity = "Preparing to notify";
   
   UpdateStatus(parameters, activity + "...");
-  parameters["activity"]= activity.toLowerCase();
+  parameters["activity"] = activity.toLowerCase();
   
-  if (success= IsSupreme(parameters))
+  if (success = IsSupreme(parameters))
   {
     // This is still the latest run: notify, if necessary
-    statusMessage= SendPriceAlert(parameters);
+    statusMessage = SendPriceAlert(parameters);
     if (statusMessage.length > 0)
     {
       UpdateStatus(parameters, statusMessage);
-      success= UpdateSnapshotCell(parameters["sheetID"], parameters["comedSheetPrices"], parameters["indexAlert"] + 1, statusMessage, onlyIfBlank, parameters["verbose"]);
+      success = UpdateSnapshotCell(
+                                    parameters["sheetID"],
+                                    parameters["comedSheetPrices"],
+                                    parameters["indexAlert"] + 1,
+                                    statusMessage,
+                                    onlyIfBlank,
+                                    parameters["verbose"]
+                                  );
     }
     else
     {
-      Logger.log("[Notify] Received empty status report <%s> after trying to send price alert.", statusMessage);
+      Log(`Received empty status report <${statusMessage}> after trying to send price alert.`);
+      // LogVerbose(`Received empty status report <${statusMessage}> after trying to send price alert.`, parameters["verbose"]);
     }
   }
   else
