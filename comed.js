@@ -326,8 +326,7 @@ function SendPriceAlert(parameters)
       Log(`${alert}`);
       LogVerbose(
                   `Current hour [${hour}] is outside the do not disturb window [${priceAlertDNDStart} - ${priceAlertDNDEnd}].`,
-                  true
-                  // parameters["verbose"]
+                  parameters["verbose"]
                 );
     }
   }
@@ -410,8 +409,7 @@ function ScrubHistory(parameters, action)
     const statusDetails = SemaphoreConflictDetails(parameters, semaphore);
       
     PreserveStatus(parameters, statusAction);
-    Log(`Deferring scrubbing history (${statusDetails})...`);
-    // LogVerbose(`Deferring scrubbing history (${statusDetails})...`, parameters["verbose"]);
+    LogVerbose(`Deferring scrubbing history (${statusDetails})...`, parameters["verbose"]);
   }
   else
   {
@@ -511,10 +509,8 @@ function SetSemaphore(parameters)
     // Blocked by another run
     const semaphoreDetails = SemaphoreConflictDetails(parameters, semaphore);
 
-    Log(`Could not set semaphore (${semaphoreDetails})!`);
-    // LogVerbose(`Could not set semaphore (${semaphoreDetails})!`, parameters["verbose"]);
-    Log(`Prior status: ${parameters["status"]}`);
-    // LogVerbose(`Prior status: ${parameters["status"]}`, parameters["verbose"]);
+    LogVerbose(`Could not set semaphore (${semaphoreDetails})!`, parameters["verbose"]);
+    LogVerbose(`Prior status: ${parameters["status"]}`, parameters["verbose"]);
     
     if (parameters["forceThreshold"] && (parameters["scriptTime"] - semaphore) > parameters["forceThreshold"])
     {
@@ -645,8 +641,7 @@ function Scuttle(parameters, caller)
     logMessage+= ".";
   }
   
-  Log(logMessage);
-  // LogVerbose(logMessage, parameters["verbose"]);
+  LogVerbose(logMessage, parameters["verbose"]);
   
   // Clean up
   if (parameters["semaphore"] == parameters["scriptTime"])
@@ -654,8 +649,7 @@ function Scuttle(parameters, caller)
     success= ClearSemaphore(parameters);
     if (!success)
     {
-      Log(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)})!`);
-      // LogVerbose(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)})!`, parameters["verbose"]);
+      LogVerbose(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)})!`, parameters["verbose"]);
     }
     else
     {
