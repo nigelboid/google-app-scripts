@@ -49,8 +49,7 @@ function RunComEdFrequently()
         success = ClearSemaphore(parameters);
         if(!success)
         {
-          Log(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)}) upon completion!`);
-          // LogVerbose(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)}) upon completion!`, verbose);
+          LogVerbose(`Failed to clear current semaphore (${parameters["scriptTime"].toFixed(0)}) upon completion!`, verbose);
         }
       }
       else
@@ -417,8 +416,7 @@ function ScrubHistory(parameters, action)
     if (scrubbedData = RemoveDuplicateSnapshot(parameters["sheetID"], parameters["comedSheetPrices"], parameters["verbose"]))
     {
       UpdateStatus(parameters, "Removed duplicate history row.");
-      Log(`Removed duplicate history row\n\n${scrubbedData}`);
-      // LogVerbose(`Removed duplicate history row\n\n${scrubbedData}`, parameters["verbose"]);
+      LogVerbose(`Removed duplicate history row\n\n${scrubbedData}`, parameters["verbose"]);
     }
     else
     {
@@ -478,8 +476,7 @@ function Superseded(parameters, caller, activity)
   }
   
   UpdateStatus(parameters, statusMessage);
-  Log(`${logMessage}`);
-  // LogVerbose(`${logMessage}`, parameters["verbose"]);
+  LogVerbose(`${logMessage}`, parameters["verbose"]);
 };
 
 
@@ -518,8 +515,7 @@ function SetSemaphore(parameters)
       var force = true;
       
       UpdateStatus(parameters, "Forcefully clearing prior semaphore...");
-      Log(`Attempting to forcefully clear prior semaphore (${semaphore.toFixed(0)})...`);
-      // LogVerbose(`Attempting to forcefully clear prior semaphore (${semaphore.toFixed(0)})...`, parameters["verbose"]);
+      LogVerbose(`Attempting to forcefully clear prior semaphore (${semaphore.toFixed(0)})...`, parameters["verbose"]);
       
       force = ClearSemaphore(parameters, force);
       if (force)
@@ -578,15 +574,13 @@ function ClearSemaphore(parameters, force)
         // Clear another run's semaphore if set to do so
         success = SetValueByName(parameters["sheetID"], "semaphore", "", parameters["verbose"]);
         SetValueByName(parameters["sheetID"], "semaphoreTime", DateToLocaleString(), parameters["verbose"]);
-        Log(`Clearing a semaphore from another run (${semaphore.toFixed(0)})!`);
-        // LogVerbose(`Clearing a semaphore from another run (${semaphore.toFixed(0)})!`, parameters["verbose"]);
+        LogVerbose(`Clearing a semaphore from another run (${semaphore.toFixed(0)})!`, parameters["verbose"]);
       }
       else
       {
         const semaphoreDetails = SemaphoreConflictDetails(parameters, semaphore);
         success = false;
-        Log(`Cannot clear a semaphore from another run (${semaphoreDetails})!`);
-        // LogVerbose(`Cannot clear a semaphore from another run (${semaphoreDetails})!`, parameters["verbose"]);
+        LogVerbose(`Cannot clear a semaphore from another run (${semaphoreDetails})!`, parameters["verbose"]);
       }
     }
     else
@@ -594,8 +588,7 @@ function ClearSemaphore(parameters, force)
       // Technically, should never enter this clause due to semaphore and precedence (superseded) checks -- or so I had thought!
       const semaphoreDetails = SemaphoreConflictDetails(parameters, semaphore);
       success = false;
-      Log(`Cannot clear a semaphore since another run superseded this one (${semaphoreDetails})!`);
-      // LogVerbose(`Cannot clear a semaphore since another run superseded this one (${semaphoreDetails})!`, parameters["verbose"]);
+      LogVerbose(`Cannot clear a semaphore since another run superseded this one (${semaphoreDetails})!`, parameters["verbose"]);
     }
   }
   else
