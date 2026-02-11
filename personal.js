@@ -170,24 +170,24 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   };
   SaveValuesInHistory(mainSheetID, navHistorySheetName, navNames, scriptTime, backupRun, updateRun, verbose);
   
-  // Preserve latest $SGOV price
-  const sgovHistorySheetName = "H: SGOV";
-  const sgovDividendName = "SGOVDividend";
-  const sgovDividend = GetValueByName(mainSheetID, sgovDividendName, verbose);
-  const sgovNames =
-  {
-    "SGOVPrice" : 0,
-    "SGOVDividend" : -1,
-    "SGOVSevenDayYield" : -1
-  };
-  SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
+  // // Preserve latest $SGOV price
+  // const sgovHistorySheetName = "H: SGOV";
+  // const sgovDividendName = "SGOVDividend";
+  // const sgovDividend = GetValueByName(mainSheetID, sgovDividendName, verbose);
+  // const sgovNames =
+  // {
+  //   "SGOVPrice" : 0,
+  //   "SGOVDividend" : -1,
+  //   "SGOVSevenDayYield" : -1
+  // };
+  // SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
 
-  if (sgovDividend)
-  {
-    // Clear preserved value
-    LogVerbose(`Clearing <${sgovDividendName}> [value = ${sgovDividend}]...`, verbose);
-    SetValueByName(mainSheetID, sgovDividendName, "", verbose);
-  }
+  // if (sgovDividend)
+  // {
+  //   // Clear preserved value
+  //   LogVerbose(`Clearing <${sgovDividendName}> [value = ${sgovDividend}]...`, verbose);
+  //   SetValueByName(mainSheetID, sgovDividendName, "", verbose);
+  // }
   
   // Preserve some current prices for later comparisons
   SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);

@@ -1243,7 +1243,7 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
             (
               `Value for range <${destinationNames[index]}> in sheet <${spreadsheet.getName()}> updated to <${sourceValues[index]}>, ` +
               `it was <${value}>.`,
-              verbose
+              verboseChanges
             );
           }
           else
