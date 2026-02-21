@@ -289,7 +289,6 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun
     
     // Reset high water marks
     SaveValue(sheetID, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
-    SaveValue(sheetID, "ExpensesHigh", "ExpensesHighSaved", verbose, confirmNumbers, -1000000);
     
     // Preserve current managed portfolio values
     if (SaveValue(sheetID, "ReconcileHeld", "ReconcileHeldSaved", verbose))
