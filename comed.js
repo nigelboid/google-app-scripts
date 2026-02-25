@@ -66,7 +66,7 @@ function RunComEdFrequently()
       {
         if (parameters["noNewPricesAlert"].length == 0)
         {
-          Log(`No new prices available (${minutesElapsed} without updates)`);
+          Log(`No new prices available (${minutesElapsed} minutes)`);
           UpdateMissingPricesAlertStamp(parameters);
         }
         
