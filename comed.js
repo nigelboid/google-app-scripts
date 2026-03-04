@@ -193,8 +193,7 @@ function GetPricesComed(parameters, intervalStart)
   {
     // looks like we did not obtain our prices
     LogVerbose(`Asked for latest prices, but received an unexpected response code instead: <${responseCode.toFixed(0)}>`,
-                true
-                // parameters["verbose"]
+                parameters["verbose"]
               );
   }
   
