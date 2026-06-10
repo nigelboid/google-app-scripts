@@ -46,12 +46,12 @@ function RunHourly()
 {
   var afterHours = true;
   
-  RunComEdFrequently();
-  
   RunPersonalHourly();
   RunAuxiliary();
 
   RunQuotes(afterHours);
+
+  RunComEdFrequently();
 };
 
 
@@ -67,6 +67,8 @@ function RunFrequently()
   if (!RunIndexStranglesCandidates(afterHours))
   {
     // Only update quotes if candidates and boxes skipped (new candidates and boxes will force quotes)
+    // RunQuotes(afterHours);
+
     if (!RunQuotes(afterHours))
     {
       // Only check electricity prices if the rest skipped (try to stay within a narrow execution window)

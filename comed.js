@@ -30,8 +30,8 @@ function RunComEdFrequently()
         {
           if (parameters["noNewPricesAlert"])
           {
-            Log(`New prices updated after a delay (${minutesElapsed} minutes, ${parameters["priceLast"]}¢)`);
-            // LogVerbose(`New prices updated after a delay (${minutesElapsed} minutes, ${parameters["priceLast"]}¢)`, verbose);
+            // Log(`New prices updated after a delay (${minutesElapsed} minutes, ${parameters["priceLast"]}¢)`);
+            LogVerbose(`New prices updated after a delay (${minutesElapsed} minutes, ${parameters["priceLast"]}¢)`, verbose);
             ClearMissingPricesAlertStamp(parameters);
           }
             
@@ -66,7 +66,8 @@ function RunComEdFrequently()
       {
         if (parameters["noNewPricesAlert"].length == 0)
         {
-          Log(`No new prices available (${minutesElapsed} minutes)`);
+          // Log(`No new prices available (${minutesElapsed} minutes)`);
+          LogVerbose(`No new prices available (${minutesElapsed} minutes)`, verbose);
           UpdateMissingPricesAlertStamp(parameters);
         }
         
