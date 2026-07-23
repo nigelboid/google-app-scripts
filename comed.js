@@ -348,8 +348,8 @@ function GetLatestTimeStamp(parameters)
   }
   else
   {
-    Log(`Retrieved an invalid stamp [${stamp}].`);
-    // LogVerbose(`Retrieved an invalid stamp [${stamp}].`, parameters["verbose"]);
+    // Log(`Retrieved an invalid stamp [${stamp}].`);
+    LogVerbose(`Retrieved an invalid stamp [${stamp}].`, parameters["verbose"]);
     SetLatestTimeStamp(parameters);
   }
   
@@ -379,12 +379,12 @@ function SetLatestTimeStamp(parameters)
                                       );
     if (success)
     {
-      Log(`Overwrote latest time stamp with [${stamp}].`);
+      LogVerbose(`Overwrote latest time stamp with [${stamp}].`, parameters["verbose"]);
     }
   }
   else
   {
-    Log(`Could not overwrite latest time stamp.`);
+    LogVerbose(`Could not overwrite latest time stamp.`, parameters["verbose"]);
   }
 };
 
