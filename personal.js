@@ -563,13 +563,14 @@ function RectifyAnnualDocument(annualSheetIDs, verbose, verboseChanges)
 function MaintainHistoriesMain(mainSheetID, verbose)
 {
   // declare constants and local variables
-  const sheetNamesList = GetValueByName(mainSheetID, "ParametersHistorySortNames", verbose);
-  const historySpecificationRange = GetValueByName(mainSheetID, "ParametersHistorySortRange", verbose);
+  const sheetNamesList = GetValueByName(mainSheetID, "ParameterHistorySortNames", verbose);
+  const historySpecificationRange = GetValueByName(mainSheetID, "ParameterHistorySortRange", verbose);
+  const historySpecificationDate = GetValueByName(mainSheetID, "ParameterHistoryHideDate", verbose);
   const columnDate = GetValueByName(mainSheetID, "ParameterHistoryColumnDate", verbose);
   const isAscending = true;
-  const daysVisible = 30;
 
   var spreadsheet = null;
+  var visibleDate = null;
   var rangeSpecification = null;
   var range = null;
   var table = null;
@@ -585,6 +586,7 @@ function MaintainHistoriesMain(mainSheetID, verbose)
     {
       // Maintain each sheet listed
       sheetName = sheetName.trim();
+      earliestVisibleDate = GetCellValue(mainSheetID, sheetName, historySpecificationDate, verbose);
       rangeSpecification = GetCellValue(mainSheetID, sheetName, historySpecificationRange, verbose);
       rangeSpecification = sheetName.concat("!", rangeSpecification);
 
@@ -612,7 +614,7 @@ function MaintainHistoriesMain(mainSheetID, verbose)
           }
           
           // Fix visibility issues, if any
-          if (!FixHistoryVisibilityFault(range, columnDate, daysVisible, verbose))
+          if (!FixHistoryVisibilityFault(range, columnDate, earliestVisibleDate, verbose))
           {
             success = false;
             Log("Failed to adjust history visibility!");
@@ -709,7 +711,7 @@ function ReconcilePortfolioHistory(sheetID, verbose)
   const rangeSpecification = GetValueByName(sheetID, "HistoryRange", verbose);
   const columnDate = GetValueByName(sheetID, "ParameterHistoryColumnDate", verbose);
   const isAscending = true;
-  const daysVisible = GetValueByName(sheetID, "HistoryDaysVisible", verbose);;
+  const earliestVisibleDate = GetValueByName(sheetID, "HistoryDaysVisible", verbose);;
   const spreadsheet = SpreadsheetApp.openById(sheetID);
   var range = null;
   var table = null;
@@ -739,7 +741,7 @@ function ReconcilePortfolioHistory(sheetID, verbose)
       }
       
       // Fix visibility issues, if any
-      if (!FixHistoryVisibilityFault(range, columnDate, daysVisible, verbose))
+      if (!FixHistoryVisibilityFault(range, columnDate, earliestVisibleDate, verbose))
       {
         success = false;
         Log("Failed to adjust history visibility!");
@@ -956,9 +958,10 @@ function UpdateComplementaryHistoryEntries(sheetID, sheetName, table, columnDate
  *
  * Fix improperly shown or hidden rows (expects ascending sorted history)
  */
-function FixHistoryVisibilityFault(range, columnDateGoogle, daysVisible, verbose)
+function FixHistoryVisibilityFault(range, columnDateGoogle, earliestVisibleDate, verbose)
 {
   // Declare constants and local variables
+  const daysVisible = 30;
   const table = GetTableByRangeSimple(range, verbose);
   var rowsToLowestOld = null;
   var oldRow = null;
@@ -967,8 +970,15 @@ function FixHistoryVisibilityFault(range, columnDateGoogle, daysVisible, verbose
   // Adjust column index to accommodate zero-first instead of one-first
   const columnDate= columnDateGoogle - 1;
   
-  const earliestVisibleDate = new Date();
-  earliestVisibleDate.setDate(earliestVisibleDate.getDate() - daysVisible);
+  // Do we have a supplied earliest date to keep visible or do we compute it?
+  if (!isDate(earliestVisibleDate))
+  {
+    // Supplied value is not a date -- compute our default
+    LogVerbose(`Found invalid date specification <${earliestVisibleDate}> and will use <${daysVisible}> day offset instead.`, verbose);
+
+    earliestVisibleDate = new Date();
+    earliestVisibleDate.setDate(earliestVisibleDate.getDate() - daysVisible);
+  }
   
   if (table)
   {

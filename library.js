@@ -1478,3 +1478,14 @@ function UpdateTime(sheetID, timeStampName, verbose)
 {
   SetValueByName(sheetID, timeStampName, DateToLocaleString(), verbose);
 };
+
+
+/**
+ * isDate()
+ *
+ * Validate a value as a date
+ */
+function isDate(value)
+{
+  return value instanceof Date && !isNaN(value);
+};
