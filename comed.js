@@ -596,8 +596,7 @@ function ClearSemaphore(parameters, force)
     success = false;
     LogVerbose(
                 `Something or someone else has already cleared the semaphore (${parameters["scriptTime"].toFixed(0)})!`,
-                true
-                // parameters["verbose"]
+                parameters["verbose"]
               );
   }
   

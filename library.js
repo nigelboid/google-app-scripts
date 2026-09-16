@@ -5,10 +5,10 @@
  */
 function GetTableByNameSimple(sheetID, sourceName, verbose)
 {
-  var firstDataColumn= 0;
-  var confirmNumbers= false;
-  var limit= null;
-  var storeIterationCount= false;
+  var firstDataColumn = 0;
+  var confirmNumbers = false;
+  var limit = null;
+  var storeIterationCount = false;
   
   return GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
 };
@@ -21,10 +21,10 @@ function GetTableByNameSimple(sheetID, sourceName, verbose)
  */
 function GetTableByRangeSimple(range, verbose)
 {
-  var firstDataColumn= 0;
-  var confirmNumbers= false;
-  var limit= null;
-  var storeIterationCount= false;
+  var firstDataColumn = 0;
+  var confirmNumbers = false;
+  var limit = null;
+  var storeIterationCount = false;
   
   return GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
 };
@@ -127,10 +127,7 @@ function GetTableByRange(range, firstDataColumn, confirmNumbers, limit, storeIte
     }
     else
     {
-      if (verbose)
-      {
-        Log("Could not read data from range.");
-      }
+      LogVerbose("Could not read data from range.", verbose);
       data = iteration;
     }
     
@@ -169,10 +166,7 @@ function GetValueByName(sheetID, sourceName, verbose, confirmNumbers, limit)
   {
     confirmNumbers = false;
     limit = 0;
-    if (verbose)
-    {
-      Log(`Defaulting: Not confirming numbers with limit set to <${limit}>.`);
-    }
+    LogVerbose(`Defaulting: Not confirming numbers with limit set to <${limit}>.`, verbose);
   }
   else
   {
@@ -182,10 +176,7 @@ function GetValueByName(sheetID, sourceName, verbose, confirmNumbers, limit)
       if (limit == undefined)
       {
         limit = 0;
-        if (verbose)
-        {
-          Log(`Defaulting: Limit set to <${limit}>.`);
-        }
+        LogVerbose(`Defaulting: Limit set to <${limit}>.`, verbose);
       }
     }
   }
@@ -205,30 +196,21 @@ function GetValueByName(sheetID, sourceName, verbose, confirmNumbers, limit)
       else
       {
         // Not a proper table!
-        if (verbose)
-        {
-          Log(`Range named <${sourceName}> is not a table.`);
-        }
+        LogVerbose(`Range named <${sourceName}> is not a table.`, verbose);
         value = null;
       }
     }
     else
     {
       // Not even a proper array!
-      if (verbose)
-      {
-        Log(`Range named <${sourceName}> is not even an array.`);
-      }
+      LogVerbose(`Range named <${sourceName}> is not even an array.`, verbose);
       value = null;
     }
   }
   else
   {
     // We got nothing!
-    if (verbose)
-    {
-      Log(`Range named <${sourceName}> did not result in a viable value.`);
-    }
+    LogVerbose(`Range named <${sourceName}> did not result in a viable value.`, verbose);
     value = null;
   }
 
@@ -243,44 +225,48 @@ function GetValueByName(sheetID, sourceName, verbose, confirmNumbers, limit)
  */
 function SetTableByName(sheetID, destinationName, table, verbose)
 {
-  var spreadsheet= null;
-  var range= null;
-  var height= null;
-  var width= null;
-  var success= true;
+  var spreadsheet = null;
+  var range = null;
+  var height = null;
+  var width = null;
+  var success = true;
   
-  if (spreadsheet= SpreadsheetApp.openById(sheetID))
+  if (spreadsheet = SpreadsheetApp.openById(sheetID))
   {
-    if (range= spreadsheet.getRangeByName(destinationName))
+    if (range = spreadsheet.getRangeByName(destinationName))
     {
       // perform capacity checks before writing
-      height= range.getHeight();
+      height = range.getHeight();
       if (height < table.length)
       {
-        if (verbose)
-        {
-          Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s> since the destiantion is shorter than the data we have by <%s> rows",
-                   destinationName, spreadsheet.getName(), table.length - height);
-        }
+        LogVerbose
+        (
+          `Could not write out range named <${destinationName}> in spreadsheet <${spreadsheet.getName()}> ` +
+          `since the destination is shorter than the data we have by <${table.length - height}> rows.`,
+          verbose
+        );
+                  
         success= false;
       }
       else
       {
         // looks like we have sufficient height available, now check width
-        width= range.getWidth();
+        width = range.getWidth();
         if (width < table[0].length)
         {
-          if (verbose)
-          {
-            Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s> since the destiantion is narrower than the data we have by <%s> columns",
-                     destinationName, spreadsheet.getName(), table[0].length - width);
-          }
+          LogVerbose
+          (
+            `Could not write out range named <${destinationName}> in spreadsheet <${spreadsheet.getName()}> ` +
+            `since the destination is narrower than the data we have by <${table[0].length - width}> columns.`,
+            verbose
+          );
+
           success= false;
         }
         else
         {
           // looks we also have sufficient width available, pad source data (if necessary)
-          for (var vIndex= 0; vIndex < height; vIndex++)
+          for (var vIndex = 0; vIndex < height; vIndex++)
           {
             if ((vIndex + 1) > table.length)
             {
@@ -290,39 +276,33 @@ function SetTableByName(sheetID, destinationName, table, verbose)
             else if (width > table[vIndex].length)
             {
               // add blank columns to existing rows
-              table[vIndex]= table[vIndex].concat(FillArray(width - table[vIndex].length, ""));
+              table[vIndex] = table[vIndex].concat(FillArray(width - table[vIndex].length, ""));
             }
           }
           
           // write out the values
-          range= range.setValues(table);
+          range = range.setValues(table);
           if (!range)
           {
-            if (verbose)
-            {
-              Logger.log("[SetTableByName] Could not write out range named <%s> in spreadsheet <%s>.", destinationName, spreadsheet.getName());
-            }
-            success= false;
+            LogVerbose(`Could not write out range named <${destinationName}> in spreadsheet <${spreadsheet.getName()}>.`, verbose);
+                    
+            success = false;
           }
         }
       }
     }
     else
     {
-      if (verbose)
-      {
-        Logger.log("[SetTableByName] Could not get range named <%s> in spreadsheet <%s>.", destinationName, spreadsheet.getName());
-      }
-      success= false;
+      LogVerbose(`Could not get range named <${destinationName}> in spreadsheet <${spreadsheet.getName()}>.`, verbose);
+                      
+      success = false;
     }
   }
   else
   {
-    if (verbose)
-    {
-      Logger.log("[SetTableByName] Could not open spreadsheet ID <%s>.", sheetID);
-    }
-    success= false;
+    LogVerbose(`Could not open spreadsheet ID <${sheetID}>.`, verbose);
+    
+    success = false;
   }
   
   return success;
@@ -347,26 +327,23 @@ function SetValueByName(sheetID, destinationName, value, verbose)
  */
 function GetAnnualSheetIDs(sheetID, verbose)
 {
-  var sourceName= "ExternalLookups";
-  var idsByYear= [];
-  var sheetIDs= {};
+  var sourceName = "ExternalLookups";
+  var idsByYear = [];
+  var sheetIDs = {};
   
-  idsByYear= GetTableByNameSimple(sheetID, sourceName, verbose);
+  idsByYear = GetTableByNameSimple(sheetID, sourceName, verbose);
   
   if (idsByYear)
   {
     // we have viable IDs
-    for (var vIndex= 0; vIndex < idsByYear.length; vIndex++)
+    for (var vIndex = 0; vIndex < idsByYear.length; vIndex++)
     {
-      sheetIDs[idsByYear[vIndex][0]]= idsByYear[vIndex][1];
+      sheetIDs[idsByYear[vIndex][0]] = idsByYear[vIndex][1];
     }
   }
   else
   {
-    if (verbose)
-    {
-      Logger.log("[GetAnnualSheets] Could not obtain a list of annual sheet IDs from table <%s> of spreadsheet ID <%s>.", sourceName, sheetID);
-    }
+    LogVerbose(`Could not obtain a list of annual sheet IDs from table <${sourceName}> of spreadsheet ID <${sheetID}>.`, verbose);
   }
   
   return sheetIDs;
@@ -380,21 +357,19 @@ function GetAnnualSheetIDs(sheetID, verbose)
  */
 function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit)
 {
-  var sourceValues= [];
-  var destinationValues= [];
-  var firstDataColumn= 0;
-  var storeIterationCount= false;
-  var changed= false;
+  var sourceValues = [];
+  var destinationValues = [];
+  var firstDataColumn = 0;
+  var storeIterationCount = false;
+  var changed = false;
   
   // set defaults unless supplied
   if (confirmNumbers == undefined)
   {
-    confirmNumbers= false;
-    limit= 0;
-    if (verbose)
-    {
-      Logger.log("[SaveValue] confirmNumbers set to default <%s> with limit set to <%s>.", confirmNumbers, limit);
-    }
+    confirmNumbers = false;
+    limit = 0;
+
+    LogVerbose(`Not confirming numbers...`, verbose);
   }
   else
   {
@@ -403,20 +378,18 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
       // make sure limit is defined if we are to confirm numbers
       if (limit == undefined)
       {
-        limit= 0;
-        if (verbose)
-        {
-          Logger.log("[SaveValue] limit set to default <%s>.", limit);
-        }
+        limit = 0;
+
+        LogVerbose(`Confirming numbers with a limit set to <${limit}>...`, verbose);
       }
     }
   }
   
   // Read all the source and destination values, compare, and update
-  if (sourceValues= GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose))
+  if (sourceValues = GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose))
   {
     // we have source values, proceed to destination values
-    if (destinationValues= GetTableByName(sheetID, destinationName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose))
+    if (destinationValues = GetTableByName(sheetID, destinationName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose))
     {
       // compare values and update them
       if (sourceValues.length == destinationValues.length)
@@ -429,32 +402,49 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
             {
               if (sourceValues[vIndex][hIndex] != destinationValues[vIndex][hIndex])
               {
-                if (verbose)
-                {
-                  Logger.log("[SaveValue] Value at location <%s, %s> has changed to <%s> in table <%s> from <%s> in table <%s> of spreadsheet ID <%s>.",
-                             hIndex.toFixed(0), vIndex.toFixed(0), sourceValues[vIndex][hIndex], sourceName, destinationValues[vIndex][hIndex], destinationName, sheetID);
-                }
-                destinationValues[vIndex][hIndex]= sourceValues[vIndex][hIndex];
-                changed= true;
+                LogVerbose
+                (
+                  `Value at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
+                  `has changed to <${sourceValues[vIndex][hIndex]}> in table <${sourceName}> ` +
+                  `from <${destinationValues[vIndex][hIndex]}> in table <${destinationName}> ` +
+                  `of spreadsheet ID <${sheetID}>.`,
+                  verbose
+                );
+                    
+                destinationValues[vIndex][hIndex] = sourceValues[vIndex][hIndex];
+                changed = true;
               }
-              else if (verbose)
+              else
               {
-                Logger.log("[SaveValue] Value <%s> (<%s>) at location <%s, %s> has not changed between named tables <%s> and <%s> of spreadsheet ID <%s>.",
-                           destinationValues[vIndex][hIndex], sourceValues[vIndex][hIndex], hIndex.toFixed(0), vIndex.toFixed(0), sourceName, destinationName, sheetID);
+                LogVerbose
+                (
+                  `Value <${destinationValues[vIndex][hIndex]}> (${sourceValues[vIndex][hIndex]}) ` +
+                  `at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
+                  `has not changed between named tables <${sourceName}> and <${destinationName}>  of spreadsheet ID <${sheetID}>.`,
+                  verbose
+                );
               }
             }
           }
           else
           {
-            Logger.log("[SaveValue] Source values range <%s, %s> of source <%s> does not match destination range <%s, %s> of destination <%s> in sheet ID <%s>.",
-                       sourceValues.length, sourceValues[vIndex].length, sourceName, destinationValues.length, destinationValues[vIndex].length, destinationName, sheetID);
+            Log
+            (
+              `Source values range <${sourceValues.length}, ${sourceValues[vIndex].length}> of source <${sourceName}> ` +
+              `does not match destination range <${destinationValues.length}, ${destinationValues[vIndex].length}> ` +
+              `of destination <${destinationName}> in spreadsheet ID <${sheetID}>.`
+            );
           }
         }
       }
       else
       {
-        Logger.log("[SaveValue] Source values height <%s> of source <%s> does not match destination range <%s> of destination <%s> in sheet ID <%s>.",
-                   sourceValues.length, sourceName, destinationValues.length, destinationName, sheetID);
+        Log
+        (
+          `Source values height <${sourceValues.length}> of source <${sourceName}> ` +
+          `does not match destination height <${destinationValues.length}> of destination <${destinationName}> ` +
+          `in spreadsheet ID <${sheetID}>.`
+        );
       }
       
       if (changed)
@@ -463,20 +453,20 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
         if (!SetTableByName(sheetID, destinationName, destinationValues, verbose))
         {
           // something went wrong!
-          Logger.log("[SaveValue] Could not write out range named <%s> in spreadsheet ID <%s>.", destinationName, sheetID);
+          Log(`Could not write out range named <${destinationName}> in spreadsheet ID <${sheetID}>.`);
           
-          changed= false;
+          changed = false;
         }
       }
     }
     else
     {
-      Logger.log("[SaveValue] Could not get range named <%s> in spreadsheet ID <%s>.", destinationName, sheetID);
+      Log(`Could not get range named <${destinationName}> in spreadsheet ID <${sheetID}>.`);
     }
   }
   else
   {
-    Logger.log("[SaveValue] Could not get range named <%s> in spreadsheet ID <%s>.", sourceName, sheetID);
+    Log(`Could not get range named <${sourceName}> in spreadsheet ID <${sheetID}>.`);
   }
   
   return changed;
@@ -490,41 +480,45 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
  */
 function GetLastSnapshotStamp(sheetID, sheetName, verbose)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var range= null;
-  var height= null;
-  var value= null;
+  var spreadsheet = null;
+  var sheet = null;
+  var range = null;
+  var height = null;
+  var value = null;
   
-  if (spreadsheet= SpreadsheetApp.openById(sheetID))
+  if (spreadsheet = SpreadsheetApp.openById(sheetID))
   {
-    if (sheet= spreadsheet.getSheetByName(sheetName))
+    if (sheet = spreadsheet.getSheetByName(sheetName))
     {
-      if (height= sheet.getLastRow())
+      if (height = sheet.getLastRow())
       {
-        if (range= sheet.getRange(height, 1))
+        if (range = sheet.getRange(height, 1))
         {
-          value= range.getValue();
+          value = range.getValue();
         }
-        else if (verbose)
+        else
         {
-          Logger.log("[GetLastSnapshotStamp] Could not set range to the first cell of the last row <%s> in sheet <%s> for spreadsheet <%s>.",
-                     height.toFixed(0), sheetName, spreadsheet.getName());
+          LogVerbose
+          (
+            `Could not set range to the first cell of the last row <${height.toFixed(0)}> ` +
+            `in sheet <${sheetName()}> for spreadsheet <${spreadsheet.getName()}>.`,
+            verbose
+          );
         }
       }
-      else if (verbose)
+      else
       {
-        Logger.log("[GetLastSnapshotStamp] Could not learn the last row in sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+        LogVerbose(`Could not learn the last row in sheet <${sheetName()}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
       }
     }
-    else if (verbose)
+    else
     {
-      Logger.log("[GetLastSnapshotStamp] Could not activate sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+      LogVerbose(`Could not activate sheet <${sheetName()}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
     }
   }
-  else if (verbose)
+  else
   {
-    Logger.log("[GetLastSnapshotStamp] Could not open spreadsheet ID <%s>.", sheetID);
+    LogVerbose(`Could not open spreadsheet ID <${sheetID}>.`, verbose);
   }
   
   return value;
@@ -538,24 +532,24 @@ function GetLastSnapshotStamp(sheetID, sheetName, verbose)
  */
 function SelectCell(sheetID, sheetName, cellCoordinates, verbose)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var range= null;
+  var spreadsheet = null;
+  var sheet = null;
+  var range = null;
   
-  if (spreadsheet= SpreadsheetApp.openById(sheetID))
+  if (spreadsheet = SpreadsheetApp.openById(sheetID))
   {
-    if (sheet= spreadsheet.getSheetByName(sheetName))
+    if (sheet = spreadsheet.getSheetByName(sheetName))
     {
-      range= sheet.getRange(cellCoordinates);
+      range = sheet.getRange(cellCoordinates);
     }
     else
     {
-      Logger.log("[SelectCell] Could not activate sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+      Log(`Could not activate sheet <${sheetName()}> for spreadsheet <${spreadsheet.getName()}>.`);
     }
   }
   else
   {
-    Logger.log("[SelectCell] Could not open spreadsheet ID <%s>.", sheetID);
+    Log(`Could not open spreadsheet ID <${sheetID}>.`);
   }
 
   return range;
@@ -569,17 +563,16 @@ function SelectCell(sheetID, sheetName, cellCoordinates, verbose)
  */
 function GetCellValue(sheetID, sheetName, cellCoordinates, verbose)
 {
-  var range= SelectCell(sheetID, sheetName, cellCoordinates, verbose);
-  var value= null;
+  var range = SelectCell(sheetID, sheetName, cellCoordinates, verbose);
+  var value = null;
   
   if (range)
   {
     value= range.getValue();
   }
-  else if (verbose)
+  else
   {
-    Logger.log("[GetCellValue] Could not access specified range <%s> in sheet <%s> for spreadsheet ID <%s>.",
-                cellCoordinates, sheetName, sheetID);
+    LogVerbose(`Could not access specified range <${cellCoordinates}> in sheet <${sheetName}> for spreadsheet ID <${sheetID}>.`, verbose);
   }
   
   return value;
@@ -593,16 +586,16 @@ function GetCellValue(sheetID, sheetName, cellCoordinates, verbose)
  */
 function SetCellValue(sheetID, sheetName, cellCoordinates, value, verbose)
 {
-  var range= SelectCell(sheetID, sheetName, cellCoordinates, verbose);
-  var success= false;
+  var range = SelectCell(sheetID, sheetName, cellCoordinates, verbose);
+  var success = false;
   
   if (range)
   {
-    success= range.setValue(value);
+    success = range.setValue(value);
   }
-  else if (verbose)
+  else
   {
-    Logger.log("[SetCellValue] Could not access specified range <%s> in sheet <%s> for spreadsheet ID <%s>.", cellCoordinates, sheetName, sheetID);
+    LogVerbose(`Could not access specified range <${cellCoordinates}> in sheet <${sheetName}> for spreadsheet ID <${sheetID}>.`, verbose);
   }
   
   return success;
@@ -616,7 +609,7 @@ function SetCellValue(sheetID, sheetName, cellCoordinates, value, verbose)
  */
 function CheckSnapshot(sheetID, sheetName, newDataDate, verbose)
 {
-  var lastDataDate= new Date(GetLastSnapshotStamp(sheetID, sheetName, verbose));
+  var lastDataDate = new Date(GetLastSnapshotStamp(sheetID, sheetName, verbose));
   
   if (lastDataDate && (lastDataDate.getFullYear() == newDataDate.getFullYear()) &&
      (lastDataDate.getMonth() == newDataDate.getMonth()) && (lastDataDate.getDate() == newDataDate.getDate()))
@@ -626,9 +619,8 @@ function CheckSnapshot(sheetID, sheetName, newDataDate, verbose)
   }
   else if (lastDataDate > newDataDate)
   {
-    Logger.log("[CheckSnapshot] We seem to have stale data from the past (last date <%s> is later than new date <%s>), skipping...",
-               lastDataDate, newDataDate);
-    
+    Log(`We seem to have stale data from the past (last date <${lastDataDate}> is later than new date <${newDataDate}>, skipping...`);
+
     return true;
   }
   else
@@ -735,11 +727,11 @@ function CompileSnapshot(sheetID, names, dateTimeNow, verbose)
  */
 function SaveSnapshot(sheetID, sheetName, values, updateRun, verbose)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var range= null;
-  var lastRow= null;
-  var success= false;
+  var spreadsheet = null;
+  var sheet = null;
+  var range = null;
+  var lastRow = null;
+  var success = false;
   
   if (values)
   {
@@ -747,15 +739,15 @@ function SaveSnapshot(sheetID, sheetName, values, updateRun, verbose)
     if (!Array.isArray(values[0]))
     {
       // we seem to have a one-dimensional array -- convert it
-      values= [values];
+      values = [values];
     }
     
     // now access the spreadsheet and save
-    if (spreadsheet= SpreadsheetApp.openById(sheetID))
+    if (spreadsheet = SpreadsheetApp.openById(sheetID))
     {
-      if (sheet= spreadsheet.getSheetByName(sheetName))
+      if (sheet = spreadsheet.getSheetByName(sheetName))
       {
-        if (lastRow= sheet.getLastRow())
+        if (lastRow = sheet.getLastRow())
         {
           if (!updateRun)
           {
@@ -763,48 +755,52 @@ function SaveSnapshot(sheetID, sheetName, values, updateRun, verbose)
             lastRow++;
           }
           
-          if (range= sheet.getRange(lastRow, 1, values.length, values[0].length))
+          if (range = sheet.getRange(lastRow, 1, values.length, values[0].length))
           {
-            if (range= range.setValues(values))
+            if (range = range.setValues(values))
             {
               if (PropagateFormulas(sheet, lastRow, values[0].length, verbose))
               {
-                success= true;
+                success = true;
               }
-              else if (verbose)
+              else
               {
-                Logger.log("[SaveSnapshot] Could not propagate formulas in sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+                LogVerbose(`Could not propagate formulas in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
               }
             }
-            else if (verbose)
+            else
             {
-              Logger.log("[SaveSnapshot] Could not append values in sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+              LogVerbose(`Could not append values in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
             }
           }
-          else if (verbose)
+          else
           {
-            Logger.log("[SaveSnapshot] Could not set range to append beyond the last row <%s> in sheet <%s> for spreadsheet <%s>.",
-                       height.toFixed(0), sheetName, spreadsheet.getName());
+            LogVerbose
+            (
+              `Could not set range to append beyond the last row <${height.toFixed(0)}> ` +
+              `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`,
+              verbose
+            );
           }
         }
-        else if (verbose)
+        else
         {
-          Logger.log("[SaveSnapshot] Could not learn the last row in sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+          LogVerbose(`Could not learn the last row in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
         }
       }
-      else if (verbose)
+      else
       {
-        Logger.log("[SaveSnapshot] Could not activate sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+        LogVerbose(`Could not activate sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
       }
     }
-    else if (verbose)
+    else
     {
-      Logger.log("[SaveSnapshot] Could not open spreadsheet ID <%s>.", sheetID);
+      LogVerbose(`Could not open spreadsheet ID <${sheetID}>.`, verbose);
     }
   }
-  else if (verbose)
+  else
   {
-    Logger.log("[SaveSnapshot] Nothing to write to sheet <%s> of spreadsheet ID <%s>...", sheetName, sheetID);
+    LogVerbose(`Nothing to write to sheet <${sheetName}> of spreadsheet ID <${sheetID}>.`, verbose);
   }
   
   return success;
@@ -818,50 +814,57 @@ function SaveSnapshot(sheetID, sheetName, values, updateRun, verbose)
  */
 function PropagateFormulas(sheet, row, column, verbose)
 {
-  var width= null;
-  var formulas= null;
-  var range= null;
-  var success= false;
+  var width = null;
+  var formulas = null;
+  // var range = null;
+  var success = false;
   
-  if (width= sheet.getLastColumn())
+  if (width = sheet.getLastColumn())
   {
     if (width > column)
     {
       // looks like we have spare columns to check
-      if (formulas= sheet.getRange(row-1, column+1, 1, width-column).getFormulas())
+      if (formulas = sheet.getRange(row-1, column+1, 1, width-column).getFormulas())
       {
-        if (success= sheet.getRange(row, column+1, 1, width-column).setFormulas(formulas))
+        if (success = sheet.getRange(row, column+1, 1, width-column).setFormulas(formulas))
         {
-          if (verbose)
-          {
-            Logger.log("[PropagateFormulas] Updated formulas in columns <%s> through <%s> of row <%s> in sheet <%s>.",
-                       (column+1).toFixed(0), width.toFixed(0), row.toFixed(0), sheet.getName());
-          }
+          LogVerbose
+          (
+            `Updated formulas in columns <${(column+1).toFixed(0)}> through <${width.toFixed(0)}> ` +
+            `of row <${row.toFixed(0)}> in sheet <${sheet.getName()}>.`,
+            verbose
+          );
         }
-        else if (verbose)
+        else
         {
-          Logger.log("[PropagateFormulas] Could not set formulas in columns <%s> through <%s> of row <%s> in sheet <%s>.",
-                     (column+1).toFixed(0), width.toFixed(0), row.toFixed(0), sheet.getName());
+          LogVerbose
+          (
+            `Could not set formulas in columns <${(column+1).toFixed(0)}> through <${width.toFixed(0)}> ` +
+            `of row <${row.toFixed(0)}> in sheet <${sheet.getName()}>.`,
+            verbose
+          );
         }
       }
-      else if (verbose)
+      else
       {
-        Logger.log("[PropagateFormulas] Could not read formulas from columns <%s> through <%s> of row <%s> in sheet <%s>.",
-                   (column+1).toFixed(0), width.toFixed(0), (row-1).toFixed(0), sheet.getName());
+        LogVerbose
+        (
+          `Could not read formulas from columns <${(column+1).toFixed(0)}> through <${width.toFixed(0)}> ` +
+          `of row <${(row-1).toFixed(0)}> in sheet <${sheet.getName()}>.`,
+          verbose
+        );
       }
     }
     else
     {
-      if (verbose)
-      {
-        Logger.log("[PropagateFormulas] No columns to propagate in sheet <%s>.", sheet.getName());
-      }
-      success= true;
+      LogVerbose(`No columns to propagate in sheet <${sheet.getName()}>.`, verbose);
+      
+      success = true;
     }
   }
-  else if (verbose)
+  else
   {
-    Logger.log("[PropagateFormulas] Could not obtain width of sheet <%s>.", sheet.getName());
+    LogVerbose(`Could not obtain width of sheet <${sheet.getName()}>.`, verbose);
   }
   
   return success;
@@ -875,70 +878,85 @@ function PropagateFormulas(sheet, row, column, verbose)
  */
 function UpdateSnapshotCell(sheetID, sheetName, column, value, onlyIfBlank, verbose)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var range= null;
-  var height= null;
-  var success= false;
+  var spreadsheet = null;
+  var sheet = null;
+  var range = null;
+  var height = null;
+  var success = false;
   
   if (value != null)
   {
     // now access the spreadsheet and save
-    if (spreadsheet= SpreadsheetApp.openById(sheetID))
+    if (spreadsheet = SpreadsheetApp.openById(sheetID))
     {
-      if (sheet= spreadsheet.getSheetByName(sheetName))
+      if (sheet = spreadsheet.getSheetByName(sheetName))
       {
-        if (height= sheet.getLastRow())
+        if (height = sheet.getLastRow())
         {
-          if (range= sheet.getRange(height, column, 1, 1))
+          if (range = sheet.getRange(height, column, 1, 1))
           {
             if (!onlyIfBlank || range.isBlank())
             {
-              if (range= range.setValue([[value]]))
+              if (range = range.setValue([[value]]))
               {
-                if (verbose)
-                {
-                  Logger.log("[UpdateSnapshotCell] Updated cell <%s> of the last row <%s> in sheet <%s> for spreadsheet <%s> with <%s>.",
-                             column.toFixed(0), height.toFixed(0), sheetName, spreadsheet.getName(), value);
-                }
-                success= true;
+                LogVerbose
+                (
+                  `Updated cell <${column.toFixed(0)}> of the last row <${height.toFixed(0)}> ` +
+                  `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}> with <${value}>.`,
+                  verbose
+                );
+                    
+                success = true;
               }
-              else if (verbose)
+              else
               {
-                Logger.log("[UpdateSnapshotCell] Could not update cell <%s> of the last row <%s> in sheet <%s> for spreadsheet <%s>.",
-                           column.toFixed(0), height.toFixed(0), sheetName, spreadsheet.getName());
+                LogVerbose
+                (
+                  `Could not updated cell <${column.toFixed(0)}> of the last row <${height.toFixed(0)}> ` +
+                  `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`,
+                  verbose
+                );
               }
             }
-            else if (verbose)
+            else
             {
-              Logger.log("[UpdateSnapshotCell] Could not update cell <%s> of the last row <%s> in sheet <%s> for spreadsheet <%s> "
-                         + "since that would clobber an existing value <%s>.", column.toFixed(0), height.toFixed(0), sheetName, spreadsheet.getName(), range.getValue());
+              LogVerbose
+              (
+                `Could not updated cell <${column.toFixed(0)}> of the last row <${height.toFixed(0)}> ` +
+                `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}> ` +
+                `since that would clobber an existing value <${range.getValue()}>.`,
+                verbose
+              );
             }
           }
-          else if (verbose)
+          else
           {
-            Logger.log("[UpdateSnapshotCell] Could not set range to update the last row <%s> in sheet <%s> for spreadsheet <%s>.",
-                       height.toFixed(0), sheetName, spreadsheet.getName());
+            LogVerbose
+            (
+              `Could not set range to update the last row <${height.toFixed(0)}> ` +
+              `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`,
+              verbose
+            );
           }
         }
-        else if (verbose)
+        else
         {
-          Logger.log("[UpdateSnapshotCell] Could not learn the last row in sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+          LogVerbose(`Could not learn the last row in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
         }
       }
-      else if (verbose)
+      else
       {
-        Logger.log("[UpdateSnapshotCell] Could not activate sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+        LogVerbose(`Could not activate sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
       }
     }
-    else if (verbose)
+    else
     {
-      Logger.log("[UpdateSnapshotCell] Could not open spreadsheet ID <%s>.", sheetID);
+      LogVerbose(`Could not open spreadsheet ID <${sheetID}>.`, verbose);
     }
   }
-  else if (verbose)
+  else
   {
-    Logger.log("[UpdateSnapshotCell] Nothing to update in column <%s> of sheet <%s> in spreadsheet ID <%s>...", column, sheetName, sheetID);
+    LogVerbose(`Nothing to update in column <${column}> of sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`, verbose);
   }
   
   return success;
@@ -984,63 +1002,71 @@ function SaveValuesInHistory(sheetID, sheetName, sourceNames, now, backupRun, up
  */
 function RemoveDuplicateSnapshot(sheetID, sheetName, verbose)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var range= null;
-  var height= null;
-  var width= null;
-  var rowData= null;
-  var ultimateStamp= null;
-  var penultimateStamp= null;
-  var priorStamp= null;
+  var spreadsheet = null;
+  var sheet = null;
+  var range = null;
+  var height = null;
+  var width = null;
+  var rowData = null;
+  var ultimateStamp = null;
+  var penultimateStamp = null;
+  var priorStamp = null;
   
-  if (spreadsheet= SpreadsheetApp.openById(sheetID))
+  if (spreadsheet = SpreadsheetApp.openById(sheetID))
   {
-    if (sheet= spreadsheet.getSheetByName(sheetName))
+    if (sheet = spreadsheet.getSheetByName(sheetName))
     {
-      if (height= sheet.getLastRow())
+      if (height = sheet.getLastRow())
       {
         // Learn the latest time stamp
-        if (range= sheet.getRange(height, 1))
+        if (range = sheet.getRange(height, 1))
         {
-          ultimateStamp= new Date(range.getValue());
+          ultimateStamp = new Date(range.getValue());
         }
         else
         {
-          Logger.log("[RemoveDuplicateSnapshot] Could not set range to the first cell of the last row <%s> in sheet <%s> "
-                      + "for spreadsheet <%s>.", height.toFixed(0), sheetName, spreadsheet.getName());
+          Log
+          (
+            `Could not set range to the first cell of the last row <${height.toFixed(0)}> ` +
+            `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`
+          );
         }
         
         
         // Learn the prior time stamp (seemingly real and accurate data two rows above latest)
-        if (range= sheet.getRange(height-2, 1))
+        if (range = sheet.getRange(height-2, 1))
         {
-          priorStamp= new Date(range.getValue());
+          priorStamp = new Date(range.getValue());
         }
         else
         {
-          Logger.log("[RemoveDuplicateSnapshot] Could not set range to the first cell of the prior row <%s> in sheet <%s> "
-                      + "for spreadsheet <%s>.", (height-2).toFixed(0), sheetName, spreadsheet.getName());
+          Log
+          (
+            `Could not set range to the first cell of the prior row <${(height-2).toFixed(0)}> ` +
+            `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`
+          );
         }
         
         // Learn the time stamp just before the latest
-        if (width= sheet.getLastColumn())
+        if (width = sheet.getLastColumn())
         {
-          if (range= sheet.getRange(height-1, 1, 1, width))
+          if (range = sheet.getRange(height-1, 1, 1, width))
           {
-            rowData= range.getValues();
-            penultimateStamp= new Date(rowData[0][0]);
+            rowData = range.getValues();
+            penultimateStamp = new Date(rowData[0][0]);
           }
           else
           {
-            Logger.log("[RemoveDuplicateSnapshot] Could not set range to the first cell of the next to the last row <%s> in sheet <%s> "
-                        + "for spreadsheet <%s>.", (height-1).toFixed(0), sheetName, spreadsheet.getName());
+            Log
+            (
+              `Could not set range to the first cell of the next to the last row <${(height-1).toFixed(0)}> ` +
+              `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`
+            );
           }
         }
         else
         {
-          Logger.log("[RemoveDuplicateSnapshot] Could not learn the last column in sheet <%s> for spreadsheet <%s>.",
-                      sheetName, spreadsheet.getName());
+          Log(`Could not learn the last column in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`);
         }
         
         // Remove the next to the last row if its time stamp matches that of the last row or the prior row preceding it
@@ -1048,11 +1074,11 @@ function RemoveDuplicateSnapshot(sheetID, sheetName, verbose)
         {
           try
           {
-            sheet= sheet.deleteRow(height-1)
+            sheet = sheet.deleteRow(height-1)
           }
           catch (error)
           {
-            Logger.log("[RemoveDuplicateSnapshot] Failed to remove duplicate row:\n".concat(error));
+            Log("Failed to remove duplicate row:\n".concat(error));
           }
           
           if (sheet)
@@ -1061,32 +1087,36 @@ function RemoveDuplicateSnapshot(sheetID, sheetName, verbose)
           }
           else
           {
-            Logger.log("[RemoveDuplicateSnapshot] Failed to remove the penultimate row for time stamp <%s> in sheet <%s> for spreadsheet <%s>.",
-                       penultimateStamp, sheetName, spreadsheet.getName());
+            Log
+            (
+              `Failed to remove the penultimate row for time stamp <${penultimateStamp}> ` +
+              `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`
+            );
           }
         }
         else
         {
-          if (verbose)
-          {
-            Logger.log("[RemoveDuplicateSnapshot] No need to remove history rows as time stamps (<%s> and <%s>) do not match in sheet <%s> for spreadsheet <%s>.",
-                       ultimateStamp, penultimateStamp, sheetName, spreadsheet.getName());
-          }
+          LogVerbose
+          (
+            `No need to remove history rows as time stamps (<${ultimateStamp}> and <${penultimateStamp}>) ` +
+            `in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`,
+            verbose
+          );
         }
       }
       else
       {
-        Logger.log("[RemoveDuplicateSnapshot] Could not learn the last row in sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+        Log(`Could not learn the last row in sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`);
       }
     }
     else
     {
-      Logger.log("[RemoveDuplicateSnapshot] Could not activate sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+      Log(`Could not activate sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`);
     }
   }
   else
   {
-    Logger.log("[RemoveDuplicateSnapshot] Could not open spreadsheet ID <%s>.", sheetID);
+    Log(`Could not open spreadsheet ID <${sheetID}>.`);
   }
   
   return false;
@@ -1100,15 +1130,15 @@ function RemoveDuplicateSnapshot(sheetID, sheetName, verbose)
  */
 function TrimHistory(sheetID, sheetName, maxRows, verbose)
 {
-  var spreadsheet= null;
-  var sheet= null;
-  var height= 0;
+  var spreadsheet = null;
+  var sheet = null;
+  var height = 0;
   
-  if (spreadsheet= SpreadsheetApp.openById(sheetID))
+  if (spreadsheet = SpreadsheetApp.openById(sheetID))
   {
-    if (sheet= spreadsheet.getSheetByName(sheetName))
+    if (sheet = spreadsheet.getSheetByName(sheetName))
     {
-      height= sheet.getLastRow();
+      height = sheet.getLastRow();
       
       // Accommodate the header row!
       if (height > (maxRows + 1))
@@ -1119,18 +1149,18 @@ function TrimHistory(sheetID, sheetName, maxRows, verbose)
         }
         catch (error)
         {
-          Logger.log("[TrimHistory] Failed to trim history rows:\n".concat(error));
+          Log("Failed to trim history rows:\n".concat(error));
         }
       }
     }
     else
     {
-      Logger.log("[TrimHistory] Could not activate sheet <%s> for spreadsheet <%s>.", sheetName, spreadsheet.getName());
+      Log(`Could not activate sheet <${sheetName}> for spreadsheet <${spreadsheet.getName()}>.`);
     }
   }
   else
   {
-    Logger.log("[TrimHistory] Could not open spreadsheet ID <%s>.", sheetID);
+    Log(`Could not open spreadsheet ID <${sheetID}>.`);
   }
 };
 
@@ -1286,12 +1316,12 @@ function Synchronize(sourceID, destinationID, sourceNames, destinationNames, ver
  */
 function GetParameters(sheetID, sourceName, verbose)
 {
-  var parameters= {"sheetID": sheetID, "verbose": verbose};
-  var firstDataColumn= 1;
-  var confirmNumbers= false;
-  var limit= 0;
-  var storeIterationCount= false;
-  var table= GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
+  var parameters = {"sheetID": sheetID, "verbose": verbose};
+  var firstDataColumn = 1;
+  var confirmNumbers = false;
+  var limit = 0;
+  var storeIterationCount = false;
+  var table = GetTableByName(sheetID, sourceName, firstDataColumn, confirmNumbers, limit, storeIterationCount, verbose);
   
   if (table)
   {
@@ -1308,27 +1338,27 @@ function GetParameters(sheetID, sourceName, verbose)
           if (table[row][0] != null && table[row][1] != null)
           {
             // We seem to have a viable key-value pair
-            parameters[table[row][0]]= table[row][1];
+            parameters[table[row][0]] = table[row][1];
             parameters[table[row][0].toLowerCase()]= table[row][1];
           }
         }
       }
-      else if (verbose)
+      else
       {
         // Not a proper table!
-        Logger.log("[GetParameters] Range named <%s> is not a table.", sourceName);
+        LogVerbose(`Range named <${sourceName}> is not a table.`, verbose);
       }
     }
-    else if (verbose)
+    else
     {
       // Not even a proper array!
-      Logger.log("[GetParameters] Range named <%s> is not even an array.", sourceName);
+      LogVerbose(`Range named <${sourceName}> is not even an array.`, verbose);
     }
   }
-  else if (verbose)
+  else
   {
     // We got nothing!
-    Logger.log("[GetParameters] Range named <%s> did not result in a viable value.", sourceName);
+    LogVerbose(`Range named <${sourceName}> did not result in a viable value.`, verbose);
   }
   
   return parameters;
@@ -1355,8 +1385,8 @@ function GetMainSheetID()
  */
 function FillArray(size, value)
 {
-  var fill= [];
-  var counter= 0;
+  var fill = [];
+  var counter = 0;
   
   while (counter < size)
   {
@@ -1374,7 +1404,7 @@ function FillArray(size, value)
  */
 function NumberToString(number, width, pad)
 {
-  var formattedNumber= "" + number;
+  var formattedNumber = "" + number;
   
   while (formattedNumber.length < width)
   {
@@ -1392,22 +1422,19 @@ function NumberToString(number, width, pad)
  */
 function SpecifyColumnA1Notation(column, verbose)
 {
-  var specificaion= null;
-  const firstColumn= "A";
+  var specification = null;
+  const firstColumn = "A";
       
   if (column > ("Z".charCodeAt(0) - firstColumn.charCodeAt(0) + 1))
   {
-    if (verbose)
-    {
-      Logger.log("[SpecifyColumnA1Notation] No support (yet) for managing a column <%s> beyond position 'Z.'", column);
-    }
+    LogVerbose(`No support (yet) for managing a column <${column}> beyond position 'Z.'`, verbose);
   }
   else
   {
-    specificaion= String.fromCharCode(firstColumn.charCodeAt(0) + column);
+    specification= String.fromCharCode(firstColumn.charCodeAt(0) + column);
   }
   
-  return specificaion;
+  return specification;
 };
 
 
@@ -1418,22 +1445,22 @@ function SpecifyColumnA1Notation(column, verbose)
  */
 function DateToLocaleString(date, separator)
 {
-  var dateOptions= { day: '2-digit', month: '2-digit', year: 'numeric' };
-  //var timeOptions= { hour12: false, hourCycle: 'h23', hour: '2-digit', minute:'2-digit', second: '2-digit'};
-  var timeOptions= { hourCycle: 'h23', hour: '2-digit', minute:'2-digit', second: '2-digit'};
+  var dateOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  //var timeOptions = { hour12: false, hourCycle: 'h23', hour: '2-digit', minute:'2-digit', second: '2-digit'};
+  var timeOptions = { hourCycle: 'h23', hour: '2-digit', minute:'2-digit', second: '2-digit'};
   
   if (date == undefined)
   {
-    date= new Date();
+    date = new Date();
   }
   else
   {
-    date= new Date(date);
+    date = new Date(date);
   }
   
   if (separator == undefined)
   {
-    separator= " ";
+    separator = " ";
   }
   
   //return date.toLocaleString('en-US', {hour12: false, hourCycle: 'h23'});
