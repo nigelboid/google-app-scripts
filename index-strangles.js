@@ -60,17 +60,17 @@ function RunIndexStranglesCandidates(afterHours, test)
   if (forceRefreshNow || ((IsMarketOpen(sheetID, optionPrices, verbose) || afterHours) && (currentTime > nextUpdateTime)))
   {
     // Only check during market hours or after a day change
-    var candidates = null;
-    var candidatesAdditional = null;
-    var dte = GetValueByName(sheetID, "IndexStranglesDTE", verbose);
     const symbols = GetTableByNameSimple(sheetID, "IndexStranglesSymbols", verbose);
-    const deltaTargetCall = GetValueByName(sheetID, "IndexStranglesDeltaCall", verbose);
-    const deltaTargetPut = GetValueByName(sheetID, "IndexStranglesDeltaPut", verbose);
+    const candidates = GetIndexStrangleContractsIncome(sheetID, symbols, verbose);
+
+    // var candidates = null;
+    // var candidatesAdditional = null;
+    // var dte = GetValueByName(sheetID, "IndexStranglesDTE", verbose);
+    // const deltaTargetCall = GetValueByName(sheetID, "IndexStranglesDeltaCall", verbose);
+    // const deltaTargetPut = GetValueByName(sheetID, "IndexStranglesDeltaPut", verbose);
+    // const symbols = GetTableByNameSimple(sheetID, "IndexStranglesSymbols", verbose);
 
     // candidates = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall, deltaTargetPut, verbose);
-
-    candidates = GetIndexStrangleContractsIncome(sheetID, symbols, verbose);
-
     // candidatesAdditional = GetIndexStrangleContracts(sheetID, symbols, dte, deltaTargetCall / 2, deltaTargetPut / 3, verbose);
     
     // if (candidatesAdditional.length > 0)
