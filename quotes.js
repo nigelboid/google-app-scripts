@@ -253,7 +253,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
   
   if (forceRefresh || IsMarketOpen(sheetID, optionPrices, verbose))
   {
-    // Invoked during trading hours, proceed
+    // Invoked during trading hours or being forced to run, proceed
     timeStamp = GetValueByName(sheetID, timeStampName, verbose);
     
     if (forceRefresh || ((timeStamp + pollInterval) < scriptTime.getTime()))
@@ -508,7 +508,7 @@ function IsMarketOpen(id, optionPrices, verbose)
   
   if (optionPrices)
   {
-    // No  extended hours trading
+    // No extended hours trading
     marketTimeOpen = GetValueByName(id, "ParameterMarketTimeOptionsOpen", verbose);
     marketTimeClose = GetValueByName(id, "ParameterMarketTimeOptionsClose", verbose);
   }

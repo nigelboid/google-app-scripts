@@ -9,13 +9,21 @@ function RunPersonal(backupRun)
   const mainSheetID = GetMainSheetID();
   const scriptTime = new Date();
   const verbose = false;
-  const verboseChanges = true;
   const confirmNumbers = true;
 
   // // End of year special
   // Log("Skipping daily runs at the end of the year...");
   // LogSend(mainSheetID);
   // return false;
+
+  // // Testing trigger timing
+  // if (!backupRun)
+  // {
+  //   Log("Skipping primary run!");
+  //   LogSend(mainSheetID);
+
+  //   return false;
+  // }
   
   if (mainSheetID != undefined)
   {
@@ -23,6 +31,8 @@ function RunPersonal(backupRun)
     const annualSheetIDs = GetAnnualSheetIDs(mainSheetID, verbose);
     if (annualSheetIDs != undefined)
     {
+      // const verboseChanges = true;
+      
       UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun, confirmNumbers);
       // SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, verbose, verboseChanges);
 
