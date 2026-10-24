@@ -10,6 +10,7 @@ function RunIndexStranglesCandidates(afterHours, test)
   const sheetID = GetMainSheetID();
   const forceRefreshNowName = "IndexStranglesForceRefreshNow";
   const optionPrices = true;
+  // const optionPrices = false;
   var verbose = false;
   var success = false;
   
@@ -17,7 +18,7 @@ function RunIndexStranglesCandidates(afterHours, test)
   
   const nextUpdateTime = GetValueByName(sheetID, "IndexStranglesCandidatesUpdateNext", verbose);
   const currentTime = new Date();
-  
+
   if (afterHours == undefined)
   {
     afterHours = true;
@@ -44,16 +45,19 @@ function RunIndexStranglesCandidates(afterHours, test)
   }
   else
   {
-    // Check for day changes
-    if (currentTime.getDate() > nextUpdateTime.getDate())
+    // Check for day changes on weekdays
+    if (currentTime.getDay() > 0 && currentTime.getDay() < 6)
     {
-      // Force refresh on day changes
-      forceRefreshNow = true;
-    }
-    else if (currentTime.getMonth() != nextUpdateTime.getMonth() && currentTime.getDate() == 1)
-    {
-      // Force refresh on day changes (special case for first day of the month)
-      forceRefreshNow = true;
+      if (currentTime.getDate() > nextUpdateTime.getDate())
+      {
+        // Force refresh on day changes
+        forceRefreshNow = true;
+      }
+      else if (currentTime.getMonth() != nextUpdateTime.getMonth() && currentTime.getDate() == 1)
+      {
+        // Force refresh on day changes (special case for first day of the month)
+        forceRefreshNow = true;
+      }
     }
   }
   
