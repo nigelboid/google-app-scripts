@@ -9,8 +9,9 @@ function RunIndexStranglesCandidates(afterHours, test)
   // Declare constants and local variables
   const sheetID = GetMainSheetID();
   const forceRefreshNowName = "IndexStranglesForceRefreshNow";
+  const marketSunday = 0;
+  const marketSaturday = 6;
   const optionPrices = true;
-  // const optionPrices = false;
   var verbose = false;
   var success = false;
   
@@ -46,7 +47,7 @@ function RunIndexStranglesCandidates(afterHours, test)
   else
   {
     // Check for day changes on weekdays
-    if (currentTime.getDay() > 0 && currentTime.getDay() < 6)
+    if (currentTime.getDay() > marketSunday && currentTime.getDay() < marketSaturday)
     {
       if (currentTime.getDate() > nextUpdateTime.getDate())
       {
