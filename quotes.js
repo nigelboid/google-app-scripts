@@ -11,11 +11,11 @@ function RunQuotes(afterHours)
   const sheetID = GetMainSheetID();
   const confirmNumbers = true;
   const limit = 0;
-  var verbose = false;
-  var success = false;
-
-  var staleName = "PortfolioHeldEquitiesStaleCount";
+  const staleName = "PortfolioHeldEquitiesStaleCount";
   var stale = GetValueByName(sheetID, staleName, verbose, confirmNumbers, limit);
+  var verbose = false;
+  var success = true;
+
 
   if (afterHours == undefined)
   {
@@ -71,13 +71,12 @@ function RunEquities(sheetID, verbose)
   const updateStatusName = "QuotesUpdateStatus";
   const updateTimeName = "QuotesUpdateTime";
   const forceRefreshNowName = "QuotesForceRefreshNow";
+  const forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
   const pollMinutesName = "QuotesPollMinutes";
   const urlName = "QuotesURL";
   var forceRefreshName = "QuotesForceRefresh";
   var optionPrices = false;
-  var success = false;
-
-  var forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
+  var success = true;
 
   if (forceRefreshNow)
   {
@@ -121,7 +120,7 @@ function RunEquitiesAfterHours(sheetID, verbose)
   const pollMinutesName = "QuotesPollMinutes";
   const urlName = "QuotesURL";
   const optionPrices = false;
-  var success = false;
+  var success = true;
   
   if (!IsMarketOpen(sheetID, optionPrices, verbose))
   {
@@ -150,13 +149,12 @@ function RunOptions(sheetID, verbose)
   const updateStatusName = "OptionsUpdateStatus";
   const updateTimeName = "OptionsUpdateTime";
   const forceRefreshNowName = "OptionsForceRefreshNow";
+  const forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
   const pollMinutesName = "OptionsPollMinutes";
   const urlName = "OptionsURL";
   const optionPrices = true;
   var forceRefreshName = "OptionsForceRefresh";
-  var success = false;
-
-  const forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
+  var success = true;
 
   if (forceRefreshNow)
   {
@@ -200,7 +198,7 @@ function RunOptionsAfterHours(sheetID, verbose)
   const pollMinutesName = "OptionsPollMinutes";
   const urlName = "OptionsURL";
   const optionPrices = true;
-  var success = false;
+  var success = true;
   
   if (!IsMarketOpen(sheetID, optionPrices, verbose))
   {
@@ -232,7 +230,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
   var priceTable = null;
   var pollInterval = null;
   var forceRefresh = false;
-  var success = false;
+  var success = true;
 
   if (forceRefreshName)
   {
@@ -310,6 +308,8 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                       const updateTime = new Date();
                       SetValueByName(sheetID, updateStatusName, `Could not write prices [${DateToLocaleString(updateTime)}]`, verbose);
                       SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
+
+                      success = false;
                     }
                   }
                   else
@@ -319,6 +319,8 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                     const updateTime = new Date();
                     SetValueByName(sheetID, updateStatusName, `Could not transform prices [${DateToLocaleString(updateTime)}]`, verbose);
                     SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
+
+                    success = false;
                   }
                 }
                 else
@@ -328,12 +330,16 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                   const updateTime = new Date();
                   SetValueByName(sheetID, updateStatusName, `Could not read current snapshot [${DateToLocaleString(updateTime)}]`, verbose);
                   SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
+
+                  success = false;
                 }
               }
               else
               {
                 const minutes = ((timeStamp - scriptTime.getTime()) / minuteToMillisecondConversionFactor).toFixed(2);
                 Log(`Superseded by another run (${minutes} minutes later).`);
+
+                success = false;
               }
             }
             else
@@ -343,6 +349,8 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
               const updateTime = new Date();
               SetValueByName(sheetID, updateStatusName, `Could not get prices [${DateToLocaleString(updateTime)}]`, verbose);
               SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
+
+              success = false;
             }
           }
           else
@@ -352,6 +360,8 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
             const updateTime = new Date();
             SetValueByName(sheetID, updateStatusName, `Could not update time stamp [${DateToLocaleString(updateTime)}]`, verbose);
             SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
+
+            success = false;
           }
         }
         else
@@ -361,6 +371,8 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
           const updateTime = new Date();
           SetValueByName(sheetID, updateStatusName, `Could not obtain list of labels [${DateToLocaleString(updateTime)}]`, verbose);
           SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
+
+          success = false;
         }
       }
       else
@@ -370,6 +382,8 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
         const updateTime = new Date();
         SetValueByName(sheetID, updateStatusName, "Could not obtain list of symbols [" + DateToLocaleString(updateTime) + "]", verbose);
         SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
+
+        success = false;
       }
     }
     else
