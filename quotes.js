@@ -14,7 +14,7 @@ function RunQuotes(afterHours)
   const staleName = "PortfolioHeldEquitiesStaleCount";
   var stale = GetValueByName(sheetID, staleName, verbose, confirmNumbers, limit);
   var verbose = false;
-  var success = true;
+  var success = false;
 
 
   if (afterHours == undefined)
@@ -36,7 +36,7 @@ function RunQuotes(afterHours)
   {
     // Only check those which are sensitive after market hours
     success = RunOptionsAfterHours(sheetID, verbose);
-    success = success && RunEquitiesAfterHours(sheetID, verbose);
+    success = success || RunEquitiesAfterHours(sheetID, verbose);
   }
   else
   {
@@ -76,7 +76,7 @@ function RunEquities(sheetID, verbose)
   const urlName = "QuotesURL";
   var forceRefreshName = "QuotesForceRefresh";
   var optionPrices = false;
-  var success = true;
+  var success = false;
 
   if (forceRefreshNow)
   {
@@ -120,7 +120,7 @@ function RunEquitiesAfterHours(sheetID, verbose)
   const pollMinutesName = "QuotesPollMinutes";
   const urlName = "QuotesURL";
   const optionPrices = false;
-  var success = true;
+  var success = false;
   
   if (!IsMarketOpen(sheetID, optionPrices, verbose))
   {
@@ -154,7 +154,7 @@ function RunOptions(sheetID, verbose)
   const urlName = "OptionsURL";
   const optionPrices = true;
   var forceRefreshName = "OptionsForceRefresh";
-  var success = true;
+  var success = false;
 
   if (forceRefreshNow)
   {
@@ -198,7 +198,7 @@ function RunOptionsAfterHours(sheetID, verbose)
   const pollMinutesName = "OptionsPollMinutes";
   const urlName = "OptionsURL";
   const optionPrices = true;
-  var success = true;
+  var success = false;
   
   if (!IsMarketOpen(sheetID, optionPrices, verbose))
   {
@@ -230,7 +230,7 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
   var priceTable = null;
   var pollInterval = null;
   var forceRefresh = false;
-  var success = true;
+  var success = false;
 
   if (forceRefreshName)
   {
@@ -308,8 +308,6 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                       const updateTime = new Date();
                       SetValueByName(sheetID, updateStatusName, `Could not write prices [${DateToLocaleString(updateTime)}]`, verbose);
                       SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
-
-                      success = false;
                     }
                   }
                   else
@@ -319,8 +317,6 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                     const updateTime = new Date();
                     SetValueByName(sheetID, updateStatusName, `Could not transform prices [${DateToLocaleString(updateTime)}]`, verbose);
                     SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
-
-                    success = false;
                   }
                 }
                 else
@@ -330,16 +326,12 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
                   const updateTime = new Date();
                   SetValueByName(sheetID, updateStatusName, `Could not read current snapshot [${DateToLocaleString(updateTime)}]`, verbose);
                   SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
-
-                  success = false;
                 }
               }
               else
               {
                 const minutes = ((timeStamp - scriptTime.getTime()) / minuteToMillisecondConversionFactor).toFixed(2);
                 Log(`Superseded by another run (${minutes} minutes later).`);
-
-                success = false;
               }
             }
             else
@@ -349,8 +341,6 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
               const updateTime = new Date();
               SetValueByName(sheetID, updateStatusName, `Could not get prices [${DateToLocaleString(updateTime)}]`, verbose);
               SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
-
-              success = false;
             }
           }
           else
@@ -360,8 +350,6 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
             const updateTime = new Date();
             SetValueByName(sheetID, updateStatusName, `Could not update time stamp [${DateToLocaleString(updateTime)}]`, verbose);
             SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
-
-            success = false;
           }
         }
         else
@@ -371,8 +359,6 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
           const updateTime = new Date();
           SetValueByName(sheetID, updateStatusName, `Could not obtain list of labels [${DateToLocaleString(updateTime)}]`, verbose);
           SetValueByName(sheetID, checkStatusName, `Failed [${DateToLocaleString(scriptTime)}]`, verbose);
-
-          success = false;
         }
       }
       else
@@ -382,8 +368,6 @@ function RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName
         const updateTime = new Date();
         SetValueByName(sheetID, updateStatusName, "Could not obtain list of symbols [" + DateToLocaleString(updateTime) + "]", verbose);
         SetValueByName(sheetID, checkStatusName, "Failed [" + DateToLocaleString(scriptTime) + "]", verbose);
-
-        success = false;
       }
     }
     else
