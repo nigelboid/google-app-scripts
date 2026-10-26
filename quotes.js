@@ -35,8 +35,10 @@ function RunQuotes(afterHours)
   if (afterHours)
   {
     // Only check those which are sensitive after market hours
-    success = RunOptionsAfterHours(sheetID, verbose);
-    success = success || RunEquitiesAfterHours(sheetID, verbose);
+    const successOptions = RunOptionsAfterHours(sheetID, verbose);
+    const successEquities = RunEquitiesAfterHours(sheetID, verbose);
+
+    success = successOptions || successEquities;
   }
   else
   {
@@ -496,41 +498,56 @@ function UpdatePrices(symbols, pricesTable, prices, verbose)
  */
 function IsMarketOpen(id, optionPrices, verbose)
 {
-  // Declare constants and local variables
-  const time = new Date();
-  const marketSunday = 0;
-  const marketSaturday = 6;
-  var marketTimeOpen = null;
-  var marketTimeClose = null;
-  
+  var isMarketOpen = false;
   
   if (optionPrices)
   {
-    // No extended hours trading
-    marketTimeOpen = GetValueByName(id, "ParameterMarketTimeOptionsOpen", verbose);
-    marketTimeClose = GetValueByName(id, "ParameterMarketTimeOptionsClose", verbose);
+    isMarketOpen = GetValueByName(id, "ParameterIsMarketOpenOptions", verbose);
   }
   else
   {
-    // Extended hours trading
-    marketTimeOpen = GetValueByName(id, "ParameterMarketTimeOpen", verbose);
-    marketTimeClose = GetValueByName(id, "ParameterMarketTimeClose", verbose);
+    isMarketOpen = GetValueByName(id, "ParameterIsMarketOpen", verbose);
   }
+
+  return isMarketOpen;
   
-  if (marketTimeOpen == undefined || marketTimeOpen == null)
-  {
-    // No parameter provided? Use default instead
-    marketTimeOpen = 600;
-  }
   
-  if (marketTimeClose == undefined || marketTimeClose == null)
-  {
-    // No parameter provided? Use default instead
-    marketTimeClose = 1900;
-  }
   
-  return (time.getDay() > marketSunday && time.getDay() < marketSaturday) &&
-    ((time.getHours() * 100 + time.getMinutes()) > marketTimeOpen && (time.getHours() * 100 + time.getMinutes()) < marketTimeClose);
+  // // Declare constants and local variables
+  // const time = new Date();
+  // const marketSunday = 0;
+  // const marketSaturday = 6;
+  // var marketTimeOpen = null;
+  // var marketTimeClose = null;
+  
+  
+  // if (optionPrices)
+  // {
+  //   // No extended hours trading
+  //   marketTimeOpen = GetValueByName(id, "ParameterMarketTimeOptionsOpen", verbose);
+  //   marketTimeClose = GetValueByName(id, "ParameterMarketTimeOptionsClose", verbose);
+  // }
+  // else
+  // {
+  //   // Extended hours trading
+  //   marketTimeOpen = GetValueByName(id, "ParameterMarketTimeOpen", verbose);
+  //   marketTimeClose = GetValueByName(id, "ParameterMarketTimeClose", verbose);
+  // }
+  
+  // if (marketTimeOpen == undefined || marketTimeOpen == null)
+  // {
+  //   // No parameter provided? Use default instead
+  //   marketTimeOpen = 600;
+  // }
+  
+  // if (marketTimeClose == undefined || marketTimeClose == null)
+  // {
+  //   // No parameter provided? Use default instead
+  //   marketTimeClose = 1900;
+  // }
+  
+  // return (time.getDay() > marketSunday && time.getDay() < marketSaturday) &&
+  //   ((time.getHours() * 100 + time.getMinutes()) > marketTimeOpen && (time.getHours() * 100 + time.getMinutes()) < marketTimeClose);
 };
 
 
