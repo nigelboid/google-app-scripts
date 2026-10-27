@@ -164,9 +164,28 @@ function RunAuxiliary()
 function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNumbers)
 {
   // Declare constants and local variables
-  const updateRun = false;
+  const maxLossLimit = -1;
+  const confirmMyNumbers = true;
+  
+  // Only attempt to preserver the following once per day
+  if (!backupRun)
+  {
+    // Update earliest active date
+    SaveValue(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers, 0);
+
+    // Preserve values for later comparisons
+    SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
+    SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
+
+    // Preserve current cash position for later comparisons
+    const maxDebt = -2000000;
+    SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
+    SaveValue(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, maxDebt);
+    SaveValue(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, maxDebt);
+  }
   
   // Preserve current net asset values
+  const updateRun = false;
   const navHistorySheetName = "H: NAV";
   const navNames =
   {
@@ -180,42 +199,11 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   };
   SaveValuesInHistory(mainSheetID, navHistorySheetName, navNames, scriptTime, backupRun, updateRun, verbose);
   
-  // // Preserve latest $SGOV price
-  // const sgovHistorySheetName = "H: SGOV";
-  // const sgovDividendName = "SGOVDividend";
-  // const sgovDividend = GetValueByName(mainSheetID, sgovDividendName, verbose);
-  // const sgovNames =
-  // {
-  //   "SGOVPrice" : 0,
-  //   "SGOVDividend" : -1,
-  //   "SGOVSevenDayYield" : -1
-  // };
-  // SaveValuesInHistory(mainSheetID, sgovHistorySheetName, sgovNames, scriptTime, backupRun, updateRun, verbose);
-
-  // if (sgovDividend)
-  // {
-  //   // Clear preserved value
-  //   LogVerbose(`Clearing <${sgovDividendName}> [value = ${sgovDividend}]...`, verbose);
-  //   SetValueByName(mainSheetID, sgovDividendName, "", verbose);
-  // }
-  
-  // Preserve some current prices for later comparisons
-  SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
-  
   // Preserve all current portfolio symbols for conflict-free automation
   SaveValue(mainSheetID, "PortfolioSymbols", "PortfolioSymbolsSaved", verbose);
   
   // Preserve long option position data for conflict-free automation
   SaveValue(mainSheetID, "PortfolioHeldOptionsLongAndEuro", "PortfolioHeldOptionsLongAndEuroSaved", verbose);
-  
-  // Preserve current cash position for later comparisons
-  const maxDebt = -2000000;
-  SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
-  SaveValue(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, maxDebt);
-  SaveValue(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, maxDebt);
-  
-  // Preserve current option prices for later comparisons
-  SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
   
   // Preserve current year 401K primary and catch-up contribution amounts and dates
   SaveValue(mainSheetID, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
@@ -224,19 +212,10 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   SaveValue(mainSheetID, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
   
   // Preserve quarterly benchmarks
-  const maxLossLimit = -1;
-  const confirmMyNumbers = true;
   if (SaveValue(mainSheetID, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, confirmMyNumbers, maxLossLimit))
   {
     // Values updated -- update time stamp
     UpdateTime(mainSheetID, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
-  }
-
-  // Update earliest active date
-  if (!backupRun)
-  {
-    // Only attempt once a day
-    SaveValue(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers, 0);
   }
 };
 
