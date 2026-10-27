@@ -357,11 +357,12 @@ function GetAnnualSheetIDs(sheetID, verbose)
  */
 function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit)
 {
+  const firstDataColumn = 0;
   var sourceValues = [];
   var destinationValues = [];
-  var firstDataColumn = 0;
   var storeIterationCount = false;
   var changed = false;
+  var success = false;
   
   // set defaults unless supplied
   if (confirmNumbers == undefined)
@@ -423,6 +424,9 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
                   `has not changed between named tables <${sourceName}> and <${destinationName}>  of spreadsheet ID <${sheetID}>.`,
                   verbose
                 );
+
+                // No action required, assume success
+                success = true;
               }
             }
           }
@@ -456,6 +460,7 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
           Log(`Could not write out range named <${destinationName}> in spreadsheet ID <${sheetID}>.`);
           
           changed = false;
+          success = false;
         }
       }
     }
@@ -469,7 +474,61 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
     Log(`Could not get range named <${sourceName}> in spreadsheet ID <${sheetID}>.`);
   }
   
-  return changed;
+  return success;
+};
+
+
+/**
+ * SaveValueDaily()
+ *
+ * Save current values in a mirror table
+ */
+function SaveValueDaily(sheetID, sourceName, verbose, backupRun, confirmNumbers, limit)
+{
+  const savedSuffix = "Saved";
+  const updateStampSuffix = "UpdateTime";
+  const destinationName = `${sourceName}${savedSuffix}`;
+  const updateStampName = `${sourceName}${updateStampSuffix}`;
+  
+  const updateStamp = GetValueByName(sheetID, updateStampName, verbose);
+  const updateStampDate = new Date(updateStamp);
+
+  var scriptTime = new Date();
+  var success = false;
+  
+  if (updateStampDate.getDate() != scriptTime.getDate())
+  {
+    // No update today, make one...
+    success = SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit);
+    if (success)
+    {
+      scriptTime = UpdateTime(sheetID, updateStampName, verbose);
+
+      if (backupRun)
+      {
+        Log(`Primary run apparently failed to save value <${sourceName}> in spreadsheet ID <${sheetID}>.`);
+        LogVerbose(`Value <${sourceName}> in spreadsheet ID <${sheetID}> updated now <${scriptTime}>.`, verbose);
+      }
+    }
+    else
+    {
+      // Failed to save out value!
+      Log(`Failed to save value <${sourceName}> in spreadsheet ID <${sheetID}> as <${destinationName}>!`);
+    }
+  }
+  else
+  {
+    if (!backupRun)
+    {
+      LogVerbose(`Value <${sourceName}> in spreadsheet ID <${sheetID}> was already updated today <${updateStamp}>.`, verbose);
+    }
+    else
+    {
+      success = true;
+    }
+  }
+
+  return success;
 };
 
 
@@ -1476,7 +1535,18 @@ function DateToLocaleString(date, separator)
  */
 function UpdateTime(sheetID, timeStampName, verbose)
 {
-  SetValueByName(sheetID, timeStampName, DateToLocaleString(), verbose);
+  const timeStamp = DateToLocaleString();
+
+  const success = SetValueByName(sheetID, timeStampName, timeStamp, verbose);
+
+  if (success)
+  {
+    return timeStamp;
+  }
+  else
+  {
+    return success;
+  }
 };
 
 

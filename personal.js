@@ -137,19 +137,11 @@ function RunAuxiliary()
 {
   // Declare constants and local variables
   const auxiliarySheetID = "1N3VC1SLZFBkt0jYobldHWmTRH2Zt6uUi6xZkU_yuwYM";
-  const updateStampName = "UsageUpdateStamp";
-  const scriptTime = new Date();
+  const usageName = "Usage";
+  const backupRun = false;
   const verbose = false;
 
-  const updateStamp = GetValueByName(auxiliarySheetID, updateStampName, verbose);
-  const updateStampDate = new Date(updateStamp);
-  
-  if (updateStampDate.getDate() != scriptTime.getDate())
-  {
-    // Synchnize today's usage to yesterday in order to start new daily differentials
-    SaveValue(auxiliarySheetID, "UsageToday", "UsageYesterday", verbose);
-    UpdateTime(auxiliarySheetID, updateStampName, verbose)
-  }
+  SaveValueDaily(auxiliarySheetID, usageName, verbose, backupRun)
   
   // We are done -- send the accumulated log...
   LogSend(auxiliarySheetID);
@@ -165,9 +157,11 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
 {
   // Declare constants and local variables
   const maxLossLimit = -1;
+  const maxDebt = -2000000;
   const confirmMyNumbers = true;
+  const updateRun = false;
   
-  // Only attempt to preserver the following once per day
+  // Only attempt to preserve the following once per day
   if (!backupRun)
   {
     // Update earliest active date
@@ -178,14 +172,12 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
     SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
 
     // Preserve current cash position for later comparisons
-    const maxDebt = -2000000;
     SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
     SaveValue(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, maxDebt);
     SaveValue(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, maxDebt);
   }
   
   // Preserve current net asset values
-  const updateRun = false;
   const navHistorySheetName = "H: NAV";
   const navNames =
   {

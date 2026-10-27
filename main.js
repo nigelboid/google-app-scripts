@@ -6,7 +6,7 @@
  */
 function RunPrimary()
 {
-  var backupRun = false;
+  const backupRun = false;
   
   RunDaily(backupRun);
 };
@@ -20,7 +20,7 @@ function RunPrimary()
  */
 function RunBackup()
 {
-  var backupRun = true;
+  const backupRun = true;
   
   RunDaily(backupRun);
 };
@@ -44,10 +44,10 @@ function RunDaily(backupRun)
  */
 function RunHourly()
 {
-  var afterHours = true;
+  const afterHours = true;
   
   RunPersonalHourly();
-  RunAuxiliary();
+  // RunAuxiliary();
 
   RunQuotes(afterHours);
 
@@ -62,13 +62,11 @@ function RunHourly()
  */
 function RunFrequently()
 {
-  var afterHours = false;
+  const afterHours = false;
   
   if (!RunIndexStranglesCandidates(afterHours))
   {
     // Only update quotes if candidates and boxes skipped (new candidates and boxes will force quotes)
-    // RunQuotes(afterHours);
-
     if (!RunQuotes(afterHours))
     {
       // Only check electricity prices if the rest skipped (try to stay within a narrow execution window)
