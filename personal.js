@@ -204,11 +204,12 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   SaveValue(mainSheetID, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
   
   // Preserve quarterly benchmarks
-  if (SaveValue(mainSheetID, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, confirmMyNumbers, maxLossLimit))
-  {
-    // Values updated -- update time stamp
-    UpdateTime(mainSheetID, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
-  }
+  SaveValueDaily(mainSheetID, "BenchmarksQuarterlyThisYear", verbose, backupRun, confirmNumbers, maxLossLimit);
+  // if (SaveValue(mainSheetID, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, confirmMyNumbers, maxLossLimit))
+  // {
+  //   // Values updated -- update time stamp
+  //   UpdateTime(mainSheetID, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
+  // }
 };
 
 
