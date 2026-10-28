@@ -489,42 +489,43 @@ function SaveValueDaily(sheetID, sourceName, verbose, backupRun, confirmNumbers,
   const updateStampSuffix = "UpdateTime";
   const destinationName = `${sourceName}${savedSuffix}`;
   const updateStampName = `${sourceName}${updateStampSuffix}`;
-  
   const updateStamp = GetValueByName(sheetID, updateStampName, verbose);
   const updateStampDate = new Date(updateStamp);
-
-  var scriptTime = new Date();
+  const scriptTime = new Date();
   var success = false;
   
   if (updateStampDate.getDate() != scriptTime.getDate())
   {
     // No update today, make one...
+    if (backupRun)
+    {
+      Log(`Primary run apparently failed to save value <${sourceName}> in spreadsheet ID <${sheetID}>.`);
+    }
+
     success = SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit);
     if (success)
     {
-      scriptTime = UpdateTime(sheetID, updateStampName, verbose);
-
-      if (backupRun)
-      {
-        Log(`Primary run apparently failed to save value <${sourceName}> in spreadsheet ID <${sheetID}>.`);
-        LogVerbose(`Value <${sourceName}> in spreadsheet ID <${sheetID}> updated now <${scriptTime}>.`, verbose);
-      }
+      // Data updated, also update time stamp
+      const timeStamp = UpdateTime(sheetID, updateStampName, verbose);
+      LogVerbose(`Value <${sourceName}> in spreadsheet ID <${sheetID}> updated now <${timeStamp}>.`, verbose);
     }
     else
     {
-      // Failed to save out value!
+      // Failed to save our value!
       Log(`Failed to save value <${sourceName}> in spreadsheet ID <${sheetID}> as <${destinationName}>!`);
     }
   }
   else
   {
-    if (!backupRun)
+    if (backupRun)
     {
-      LogVerbose(`Value <${sourceName}> in spreadsheet ID <${sheetID}> was already updated today <${updateStamp}>.`, verbose);
+      // Nothing to do for a backup run constitutes the best possible outcome
+      success = true;
     }
     else
     {
-      success = true;
+      // Primary run encountered today's update
+      Log(`Value <${sourceName}> in spreadsheet ID <${sheetID}> was already updated today <${updateStamp}>.`);
     }
   }
 

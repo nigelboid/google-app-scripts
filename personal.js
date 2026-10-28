@@ -205,11 +205,6 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   
   // Preserve quarterly benchmarks
   SaveValueDaily(mainSheetID, "BenchmarksQuarterlyThisYear", verbose, backupRun, confirmNumbers, maxLossLimit);
-  // if (SaveValue(mainSheetID, "BenchmarksQuarterlyThisYear", "BenchmarksQuarterlyThisYearSaved", verbose, confirmMyNumbers, maxLossLimit))
-  // {
-  //   // Values updated -- update time stamp
-  //   UpdateTime(mainSheetID, "BenchmarksQuarterlyThisYearSavedUpdateTime", verbose);
-  // }
 };
 
 
