@@ -141,7 +141,7 @@ function RunAuxiliary()
   const backupRun = false;
   const verbose = false;
 
-  SaveValueDaily(auxiliarySheetID, usageName, verbose, backupRun)
+  SaveValuesDaily(auxiliarySheetID, usageName, verbose, backupRun)
   
   // We are done -- send the accumulated log...
   LogSend(auxiliarySheetID);
@@ -166,12 +166,12 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
     const maxDebt = -2000000;
 
     // Update earliest active date
-    SaveValue(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers);
+    SaveValues(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers);
 
     /// Preserve current cash position for later comparisons
-    SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
-    SaveValue(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, maxDebt);
-    SaveValue(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, maxDebt);
+    SaveValues(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
+    SaveValues(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, maxDebt);
+    SaveValues(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, maxDebt);
   }
   
   // Preserve current net asset values
@@ -189,30 +189,30 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   SaveValuesInHistory(mainSheetID, navHistorySheetName, navNames, scriptTime, backupRun, updateRun, verbose);
   
   // Preserve all current portfolio symbols for conflict-free automation
-  SaveValue(mainSheetID, "PortfolioSymbols", "PortfolioSymbolsSaved", verbose);
+  SaveValues(mainSheetID, "PortfolioSymbols", "PortfolioSymbolsSaved", verbose);
   
   // Preserve long option position data for conflict-free automation
-  SaveValue(mainSheetID, "PortfolioHeldOptionsLongAndEuro", "PortfolioHeldOptionsLongAndEuroSaved", verbose);
+  SaveValues(mainSheetID, "PortfolioHeldOptionsLongAndEuro", "PortfolioHeldOptionsLongAndEuroSaved", verbose);
   
   // Preserve current year 401K primary and catch-up contribution amounts and dates
-  SaveValue(mainSheetID, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
-  SaveValue(mainSheetID, "Contribution401KAmountCatchUpThisYear", "Contribution401KAmountCatchUpThisYearSaved", verbose);
-  SaveValue(mainSheetID, "Contribution401KDateNext", "Contribution401KDateNextSaved", verbose);
-  SaveValue(mainSheetID, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
+  SaveValues(mainSheetID, "Contribution401KAmountPrimaryThisYear", "Contribution401KAmountPrimaryThisYearSaved", verbose);
+  SaveValues(mainSheetID, "Contribution401KAmountCatchUpThisYear", "Contribution401KAmountCatchUpThisYearSaved", verbose);
+  SaveValues(mainSheetID, "Contribution401KDateNext", "Contribution401KDateNextSaved", verbose);
+  SaveValues(mainSheetID, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
   
   // Preserve quarterly benchmarks
-  SaveValueDaily(mainSheetID, "BenchmarksQuarterlyThisYear", backupRun, verbose, confirmNumbers, maxLossLimit);
+  SaveValuesDaily(mainSheetID, "BenchmarksQuarterlyThisYear", backupRun, verbose, confirmNumbers, maxLossLimit);
 
   // Preserve current prices for later comparisons
-  SaveValueDaily(mainSheetID, "Prices", backupRun, verbose);
-  SaveValueDaily(mainSheetID, "OptionsDerived", backupRun, verbose);
+  SaveValuesDaily(mainSheetID, "Prices", backupRun, verbose);
+  SaveValuesDaily(mainSheetID, "OptionsDerived", backupRun, verbose);
 
   // Only attempt to preserve the following once per day
   // if (!backupRun)
   // {
     // Preserve values for later comparisons
-    // SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
-    // SaveValue(mainSheetID, "OptionsDerived", "OptionsDerivedSaved", verbose);
+    // SaveValues(mainSheetID, "Prices", "PricesSaved", verbose);
+    // SaveValues(mainSheetID, "OptionsDerived", "OptionsDerivedSaved", verbose);
   // }
 };
 
@@ -274,10 +274,10 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun
     SaveValuesInHistory(sheetID, budgetHistorySheetName, budgetNames, scriptTime, backupRun, updateRun, verbose);
     
     // Reset high water marks
-    SaveValue(sheetID, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
+    SaveValues(sheetID, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
     
     // Preserve current managed portfolio values
-    if (SaveValue(sheetID, "ReconcileHeld", "ReconcileHeldSaved", verbose))
+    if (SaveValues(sheetID, "ReconcileHeld", "ReconcileHeldSaved", verbose))
     {
       UpdateTime(sheetID, "ReconcileHeldUpdateTime", verbose)
     }

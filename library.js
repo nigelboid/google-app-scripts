@@ -351,11 +351,11 @@ function GetAnnualSheetIDs(sheetID, verbose)
 
 
 /**
- * SaveValue()
+ * SaveValues()
  *
  * Save current values in a mirror table
  */
-function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit)
+function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit)
 {
   const firstDataColumn = 0;
   var sourceValues = [];
@@ -514,11 +514,11 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
 
 
 /**
- * SaveValueDaily()
+ * SaveValuesDaily()
  *
  * Save current values in a mirror table
  */
-function SaveValueDaily(sheetID, sourceName, backupRun, verbose, confirmNumbers, limit)
+function SaveValuesDaily(sheetID, sourceName, backupRun, verbose, confirmNumbers, limit)
 {
   const savedSuffix = "Saved";
   const updateStampSuffix = "UpdateTime";
@@ -537,7 +537,7 @@ function SaveValueDaily(sheetID, sourceName, backupRun, verbose, confirmNumbers,
       Log(`Primary run apparently failed to save value <${sourceName}> in spreadsheet ID <${sheetID}>.`);
     }
 
-    success = SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit);
+    success = SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit);
     if (success)
     {
       // Data updated, also update time stamp

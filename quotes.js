@@ -25,7 +25,7 @@ function RunQuotes(afterHours)
   if (stale > 0)
   {
     // Stale ticker symbols detected -- make a fresh copy
-    if (SaveValue(sheetID, "PortfolioHeldEquitiesUniqueLookup", "PortfolioHeldEquitiesUniqueLookupSaved", verbose))
+    if (SaveValues(sheetID, "PortfolioHeldEquitiesUniqueLookup", "PortfolioHeldEquitiesUniqueLookupSaved", verbose))
     {
       // Values updated -- update time stamp
       UpdateTime(sheetID, "PortfolioHeldEquitiesUniqueLookupSavedUpdateTime", verbose)
