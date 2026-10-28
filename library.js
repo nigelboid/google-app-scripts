@@ -483,7 +483,7 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
  *
  * Save current values in a mirror table
  */
-function SaveValueDaily(sheetID, sourceName, verbose, backupRun, confirmNumbers, limit)
+function SaveValueDaily(sheetID, sourceName, backupRun, verbose, confirmNumbers, limit)
 {
   const savedSuffix = "Saved";
   const updateStampSuffix = "UpdateTime";
