@@ -359,7 +359,9 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
 {
   const firstDataColumn = 0;
   var sourceValues = [];
+  var sourceValue = null;
   var destinationValues = [];
+  var destinationValue = null;
   var storeIterationCount = false;
   var changed = false;
   var success = false;
@@ -401,7 +403,36 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
           {
             for (var hIndex= 0; hIndex < destinationValues[vIndex].length; hIndex++)
             {
-              if (sourceValues[vIndex][hIndex] != destinationValues[vIndex][hIndex])
+              sourceValue = sourceValues[vIndex][hIndex];
+              destinationValue = destinationValues[vIndex][hIndex];
+
+              if (sourceValue instanceof Date)
+              {
+                if (destinationValue instanceof Date)
+                {
+                  // Convert dates to strings for comparison
+                  sourceValue = sourceValue.getTime();
+                  destinationValue = destinationValue.getTime();
+                }
+                else
+                {
+                  // Data type mismatch!
+                  changed = true;
+                  break;
+                }
+              }
+              
+              if (sourceValue === destinationValue)
+              {
+                LogVerbose
+                (
+                  `Value <${destinationValues[vIndex][hIndex]}> (${sourceValues[vIndex][hIndex]}) ` +
+                  `at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
+                  `has not changed between named tables <${sourceName}> and <${destinationName}> of spreadsheet ID <${sheetID}>.`,
+                  verbose
+                );
+              }
+              else
               {
                 LogVerbose
                 (
@@ -414,19 +445,7 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
                     
                 destinationValues[vIndex][hIndex] = sourceValues[vIndex][hIndex];
                 changed = true;
-              }
-              else
-              {
-                LogVerbose
-                (
-                  `Value <${destinationValues[vIndex][hIndex]}> (${sourceValues[vIndex][hIndex]}) ` +
-                  `at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
-                  `has not changed between named tables <${sourceName}> and <${destinationName}>  of spreadsheet ID <${sheetID}>.`,
-                  verbose
-                );
-
-                // No action required, assume success
-                success = true;
+                break;
               }
             }
           }
@@ -438,6 +457,12 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
               `does not match destination range <${destinationValues.length}, ${destinationValues[vIndex].length}> ` +
               `of destination <${destinationName}> in spreadsheet ID <${sheetID}>.`
             );
+          }
+
+          if (changed)
+          {
+            // No need to continue to checking -- we found a mismatch
+            break;
           }
         }
       }
@@ -453,8 +478,13 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
       
       if (changed)
       {
-        // write out the values
-        if (!SetTableByName(sheetID, destinationName, destinationValues, verbose))
+        // Commit new values
+        if (SetTableByName(sheetID, destinationName, destinationValues, verbose))
+        {
+          // Values updated
+          success = true;
+        }
+        else
         {
           // something went wrong!
           Log(`Could not write out range named <${destinationName}> in spreadsheet ID <${sheetID}>.`);
@@ -462,6 +492,11 @@ function SaveValue(sheetID, sourceName, destinationName, verbose, confirmNumbers
           changed = false;
           success = false;
         }
+      }
+      else
+      {
+        // No action required, assume success
+        success = true;
       }
     }
     else
