@@ -156,22 +156,19 @@ function RunAuxiliary()
 function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNumbers)
 {
   // Declare constants and local variables
-  const maxLossLimit = -1;
-  const maxDebt = -2000000;
   const confirmMyNumbers = true;
+  const maxLossLimit = -1;
   const updateRun = false;
   
-  // Only attempt to preserve the following once per day
-  if (!backupRun)
+  // Only attempt to preserve the following during lower priority backup runs
+  if (backupRun)
   {
+    const maxDebt = -2000000;
+
     // Update earliest active date
-    SaveValue(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers, 0);
+    SaveValue(mainSheetID, "HistoryDateEarliest", "HistoryDateEarliestSaved", verbose, confirmMyNumbers);
 
-    // Preserve values for later comparisons
-    SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
-    SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
-
-    // Preserve current cash position for later comparisons
+    /// Preserve current cash position for later comparisons
     SaveValue(mainSheetID, "ManagedCash", "ManagedCashSaved", verbose, confirmNumbers, maxDebt);
     SaveValue(mainSheetID, "SavingsCash", "SavingsCashSaved", verbose, confirmNumbers, maxDebt);
     SaveValue(mainSheetID, "BondsCash", "BondsCashSaved", verbose, confirmNumbers, maxDebt);
@@ -204,7 +201,18 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
   SaveValue(mainSheetID, "Contribution401KDateLast", "Contribution401KDateLastSaved", verbose);
   
   // Preserve quarterly benchmarks
-  SaveValueDaily(mainSheetID, "BenchmarksQuarterlyThisYear", verbose, backupRun, confirmNumbers, maxLossLimit);
+  SaveValueDaily(mainSheetID, "BenchmarksQuarterlyThisYear", backupRun, verbose, confirmNumbers, maxLossLimit);
+
+  // Preserve current prices for later comparisons
+  SaveValueDaily(mainSheetID, "Prices", backupRun, verbose);
+
+  // Only attempt to preserve the following once per day
+  if (!backupRun)
+  {
+    // Preserve values for later comparisons
+    // SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
+    SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
+  }
 };
 
 
