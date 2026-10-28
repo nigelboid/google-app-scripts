@@ -205,14 +205,15 @@ function UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNum
 
   // Preserve current prices for later comparisons
   SaveValueDaily(mainSheetID, "Prices", backupRun, verbose);
+  SaveValueDaily(mainSheetID, "OptionsDerived", backupRun, verbose);
 
   // Only attempt to preserve the following once per day
-  if (!backupRun)
-  {
+  // if (!backupRun)
+  // {
     // Preserve values for later comparisons
     // SaveValue(mainSheetID, "Prices", "PricesSaved", verbose);
-    SaveValue(mainSheetID, "OptionsDerived", "OptionsSaved", verbose);
-  }
+    // SaveValue(mainSheetID, "OptionsDerived", "OptionsDerivedSaved", verbose);
+  // }
 };
 
 
