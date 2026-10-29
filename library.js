@@ -479,7 +479,7 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
       if (changed)
       {
         // Commit new values
-        if (SetTableByName(sheetID, destinationName, destinationValues, verbose))
+        if (SetTableByName(sheetID, destinationName, sourceValues, verbose))
         {
           // Values updated
           success = true;
