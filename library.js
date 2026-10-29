@@ -397,11 +397,11 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
       // compare values and update them
       if (sourceValues.length == destinationValues.length)
       {
-        for (var vIndex= 0; vIndex < destinationValues.length; vIndex++)
+        for (var vIndex = 0; vIndex < destinationValues.length; vIndex++)
         {
           if (sourceValues[vIndex].length == destinationValues[vIndex].length)
           {
-            for (var hIndex= 0; hIndex < destinationValues[vIndex].length; hIndex++)
+            for (var hIndex = 0; hIndex < destinationValues[vIndex].length; hIndex++)
             {
               sourceValue = sourceValues[vIndex][hIndex];
               destinationValue = destinationValues[vIndex][hIndex];
@@ -443,7 +443,6 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
                   verbose
                 );
                     
-                destinationValues[vIndex][hIndex] = sourceValues[vIndex][hIndex];
                 changed = true;
                 break;
               }
