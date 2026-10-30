@@ -152,6 +152,8 @@ function RunOptions(sheetID, verbose)
   const updateTimeName = "OptionsUpdateTime";
   const forceRefreshNowName = "OptionsForceRefreshNow";
   const forceRefreshNow = GetValueByName(sheetID, forceRefreshNowName, verbose);
+  const forceRefreshAllowedName = "ParameterIsMarketUpdateAbleOptions";
+  const forceRefreshAllowed = GetValueByName(sheetID, forceRefreshAllowedName, verbose);
   const pollMinutesName = "OptionsPollMinutes";
   const urlName = "OptionsURL";
   const optionPrices = true;
@@ -160,9 +162,18 @@ function RunOptions(sheetID, verbose)
 
   if (forceRefreshNow)
   {
-    // User set a manual forced refresh flag for equity quotes; pass it forward...
-    forceRefreshName = forceRefreshNowName;
-    LogVerbose("Forcing a manual refresh of option pricess...", verbose);
+    // User set a manual forced refresh flag for option quotes
+    if (forceRefreshAllowed)
+    {
+      // Pass the force refresh flag forward...
+      forceRefreshName = forceRefreshNowName;
+      LogVerbose("Forcing a refresh of option pricess...", verbose);
+    }
+    else
+    {
+      // Safeguard against nasty bogus prices
+      Log("Cancelling a forced refresh of option pricess since we are within the verboten period!");
+    }
   }
 
   success = RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
@@ -171,7 +182,7 @@ function RunOptions(sheetID, verbose)
   if (forceRefreshNow)
   {
     // User set a manual forced refresh flag for equity quotes; clear it
-    LogVerbose("Clearing the flag for manual refresh of option pricess...", verbose);
+    LogVerbose("Clearing the flag for forced refresh of option pricess...", verbose);
 
     SetValueByName(sheetID, forceRefreshNowName, "", verbose);
   }
