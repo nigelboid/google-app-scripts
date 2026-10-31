@@ -208,12 +208,14 @@ function RunOptionsAfterHours(sheetID, verbose)
   const updateStatusName = "OptionsUpdateStatus";
   const updateTimeName = "OptionsUpdateTime";
   const forceRefreshName = "OptionsForceRefreshAfterHours";
+  const refreshAllowedName = "ParameterIsMarketUpdateAbleOptions";
+  const refreshAllowed = GetValueByName(sheetID, refreshAllowedName, verbose);
   const pollMinutesName = "OptionsPollMinutes";
   const urlName = "OptionsURL";
   const optionPrices = true;
   var success = false;
   
-  if (!IsMarketOpen(sheetID, optionPrices, verbose))
+  if (refreshAllowed && !IsMarketOpen(sheetID, optionPrices, verbose))
   {
     success = RefreshPrices(sheetID, symbolsTableName, timeStampName, checkStatusName, pricesTableName, labelsTableName,
                             updateStatusName, updateTimeName, forceRefreshName, pollMinutesName, urlName, optionPrices, verbose);
