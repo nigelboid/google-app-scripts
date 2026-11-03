@@ -358,6 +358,7 @@ function GetAnnualSheetIDs(sheetID, verbose)
 function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumbers, limit)
 {
   const firstDataColumn = 0;
+  const logString = true;
   var sourceValues = [];
   var sourceValue = null;
   var destinationValues = [];
@@ -408,15 +409,27 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
 
               if (sourceValue instanceof Date)
               {
+                // Convert dates to strings for comparison and reporting
+                sourceValue = sourceValue.getTime();
+                
                 if (destinationValue instanceof Date)
                 {
                   // Convert dates to strings for comparison
-                  sourceValue = sourceValue.getTime();
                   destinationValue = destinationValue.getTime();
                 }
                 else
                 {
                   // Data type mismatch!
+                  Log
+                  // LogVerbose
+                  (
+                    `Value at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
+                    `is a date <${sourceValue}> in table <${sourceName}> ` +
+                    `while <${destinationValue}> in table <${destinationName}> ` +
+                    `of ${GetSheetNameFromID(sheetID, logString)} is not a date.`,
+                    verbose
+                  );
+
                   changed = true;
                   break;
                 }
@@ -428,18 +441,20 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
                 (
                   `Value <${destinationValues[vIndex][hIndex]}> (${sourceValues[vIndex][hIndex]}) ` +
                   `at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
-                  `has not changed between named tables <${sourceName}> and <${destinationName}> of spreadsheet ID <${sheetID}>.`,
+                  `has not changed between named tables <${sourceName}> and <${destinationName}> ` +
+                  `of ${GetSheetNameFromID(sheetID, logString)}.`,
                   verbose
                 );
               }
               else
               {
-                LogVerbose
+                Log
+                // LogVerbose
                 (
                   `Value at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
                   `has changed to <${sourceValues[vIndex][hIndex]}> in table <${sourceName}> ` +
                   `from <${destinationValues[vIndex][hIndex]}> in table <${destinationName}> ` +
-                  `of spreadsheet ID <${sheetID}>.`,
+                  `of ${GetSheetNameFromID(sheetID, logString)}.`,
                   verbose
                 );
                     
@@ -454,7 +469,7 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
             (
               `Source values range <${sourceValues.length}, ${sourceValues[vIndex].length}> of source <${sourceName}> ` +
               `does not match destination range <${destinationValues.length}, ${destinationValues[vIndex].length}> ` +
-              `of destination <${destinationName}> in spreadsheet ID <${sheetID}>.`
+              `of destination <${destinationName}> in ${GetSheetNameFromID(sheetID, logString)}.`
             );
           }
 
@@ -471,7 +486,7 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
         (
           `Source values height <${sourceValues.length}> of source <${sourceName}> ` +
           `does not match destination height <${destinationValues.length}> of destination <${destinationName}> ` +
-          `in spreadsheet ID <${sheetID}>.`
+          `in ${GetSheetNameFromID(sheetID, logString)}.`
         );
       }
       
@@ -486,7 +501,7 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
         else
         {
           // something went wrong!
-          Log(`Could not write out range named <${destinationName}> in spreadsheet ID <${sheetID}>.`);
+          Log(`Could not write out range named <${destinationName}> in ${GetSheetNameFromID(sheetID, logString)}.`);
           
           changed = false;
           success = false;
@@ -500,12 +515,12 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
     }
     else
     {
-      Log(`Could not get range named <${destinationName}> in spreadsheet ID <${sheetID}>.`);
+      Log(`Could not get range named <${destinationName}> in ${GetSheetNameFromID(sheetID, logString)}.`);
     }
   }
   else
   {
-    Log(`Could not get range named <${sourceName}> in spreadsheet ID <${sheetID}>.`);
+    Log(`Could not get range named <${sourceName}> in ${GetSheetNameFromID(sheetID, logString)}.`);
   }
   
   return success;
@@ -1456,6 +1471,49 @@ function GetParameters(sheetID, sourceName, verbose)
   }
   
   return parameters;
+};
+
+
+/**
+ * GetSheetNameFromID()
+ *
+ * Return the name of the sheet given its sheet ID
+ */
+function GetSheetNameFromID(id, logString)
+{
+  const name = SpreadsheetApp.openById(id).getName();
+  var answer = null;
+  
+  if (logString)
+  {
+    // Looks like a verbose logger string request
+    if (name)
+    {
+      // We have a valid name
+      answer = `spreadsheet named <${name}>`;
+    }
+    else
+    {
+      // Cold not get a name, just return the original ID
+      answer = `spreadsheet ID <${id}>`;
+    }
+  }
+  else
+  {
+    // Looks like a simple id to name request
+    if (name)
+    {
+      // We have a valid name
+      answer = name;
+    }
+    else
+    {
+      // Cold not get a name, just return the original ID
+      answer = id;
+    }
+  }
+  
+  return answer;
 };
 
 
