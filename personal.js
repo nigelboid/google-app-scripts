@@ -11,45 +11,39 @@ function RunPersonal(backupRun)
   const verbose = false;
   const confirmNumbers = true;
 
-  // // End of year special
-  // Log("Skipping daily runs at the end of the year...");
-  // LogSend(mainSheetID);
-  // return false;
-
-  // // Testing trigger timing
-  // if (!backupRun)
-  // {
-  //   Log("Skipping primary run!");
-  //   LogSend(mainSheetID);
-
-  //   return false;
-  // }
-  
   if (mainSheetID != undefined)
   {
-    // Process annual sheets
-    const annualSheetIDs = GetAnnualSheetIDs(mainSheetID, verbose);
-    if (annualSheetIDs != undefined)
+    // Mind the block!
+    const isBlocked = GetValueByName(mainSheetID, "ParameterIsDailyRunBlocked", verbose);
+    if (isBlocked)
     {
-      // const verboseChanges = true;
-      
-      UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun, confirmNumbers);
-      // SynchronizeWithAnnualSheets(mainSheetID, annualSheetIDs, scriptTime, verbose, verboseChanges);
-
-      if (backupRun)
-      {
-        if (!MaintainHistoriesAnnual(annualSheetIDs[scriptTime.getFullYear()], verbose))
-        {
-          Log("Failed to maintain annual document histories!");
-        }
-      }
+      // Runs blocked!
+      Log("Execution blocked!");
     }
     else
     {
-      Log("Failed to obtain annual sheet IDs!");
+      // Process annual sheets
+      const annualSheetIDs = GetAnnualSheetIDs(mainSheetID, verbose);
+      if (annualSheetIDs != undefined)
+      {
+        // Update annual sheets
+        UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun, confirmNumbers);
+
+        if (backupRun)
+        {
+          if (!MaintainHistoriesAnnual(annualSheetIDs[scriptTime.getFullYear()], verbose))
+          {
+            Log("Failed to maintain annual document histories!");
+          }
+        }
+      }
+      else
+      {
+        Log("Failed to obtain annual sheet IDs!");
+      }
+      
+      UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNumbers);
     }
-    
-    UpdateMainSheet(mainSheetID, scriptTime, verbose, backupRun, confirmNumbers);
   }
   else
   {
@@ -277,10 +271,11 @@ function UpdateCurrentAnnualSheet(annualSheetIDs, scriptTime, verbose, backupRun
     SaveValues(sheetID, "HighWaterMark", "HighWaterMarkSaved", verbose, confirmNumbers, 0);
     
     // Preserve current managed portfolio values
-    if (SaveValues(sheetID, "ReconcileHeld", "ReconcileHeldSaved", verbose))
-    {
-      UpdateTime(sheetID, "ReconcileHeldUpdateTime", verbose)
-    }
+    SaveValuesDaily(sheetID, "ReconcileHeld", backupRun, verbose);
+    // if (SaveValues(sheetID, "ReconcileHeld", "ReconcileHeldSaved", verbose))
+    // {
+    //   UpdateTime(sheetID, "ReconcileHeldUpdateTime", verbose)
+    // }
   }
   else
   {
