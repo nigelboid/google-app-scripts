@@ -408,7 +408,7 @@ function GetContractByStrikeSchwab(sheetID, underlying, expirationDate, contract
 
   if (url)
   {
-    const chain= GetURLSchwab(sheetID, url, verbose);
+    const chain = GetURLSchwab(sheetID, url, verbose);
     
     if (chain)
     {
@@ -432,6 +432,7 @@ function GetContractByStrikeSchwab(sheetID, underlying, expirationDate, contract
         (
           chain[contractTypeMap[contractType]][expirationLabel],
           targetStrike,
+          factor,
           preferredSettlement,
           verbose
         );
@@ -612,7 +613,7 @@ function GetContractByBestDeltaMatchSchwab(chain, deltaTarget, preferredSettleme
  * Find the best matching contract by delta within the supplied chain
  *
  */
-function GetContractByBestStrikeMatchSchwab(chain, strikeTarget, preferredSettlement, verbose)
+function GetContractByBestStrikeMatchSchwab(chain, strikeTarget, factor, preferredSettlement, verbose)
 {
   // Declare constants and local variables
   const labelSettlement = "settlementType";
@@ -627,11 +628,11 @@ function GetContractByBestStrikeMatchSchwab(chain, strikeTarget, preferredSettle
   }
 
 
-  // Search through the chain for closest delta match within sensitivity bounds
+  // Search through the chain for closest strike price match within sensitivity bounds
   for (const strike in chain)
   {
     // Check each strike
-    if (Math.abs(strikeTarget - strikeNearest) > Math.abs(strikeTarget - strike))
+    if (Math.abs(strikeTarget - strikeNearest) > Math.abs(strikeTarget - strike) && (strike % factor == 0))
     {
       // Found a closer target strike
       strikeNearest = strike;

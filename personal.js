@@ -86,7 +86,7 @@ function RunPersonalHourly()
       Log("Failed to obtain annual sheet IDs!");
     }
     
-    // process main sheet
+    // Process main sheet
     if (!ReconcilePortfolioHistory(mainSheetID, verbose))
     {
       Log("Failed to reconcile portfolio history!");

@@ -24,7 +24,7 @@ function RunIndexStranglesCandidates(afterHours, test)
   {
     afterHours = true;
   }
-  
+
   if (test == undefined)
   {
     test = false;

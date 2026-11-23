@@ -421,8 +421,7 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
                 else
                 {
                   // Data type mismatch!
-                  Log
-                  // LogVerbose
+                  LogVerbose
                   (
                     `Value at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
                     `is a date <${sourceValue}> in table <${sourceName}> ` +
@@ -449,8 +448,7 @@ function SaveValues(sheetID, sourceName, destinationName, verbose, confirmNumber
               }
               else
               {
-                Log
-                // LogVerbose
+                LogVerbose
                 (
                   `Value at location <${hIndex.toFixed(0)}, ${vIndex.toFixed(0)}> ` +
                   `has changed to <${sourceValues[vIndex][hIndex]}> in table <${sourceName}> ` +
